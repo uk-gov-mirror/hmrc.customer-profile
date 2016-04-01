@@ -1,3 +1,3 @@
 # microservice specific routes
 
-GET        /hello-world             uk.gov.hmrc.customerprofile.controllers.MicroserviceHelloWorld.hello
+GET        /profile                 uk.gov.hmrc.customerprofile.controllers.Profile.loggedInProfile

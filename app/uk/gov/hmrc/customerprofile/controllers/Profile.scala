@@ -16,26 +16,16 @@
 
 package uk.gov.hmrc.customerprofile.controllers
 
-import play.api.http.Status
-import play.api.test.FakeRequest
-import play.api.http.Status
-import play.api.test.FakeRequest
-import uk.gov.hmrc.play.test.UnitSpec
-import uk.gov.hmrc.play.test.WithFakeApplication
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
+import play.api.mvc.Action
+import uk.gov.hmrc.play.microservice.controller.BaseController
 
+import scala.concurrent.Future
 
-class MicroserviceHelloWorldControllerSpec extends UnitSpec with WithFakeApplication{
+trait Profile extends BaseController {
 
-  val fakeRequest = FakeRequest("GET", "/")
-
-
-  "GET /" should {
-    "return 200" in {
-      val result = MicroserviceHelloWorld.hello()(fakeRequest)
-      status(result) shouldBe Status.OK
-    }
+  def loggedInProfile() = Action.async { implicit request =>
+    Future.successful(Ok("logged in profile"))
   }
-
-
 }
+
+object Profile extends Profile
