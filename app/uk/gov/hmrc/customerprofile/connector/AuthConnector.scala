@@ -16,11 +16,12 @@
 
 package uk.gov.hmrc.customerprofile.connector
 
-import play.api.Play
+import play.api.{Logger, Play}
+import play.api.libs.json.JsValue
 import uk.gov.hmrc.customerprofile.config.WSHttp
 import uk.gov.hmrc.play.auth.microservice.connectors.ConfidenceLevel
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpGet}
+import uk.gov.hmrc.play.http.{HeaderCarrier, HttpGet, UnauthorizedException}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -34,37 +35,46 @@ trait AuthConnector {
 
   def http: HttpGet
 
-  def confidenceLevel: ConfidenceLevel
+  def serviceConfidenceLevel: ConfidenceLevel
 
-  def accounts()(implicit hc: HeaderCarrier, ec : ExecutionContext): Future[Option[Accounts]] = {
+  def accounts()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Accounts] = {
     http.GET(s"$serviceUrl/auth/authority") map {
       resp =>
         val json = resp.json
-        val cl = (json \ "confidenceLevel").as[Int]
-        if (cl >= confidenceLevel.level) {
+        confirmConfiendenceLevel(json)
 
-          val accounts = json \ "accounts"
+        val accounts = json \ "accounts"
 
-          val utr = (accounts \ "sa" \ "utr").asOpt[String]
+        val utr = (accounts \ "sa" \ "utr").asOpt[String]
 
-          val nino = (accounts \ "paye" \ "nino").asOpt[String]
+        val nino = (accounts \ "paye" \ "nino").asOpt[String]
 
-          val acc = Accounts(nino.map(Nino(_)), utr.map(SaUtr(_)))
-          acc match {
-            case Accounts(None, None) => None
-            case _ => Some(acc)
+        val acc = Accounts(nino.map(Nino(_)), utr.map(SaUtr(_)))
+        acc match {
+          case Accounts(None, _) => {
+            //TODO add a metric for this ????
+            Logger.warn("User without a NINO has accessed the service this should not be possible")
+            throw new UnauthorizedException("The user must have a National Insurance Number")
           }
-        } else
-          None
+          case _ => acc
+        }
+    }
+  }
+
+  private def confirmConfiendenceLevel(jsValue : JsValue) = {
+    val usersCL = (jsValue \ "confidenceLevel").as[Int]
+    if (serviceConfidenceLevel.level > usersCL) {
+      throw new UnauthorizedException("The user does not have sufficient permissions to access this service")
     }
   }
 }
 
 object AuthConnector extends AuthConnector with ServicesConfig {
+
   import play.api.Play.current
 
   val serviceUrl = baseUrl("auth")
   val http = WSHttp
-  val confidenceLevel: ConfidenceLevel = ConfidenceLevel.fromInt(Play.configuration.getInt("controllers.confidenceLevel")
+  val serviceConfidenceLevel: ConfidenceLevel = ConfidenceLevel.fromInt(Play.configuration.getInt("controllers.confidenceLevel")
     .getOrElse(throw new RuntimeException("The service has not been configured with a confidence level")))
 }

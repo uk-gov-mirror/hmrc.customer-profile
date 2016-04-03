@@ -22,7 +22,7 @@ import uk.gov.hmrc.customerprofile.domain.Accounts
 import uk.gov.hmrc.domain.{Nino, SaUtr}
 import uk.gov.hmrc.play.auth.microservice.connectors.ConfidenceLevel
 import uk.gov.hmrc.play.http.hooks.HttpHook
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpGet, HttpResponse}
+import uk.gov.hmrc.play.http.{HeaderCarrier, HttpGet, HttpResponse, UnauthorizedException}
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
@@ -43,12 +43,12 @@ class AuthConnectorSpec extends UnitSpec with ScalaFutures {
 
     override val serviceUrl: String = "http://localhost"
 
-    override def confidenceLevel: ConfidenceLevel = cl
+    override def serviceConfidenceLevel: ConfidenceLevel = cl
   }
 
   "Accounts" should {
 
-    "be found when confidence level is greater than the configured confidence level" in {
+    "be found when user's confidence level is greater than the configured confidence level" in {
 
       val serviceConfidenceLevel = ConfidenceLevel.L200
       val authorityConfidenceLevel = ConfidenceLevel.L500
@@ -57,13 +57,13 @@ class AuthConnectorSpec extends UnitSpec with ScalaFutures {
       val nino = Some(Nino("CS100700A"))
       val response = HttpResponse(200, Some(authorityJson(authorityConfidenceLevel, saUtr, nino)))
 
-      val accounts : Option[Accounts] = authConnector(response, serviceConfidenceLevel).accounts()
+      val accounts = authConnector(response, serviceConfidenceLevel).accounts()
 
-      accounts.get.nino.get shouldBe nino.get
-      accounts.get.saUtr.get shouldBe saUtr.get
+      accounts.nino.get shouldBe nino.get
+      accounts.saUtr.get shouldBe saUtr.get
     }
 
-    "be found when confidence level is equal to the configured confidence level" in {
+    "be found when user's confidence level is equal to the configured confidence level" in {
 
       val serviceConfidenceLevel = ConfidenceLevel.L200
       val authorityConfidenceLevel = ConfidenceLevel.L200
@@ -72,10 +72,10 @@ class AuthConnectorSpec extends UnitSpec with ScalaFutures {
       val nino = Some(Nino("CS100700A"))
       val response = HttpResponse(200, Some(authorityJson(authorityConfidenceLevel, saUtr, nino)))
 
-      val accounts : Option[Accounts] = authConnector(response, serviceConfidenceLevel).accounts()
+      val accounts = authConnector(response, serviceConfidenceLevel).accounts()
 
-      accounts.get.nino.get shouldBe nino.get
-      accounts.get.saUtr.get shouldBe saUtr.get
+      accounts.nino.get shouldBe nino.get
+      accounts.saUtr.get shouldBe saUtr.get
     }
 
     "find Nino only accounts" in {
@@ -87,28 +87,32 @@ class AuthConnectorSpec extends UnitSpec with ScalaFutures {
       val nino = Some(Nino("CS100700A"))
       val response = HttpResponse(200, Some(authorityJson(authorityConfidenceLevel, saUtr, nino)))
 
-      val accounts : Option[Accounts] = authConnector(response, serviceConfidenceLevel).accounts()
+      val accounts = authConnector(response, serviceConfidenceLevel).accounts()
 
-      accounts.get.nino.get shouldBe nino.get
-      accounts.get.saUtr shouldBe None
+      accounts.nino.get shouldBe nino.get
+      accounts.saUtr shouldBe None
     }
 
-    "find SAUTR only accounts" in {
+    "error when an account does not have an associated NINO" in {
 
       val serviceConfidenceLevel = ConfidenceLevel.L200
       val authorityConfidenceLevel = ConfidenceLevel.L200
 
-      val saUtr = None
-      val nino = Some(Nino("CS100700A"))
+      val saUtr = Some(SaUtr("1872796160"))
+      val nino = None
       val response = HttpResponse(200, Some(authorityJson(authorityConfidenceLevel, saUtr, nino)))
 
-      val accounts : Option[Accounts] = authConnector(response, serviceConfidenceLevel).accounts()
-
-      accounts.get.nino.get shouldBe nino.get
-      accounts.get.saUtr shouldBe None
+      try{
+        authConnector(response, serviceConfidenceLevel).accounts()
+      } catch {
+        case e : UnauthorizedException =>
+          e.message shouldBe "The user must have a National Insurance Number"
+        case t : Throwable =>
+          fail("Unexpected error failure")
+      }
     }
 
-    "not found when confidence level is lower than the configured confidence level" in {
+    "error when user's confidence level is lower than the configured confidence level" in {
 
       val serviceConfidenceLevel = ConfidenceLevel.L200
       val authorityConfidenceLevel = ConfidenceLevel.L50
@@ -117,9 +121,15 @@ class AuthConnectorSpec extends UnitSpec with ScalaFutures {
       val nino = Some(Nino("CS100700A"))
       val response = HttpResponse(200, Some(authorityJson(authorityConfidenceLevel, saUtr, nino)))
 
-      val accounts : Option[Accounts] = authConnector(response, serviceConfidenceLevel).accounts()
+      try{
+        authConnector(response, serviceConfidenceLevel).accounts()
+      } catch {
+        case e : UnauthorizedException =>
+          e.message shouldBe "The user does not have sufficient permissions to access this service"
+        case t : Throwable =>
+          fail("Unexpected error failure")
+      }
 
-      accounts shouldBe None
     }
 
   }
