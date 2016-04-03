@@ -5,6 +5,8 @@ import uk.gov.hmrc.versioning.SbtGitVersioning
 
 object MicroServiceBuild extends Build with MicroService {
 
+  import play.PlayImport.PlayKeys._
+
   val appName = "customer-profile"
 
   override lazy val plugins: Seq[Plugins] = Seq(
@@ -12,6 +14,8 @@ object MicroServiceBuild extends Build with MicroService {
   )
 
   override lazy val appDependencies: Seq[ModuleID] = AppDependencies()
+  override lazy val playSettings : Seq[Setting[_]] = Seq(routesImport ++= Seq("uk.gov.hmrc.domain._", "uk.gov.hmrc.customerprofile.binder.Binders._"))
+
 }
 
 private object AppDependencies {
