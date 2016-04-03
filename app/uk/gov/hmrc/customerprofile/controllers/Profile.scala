@@ -16,16 +16,37 @@
 
 package uk.gov.hmrc.customerprofile.controllers
 
+import play.api.libs.json.Json
 import play.api.mvc.Action
+import uk.gov.hmrc.customerprofile.connector.{AuthConnector, CitizenDetailsConnector}
+import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.play.microservice.controller.BaseController
-
-import scala.concurrent.Future
 
 trait Profile extends BaseController {
 
-  def loggedInProfile() = Action.async { implicit request =>
-    Future.successful(Ok("logged in profile"))
+  import uk.gov.hmrc.customerprofile.domain.Accounts.accountsFmt
+
+  import scala.concurrent.ExecutionContext.Implicits.global
+
+  def authConnector: AuthConnector
+
+  def citizenDetailsConnector: CitizenDetailsConnector
+
+  def accounts() = Action.async {
+    implicit request =>
+      authConnector.accounts() map( acc => Ok(Json.toJson(acc)))
+  }
+
+  def personalDetails(nino: Nino) = Action.async { implicit request =>
+    citizenDetailsConnector.personDetails(nino).map {
+      pd =>
+        Ok(Json.toJson(pd))
+    }
   }
 }
 
-object Profile extends Profile
+object Profile extends Profile {
+  override val authConnector: AuthConnector = AuthConnector
+
+  override val citizenDetailsConnector: CitizenDetailsConnector = CitizenDetailsConnector
+}
