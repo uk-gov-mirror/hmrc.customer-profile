@@ -19,6 +19,7 @@ package uk.gov.hmrc.customerprofile.controllers
 import play.api.libs.json.Json
 import play.api.mvc.Action
 import uk.gov.hmrc.customerprofile.connector.{AuthConnector, CitizenDetailsConnector}
+import uk.gov.hmrc.customerprofile.domain.CustomerProfile
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
@@ -31,6 +32,14 @@ trait Profile extends BaseController {
   def authConnector: AuthConnector
 
   def citizenDetailsConnector: CitizenDetailsConnector
+
+//  def profile() = Action.async {
+//    implicit request =>
+//
+//
+//
+//  }
+
 
   def accounts() = Action.async {
     implicit request =>

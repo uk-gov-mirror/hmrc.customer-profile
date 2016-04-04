@@ -19,9 +19,11 @@ package uk.gov.hmrc.customerprofile.domain
 import play.api.libs.json.Json
 import uk.gov.hmrc.domain.{Nino, SaUtr}
 
-case class Accounts(nino : Option[Nino], saUtr: Option[SaUtr])
+import scala.concurrent.{ExecutionContext, Future}
 
-object Accounts{
+case class Accounts(nino: Option[Nino], saUtr: Option[SaUtr])
+
+object Accounts {
   implicit val accountsFmt = {
     import Nino.{ninoRead, ninoWrite}
     import SaUtr.{saUtrRead, saUtrWrite}
@@ -30,12 +32,19 @@ object Accounts{
   }
 }
 
-case class CustomerProfile(accounts : Accounts, personalDetails : PersonDetails)
+case class CustomerProfile(accounts: Accounts, personalDetails: PersonDetails)
 
 object CustomerProfile {
   implicit val formats = {
     import PersonDetails.formats
 
     Json.format[CustomerProfile]
+  }
+
+  def create(accounts: () => Future[Accounts], personalDetails: (Option[Nino]) => Future[PersonDetails])(implicit ec : ExecutionContext) : Future[CustomerProfile] = {
+    for {
+      acc <- accounts()
+      pd <- personalDetails(acc.nino)
+    } yield CustomerProfile(acc, pd)
   }
 }
