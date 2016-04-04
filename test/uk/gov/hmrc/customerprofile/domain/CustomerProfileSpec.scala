@@ -18,6 +18,7 @@ package uk.gov.hmrc.customerprofile.domain
 
 import org.scalatest.concurrent.ScalaFutures
 import uk.gov.hmrc.domain.{Nino, SaUtr}
+import uk.gov.hmrc.play.http.UnauthorizedException
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.time.DateTimeUtils
 
@@ -27,14 +28,15 @@ class CustomerProfileSpec extends UnitSpec with ScalaFutures {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  "create CustomerProfile" in {
+  "CustomerProfile" should {
+    "be created" in {
       val nino = Some(Nino("CS100700A"))
       val saUtr = Some(SaUtr("1872796160"))
-      def accounts : () => Future[Accounts] = () => Future.successful(Accounts(nino, saUtr))
+      def accounts: () => Future[Accounts] = () => Future.successful(Accounts(nino, saUtr))
 
-      def pd(nino: Option[Nino]) : Future[PersonDetails] = {
+      def pd(nino: Option[Nino]): Future[PersonDetails] = {
         val person = Person(Some("Mike"), None, Some("Potter"), None, Some("Mr"), None, Some("M"), Some(DateTimeUtils.now), nino)
-        Future.successful(PersonDetails("etag1234",person, None, None))
+        Future.successful(PersonDetails("etag1234", person, None, None))
       }
 
       val customerProfile = CustomerProfile.create(accounts, pd).futureValue
@@ -44,5 +46,20 @@ class CustomerProfileSpec extends UnitSpec with ScalaFutures {
 
       customerProfile.personalDetails.etag shouldBe "etag1234"
       customerProfile.personalDetails.person.firstName.get shouldBe "Mike"
+    }
+
+    "fail to create" in {
+
+      def accounts: () => Future[Accounts] = () => Future.successful( throw new UnauthorizedException("User does not have sufficient permissions"))
+
+      def pd(nino: Option[Nino]): Future[PersonDetails] = {
+        val person = Person(Some("Mike"), None, Some("Potter"), None, Some("Mr"), None, Some("M"), Some(DateTimeUtils.now), nino)
+        Future.successful(PersonDetails("etag1234", person, None, None))
+      }
+
+      a [UnauthorizedException] shouldBe thrownBy {
+        CustomerProfile.create(accounts, pd)
+      }
+    }
   }
 }
