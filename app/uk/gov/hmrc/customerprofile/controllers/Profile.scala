@@ -18,13 +18,14 @@ package uk.gov.hmrc.customerprofile.controllers
 
 import play.api.libs.json.Json
 import play.api.mvc.Action
-import uk.gov.hmrc.customerprofile.connector.{AuthConnector, CitizenDetailsConnector}
-import uk.gov.hmrc.customerprofile.domain.CustomerProfile
-import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.customerprofile.connector.{AuthConnector, CitizenDetailsConnector}
 
 trait Profile extends BaseController {
 
+  import uk.gov.hmrc.customerprofile.domain.CustomerProfile
+  import CustomerProfile.formats
+  import uk.gov.hmrc.domain.Nino
   import uk.gov.hmrc.customerprofile.domain.Accounts.accountsFmt
 
   import scala.concurrent.ExecutionContext.Implicits.global
@@ -33,17 +34,18 @@ trait Profile extends BaseController {
 
   def citizenDetailsConnector: CitizenDetailsConnector
 
-//  def profile() = Action.async {
-//    implicit request =>
-//
-//
-//
-//  }
+  def profile() = Action.async {
+    implicit request =>
+      CustomerProfile.create(authConnector.accounts, (nino) => citizenDetailsConnector.personDetails(nino.get)).map {
+        cp =>
+          Ok(Json.toJson(cp))
+      } //TODO failure response
+  }
 
 
   def accounts() = Action.async {
     implicit request =>
-      authConnector.accounts() map( acc => Ok(Json.toJson(acc)))
+      authConnector.accounts() map (acc => Ok(Json.toJson(acc)))
   }
 
   def personalDetails(nino: Nino) = Action.async { implicit request =>

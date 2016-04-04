@@ -21,7 +21,7 @@ import play.api.libs.json.JsValue
 import uk.gov.hmrc.customerprofile.config.WSHttp
 import uk.gov.hmrc.play.auth.microservice.connectors.ConfidenceLevel
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpGet, UnauthorizedException}
+import uk.gov.hmrc.play.http.{ForbiddenException, HeaderCarrier, HttpGet, UnauthorizedException}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -64,7 +64,7 @@ trait AuthConnector {
   private def confirmConfiendenceLevel(jsValue : JsValue) = {
     val usersCL = (jsValue \ "confidenceLevel").as[Int]
     if (serviceConfidenceLevel.level > usersCL) {
-      throw new UnauthorizedException("The user does not have sufficient permissions to access this service")
+      throw new ForbiddenException("The user does not have sufficient permissions to access this service")
     }
   }
 }

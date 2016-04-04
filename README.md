@@ -3,7 +3,20 @@
 [![Build Status](https://travis-ci.org/hmrc/customer-profile.svg?branch=master)](https://travis-ci.org/hmrc/customer-profile) [ ![Download](https://api.bintray.com/packages/hmrc/releases/customer-profile/images/download.svg) ](https://bintray.com/hmrc/releases/customer-profile/_latestVersion)
 
 
-# API
+# API Definitions
+
+## GET     /profile
+
+Root summary of a complete customer profile.
+
+**Response Status Codes**
+
+See below API Definitions.
+
+**Example Response Body**
+
+TODO
+
 
 ## GET     /profile/accounts
 
@@ -15,6 +28,8 @@ Look up for the current user's tax account identifiers, e.g. National Insurance 
 |------------|-------------------------------------------------------------------------------------------------------------------|
 | 200        | Record found                                                                                                      |
 | 404        | Record not found                                                                                                  |
+| 401        | The user does not have the correct permissions to access this service                                                                                                  |
+| 403        | The user does not have sufficient permissions to access this service                                                                                                  |
 | 500        | There was an unrecoverable error, possibly bad data received from the upstream API
 
 **Example Response Body**
