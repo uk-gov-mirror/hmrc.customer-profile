@@ -61,6 +61,14 @@ trait AuthConnector {
     }
   }
 
+  def hasNino()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = {
+    http.GET(s"$serviceUrl/auth/authority") map {
+      resp =>
+        if((resp.json \ "accounts" \ "paye" \ "nino").asOpt[String].isEmpty)
+          throw new UnauthorizedException("The user must have a National Insurance Number to access this service")
+    }
+  }
+
   private def confirmConfiendenceLevel(jsValue : JsValue) = {
     val usersCL = (jsValue \ "confidenceLevel").as[Int]
     if (serviceConfidenceLevel.level > usersCL) {

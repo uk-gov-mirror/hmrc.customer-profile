@@ -134,6 +134,42 @@ class AuthConnectorSpec extends UnitSpec with ScalaFutures {
 
   }
 
+  "Accounts that have nino" should {
+
+    "error with unauthorised" in {
+
+      val serviceConfidenceLevel = ConfidenceLevel.L200
+      val authorityConfidenceLevel = ConfidenceLevel.L200
+
+      val saUtr = Some(SaUtr("1872796160"))
+      val nino = None
+      val response = HttpResponse(200, Some(authorityJson(authorityConfidenceLevel, saUtr, nino)))
+
+      try{
+        authConnector(response, serviceConfidenceLevel).hasNino()
+      } catch {
+        case e : UnauthorizedException =>
+          e.message shouldBe "The user must have a National Insurance Number to access this service"
+        case t : Throwable =>
+          fail("Unexpected error failure")
+      }
+    }
+
+    "find Nino only accounts" in {
+
+      val serviceConfidenceLevel = ConfidenceLevel.L200
+      val authorityConfidenceLevel = ConfidenceLevel.L200
+
+      val saUtr = None
+
+      val nino = Some(Nino("CS100700A"))
+      val response = HttpResponse(200, Some(authorityJson(authorityConfidenceLevel, saUtr, nino)))
+
+      authConnector(response, serviceConfidenceLevel).hasNino().futureValue
+
+    }
+  }
+
 
   def authorityJson(confidenceLevel: ConfidenceLevel, saUtr: Option[SaUtr], nino : Option[Nino]): JsValue = {
 
