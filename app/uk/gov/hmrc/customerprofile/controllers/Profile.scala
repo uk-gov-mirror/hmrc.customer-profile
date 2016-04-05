@@ -20,6 +20,7 @@ import play.api.libs.json.Json
 import play.api.mvc.Action
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.customerprofile.connector.{AuthConnector, CitizenDetailsConnector}
+import uk.gov.hmrc.customerprofile.controllers.action.AccountAccessControl
 
 trait Profile extends BaseController {
 
@@ -34,7 +35,7 @@ trait Profile extends BaseController {
 
   def citizenDetailsConnector: CitizenDetailsConnector
 
-  def profile() = Action.async {
+  def profile() = AccountAccessControl.async {
     implicit request =>
       CustomerProfile.create(authConnector.accounts, (nino) => citizenDetailsConnector.personDetails(nino.get)).map {
         cp =>
@@ -43,12 +44,12 @@ trait Profile extends BaseController {
   }
 
 
-  def accounts() = Action.async {
+  def accounts() = AccountAccessControl.async {
     implicit request =>
       authConnector.accounts() map (acc => Ok(Json.toJson(acc)))
   }
 
-  def personalDetails(nino: Nino) = Action.async { implicit request =>
+  def personalDetails(nino: Nino) = AccountAccessControl.async { implicit request =>
     citizenDetailsConnector.personDetails(nino).map {
       pd =>
         Ok(Json.toJson(pd))
