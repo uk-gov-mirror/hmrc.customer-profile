@@ -55,6 +55,31 @@ Finds a user's designatory details
 TODO
 
 
+## POST     /profile/preferences/paperless-settings
+
+Sets or updates the user's preference to go paperless
+
+**Request payload**
+
+```
+    {
+        "generic": {
+            "accepted":true
+        },
+        "email": "mark@email.co.uk"
+    }
+```
+
+**Response Status Codes**
+
+| StatusCode | Description                                                                                                       |
+|------------|-------------------------------------------------------------------------------------------------------------------|
+| 200        | Update to an existing record                                                                                                      |
+| 201        | Creation of a new record                                                                                    |
+| 400        | Payload was incorrect                                                                                                              |
+| 500        | There was an unrecoverable error, possibly bad data received from the upstream API
+
+
 
 ### License
 
