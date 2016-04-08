@@ -16,29 +16,80 @@
 
 package uk.gov.hmrc.customerprofile.controllers.action
 
-import play.api.mvc.{ActionBuilder, Request, Result}
+import play.api.libs.json.Json
+import play.api.mvc.{Results, ActionBuilder, Request, Result}
 import uk.gov.hmrc.customerprofile.connector.AuthConnector
-import uk.gov.hmrc.play.http.HeaderCarrier
+import uk.gov.hmrc.customerprofile.controllers.{ErrorAcceptHeaderInvalid, HeaderValidator, ErrorUnauthorizedNoNino}
+import uk.gov.hmrc.play.auth.microservice.connectors.ConfidenceLevel
+import uk.gov.hmrc.play.http._
+import uk.gov.hmrc.play.http.hooks.HttpHook
 
 import scala.concurrent.Future
 
 
-trait AccountAccessControl extends ActionBuilder[Request] {
+trait AccountAccessControl extends ActionBuilder[Request] with Results {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
   val authConnector: AuthConnector
 
   def invokeBlock[A](request: Request[A], block: (Request[A]) => Future[Result]) = {
-    implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, Some(request.session))
+    implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, None)
+
     authConnector.hasNino().flatMap {
       _ =>
         block(request)
+    }.recover {
+      case ex:uk.gov.hmrc.play.http.Upstream4xxResponse => Unauthorized(Json.toJson(ErrorUnauthorizedNoNino))
     }
   }
 
 }
 
-object AccountAccessControl extends AccountAccessControl {
+trait AccountAccessControlWithHeaderCheck extends HeaderValidator {
+  val checkAccess=true
+  val accessControl:AccountAccessControl
+
+  override def validateAccept(rules: Option[String] => Boolean) = new ActionBuilder[Request] {
+
+    def invokeBlock[A](request: Request[A], block: (Request[A]) => Future[Result]) = {
+      if (rules(request.headers.get("Accept"))) {
+        if (checkAccess) accessControl.invokeBlock(request, block)
+        else block(request)
+      }
+      else Future.successful(Status(ErrorAcceptHeaderInvalid.httpStatusCode)(Json.toJson(ErrorAcceptHeaderInvalid)))
+    }
+  }
+}
+
+object Auth {
   val authConnector: AuthConnector = AuthConnector
 }
+
+object AccountAccessControl extends AccountAccessControl {
+  val authConnector: AuthConnector = Auth.authConnector
+}
+
+object AccountAccessControlWithHeaderCheck extends AccountAccessControlWithHeaderCheck {
+  val accessControl: AccountAccessControl = AccountAccessControl
+}
+
+object AccountAccessControlSandbox extends AccountAccessControl {
+    val authConnector: AuthConnector = new AuthConnector {
+      override val serviceUrl: String = "NO SERVICE"
+
+      override def serviceConfidenceLevel: ConfidenceLevel = ConfidenceLevel.L0
+
+      override def http: HttpGet = new HttpGet {
+        override protected def doGet(url: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = Future.failed(new IllegalArgumentException("Sandbox mode!"))
+        override val hooks: Seq[HttpHook] = NoneRequired
+      }
+    }
+}
+
+object AccountAccessControlForSandbox extends AccountAccessControlWithHeaderCheck {
+  override val checkAccess=false
+
+  val accessControl: AccountAccessControl = AccountAccessControlSandbox
+}
+

@@ -22,6 +22,13 @@ private object AppDependencies {
   import play.PlayImport._
   import play.core.PlayVersion
 
+  private val wireMockVersion = "1.57"
+  private val scalaJVersion = "1.1.5"
+  private val scalaTestVersion = "2.2.5"
+  private val hmrcPlayJsonLoggerVersion = "2.1.1"
+  private val pegdownVersion = "1.6.0"
+  private val cucumberVersion = "1.2.4"
+
   private val microserviceBootstrapVersion = "4.2.1"
   private val playAuthVersion = "3.1.0"
   private val playHealthVersion = "1.1.0"
@@ -53,10 +60,14 @@ private object AppDependencies {
   object Test {
     def apply() = new TestDependencies {
       override lazy val test = Seq(
-        "uk.gov.hmrc" %% "hmrctest" % hmrcTestVersion % scope,
-        "org.scalatest" %% "scalatest" % "2.2.6" % scope,
-        "org.pegdown" % "pegdown" % "1.5.0" % scope,
-        "com.typesafe.play" %% "play-test" % PlayVersion.current % scope
+        "uk.gov.hmrc" %% "hmrctest" % hmrcTestVersion % "test,it",
+        "org.scalaj" %% "scalaj-http" % scalaJVersion % "test,it",
+        "org.scalatest" %% "scalatest" % scalaTestVersion % "test,it",
+        "org.pegdown" % "pegdown" % pegdownVersion % "test,it",
+        "com.typesafe.play" %% "play-test" % PlayVersion.current % "test,it",
+        "com.github.tomakehurst" % "wiremock" % wireMockVersion % "test,it",
+        "info.cukes" %% "cucumber-scala" % cucumberVersion % "test,it",
+        "info.cukes" % "cucumber-junit" % cucumberVersion % "test,it"
       )
     }.test
   }

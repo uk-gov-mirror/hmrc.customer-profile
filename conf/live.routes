@@ -1,0 +1,10 @@
+# microservice specific routes
+
+GET         /profile                                       uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.getProfile()
+
+GET         /profile/accounts                              uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.getAccounts()
+
+GET         /profile/personal-details/:nino                uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.getPersonalDetails(nino : Nino)
+
+POST        /profile/preferences/paperless-settings        uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.paperlessSettings()
+

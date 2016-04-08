@@ -18,7 +18,6 @@ package uk.gov.hmrc.customerprofile.connector
 
 import org.scalatest.concurrent.ScalaFutures
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.customerprofile.domain.Accounts
 import uk.gov.hmrc.domain.{Nino, SaUtr}
 import uk.gov.hmrc.play.auth.microservice.connectors.ConfidenceLevel
 import uk.gov.hmrc.play.http.hooks.HttpHook

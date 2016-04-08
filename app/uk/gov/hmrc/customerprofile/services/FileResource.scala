@@ -14,24 +14,28 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.customerprofile.controllers
+package uk.gov.hmrc.customerprofile.services
 
-import play.api.http.Status
-import play.api.test.FakeRequest
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
+import java.io.InputStream
 
+import play.api.Logger
 
-//class ProfileSpec extends UnitSpec with WithFakeApplication{
-//
-//  val fakeRequest = FakeRequest("GET", "/")
-//
-//
-//  "GET /" should {
-//    "return 200" in {
-////      val result = Profile.accounts()
-////      status(result) shouldBe Status.OK
-//    }
-//  }
-//
-//
-//}
+import scala.io.Source
+
+trait FileResource {
+  private def readStreamToString(is: InputStream) = {
+    try Source.fromInputStream(is).mkString.toString
+    finally is.close()
+  }
+
+  def findResource(path: String): Option[String] = {
+    val resource = getClass.getResourceAsStream(path)
+    if (resource == null) {
+      Logger.warn(s"Could not find resource '$path'")
+      None
+    } else {
+      Some(readStreamToString(resource))
+    }
+  }
+
+}
