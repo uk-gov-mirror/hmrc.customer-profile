@@ -48,7 +48,6 @@ trait ErrorHandling {
   }
 }
 
-// todo: check HC!
 trait CustomerProfileController extends BaseController with HeaderValidator with ErrorHandling {
   val service: CustomerProfileService
   val accessControl:AccountAccessControlWithHeaderCheck
@@ -71,7 +70,7 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
       errorWrapper(service.getPersonalDetails(nino).map(as => Ok(Json.toJson(as))))
   }
 
-  final def paperlessSettings(): Action[JsValue] = accessControl.validateAccept(acceptHeaderValidationRules).async(BodyParsers.parse.json) {
+  final def paperlessSettings() = accessControl.validateAccept(acceptHeaderValidationRules).async(BodyParsers.parse.json) {
 
     implicit request =>
       implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, None)
@@ -79,15 +78,14 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
       request.body.validate[Paperless].fold (
         errors => {
           Logger.warn("Received error with service getPaperlessSettings: " + errors)
-          // TODO...align with error response!
           Future.successful(BadRequest(Json.obj("message" -> JsError.toFlatJson(errors))))
         },
         settings => {
-          errorWrapper(service.getPaperlessSettings(settings).map {
-            case PreferencesExists => Ok(Json.toJson("The existing record has been updated"))
+          errorWrapper(service.paperlessSettings(settings).map {
+            case PreferencesExists => println("OK..");Ok(Json.toJson("The existing record has been updated"))
             case PreferencesCreated => Created(Json.toJson(""))
-            // TODO...align with error response!
-            case PreferencesFailure => InternalServerError("Unexpected error")
+              // TODO: check server error status. Does not need to be a 500?
+            case PreferencesFailure => InternalServerError(Json.toJson(PreferencesSettingsError))
           })}
       )
   }

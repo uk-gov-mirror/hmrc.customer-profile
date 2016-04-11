@@ -25,6 +25,7 @@ import uk.gov.hmrc.play.http.HeaderCarrier
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
+
 trait CustomerProfileService {
   def getProfile()(implicit hc:HeaderCarrier): Future[CustomerProfile]
 
@@ -32,7 +33,7 @@ trait CustomerProfileService {
 
   def getPersonalDetails(nino:Nino)(implicit hc:HeaderCarrier): Future[PersonDetails]
 
-  def getPaperlessSettings(settings:Paperless)(implicit hc:HeaderCarrier): Future[PreferencesStatus]
+  def paperlessSettings(settings:Paperless)(implicit hc:HeaderCarrier): Future[PreferencesStatus]
 }
 
 trait LiveCustomerProfileService extends CustomerProfileService {
@@ -42,7 +43,7 @@ trait LiveCustomerProfileService extends CustomerProfileService {
 
   def entityResolver : EntityResolverConnector
 
-  def audit(service:String, details:Map[String, String]) = {
+  def audit(service:String, details:Map[String, String])(implicit hc:HeaderCarrier) = {
     def auditResponse(): Unit = {
       MicroserviceAuditConnector.sendEvent(
         DataEvent("customer-profile", "ServiceResponseSent",
@@ -51,56 +52,55 @@ trait LiveCustomerProfileService extends CustomerProfileService {
     }
   }
 
-  def withAudit[T](service:String, details:Map[String, String])(func:Future[T]) = {
+  def withAudit[T](service: String, details: Map[String, String])(func:Future[T])(implicit hc:HeaderCarrier) = {
     audit(service, details) // No need to wait!
     func
   }
 
-  def getProfile()(implicit hc:HeaderCarrier): Future[CustomerProfile] = {
+  def getProfile()(implicit hc: HeaderCarrier): Future[CustomerProfile] = {
     withAudit("getProfile", Map.empty) {
       CustomerProfile.create(authConnector.accounts, (nino) => citizenDetailsConnector.personDetails(nino.get))
     }
   }
 
-  def getAccounts()(implicit hc:HeaderCarrier): Future[Accounts] = {
+  def getAccounts()(implicit hc: HeaderCarrier): Future[Accounts] = {
     withAudit("getAccounts", Map.empty) {
       authConnector.accounts()
     }
   }
 
-  override def getPersonalDetails(nino:Nino)(implicit hc:HeaderCarrier): Future[PersonDetails] = {
+  override def getPersonalDetails(nino: Nino)(implicit hc: HeaderCarrier): Future[PersonDetails] = {
     withAudit("getPersonalDetails", Map("nino" -> nino.value)) {
       citizenDetailsConnector.personDetails(nino)
     }
   }
 
-  override def getPaperlessSettings(settings:Paperless)(implicit hc:HeaderCarrier): Future[PreferencesStatus] = {
+  override def paperlessSettings(settings: Paperless)(implicit hc: HeaderCarrier): Future[PreferencesStatus] = {
     withAudit("getPaperlessSettings", Map("accepted" -> settings.generic.accepted.toString)) {
       entityResolver.paperlessSettings(settings)
     }
   }
 }
 
-// TODO...ADD RESOURCES!
 object SandboxCustomerProfileService extends CustomerProfileService with FileResource {
   val nino=Nino("CS700100A")
   val personDetailsSandbox = PersonDetails("etag", Person(Some("Firstname"), Some("Middlename"), Some("Lastname"),
     Some("LM"), Some("Mr"), None, Some("Male"), None, None), None, None)
   val accounts = Accounts(Some(nino), None)
 
-  def getProfile()(implicit hc:HeaderCarrier): Future[CustomerProfile] = {
+  def getProfile()(implicit hc: HeaderCarrier): Future[CustomerProfile] = {
     Future.successful(CustomerProfile(accounts, personDetailsSandbox))
   }
 
-  def getAccounts()(implicit hc:HeaderCarrier):  Future[Accounts] = {
+  def getAccounts()(implicit hc: HeaderCarrier):  Future[Accounts] = {
     Future.successful(accounts)
   }
 
-  def getPersonalDetails(nino:Nino)(implicit hc:HeaderCarrier): Future[PersonDetails] = {
+  def getPersonalDetails(nino:Nino)(implicit hc: HeaderCarrier): Future[PersonDetails] = {
     Future(personDetailsSandbox)
   }
 
-  def getPaperlessSettings(settings:Paperless)(implicit hc:HeaderCarrier): Future[PreferencesStatus] = {
+  def paperlessSettings(settings:Paperless)(implicit hc: HeaderCarrier): Future[PreferencesStatus] = {
     Future(PreferencesExists)
   }
 }

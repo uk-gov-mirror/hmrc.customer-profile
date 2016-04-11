@@ -45,7 +45,10 @@ class TestEntityResolverConnector(preferencesStatus: PreferencesStatus) extends 
   override def http: HttpGet with HttpPost with HttpPut = ???
 
   override def serviceUrl: String = ???
-  override def paperlessSettings(paperless: Paperless)(implicit hc: HeaderCarrier, ex : ExecutionContext): Future[PreferencesStatus] =  Future.successful(preferencesStatus)
+
+  override def paperlessSettings(paperless: Paperless)(implicit hc: HeaderCarrier, ex : ExecutionContext): Future[PreferencesStatus] = {
+    Future.successful(preferencesStatus)
+  }
 }
 
 // TODO...basic auditing!
@@ -82,7 +85,8 @@ trait Setup {
   val emptyRequestWithHeader = FakeRequest().withHeaders("Accept" -> "application/vnd.hmrc.1.0+json")
 
   val paperlessJsonBody = Json.toJson(Paperless(TermsAccepted(true), EmailAddress("a@b.com")))
-  val paperlessRequest = FakeRequest().withJsonBody(paperlessJsonBody)
+  val paperlessRequestNoAccept = FakeRequest().withBody(paperlessJsonBody).withHeaders("Content-Type" -> "application/json")
+  val paperlessRequest = FakeRequest().withBody(paperlessJsonBody)
     .withHeaders("Content-Type" -> "application/json", "Accept" -> "application/vnd.hmrc.1.0+json")
 
   val nino = Nino("CS700100A")
@@ -132,5 +136,26 @@ trait SandboxSuccess extends Setup {
   val controller = new CustomerProfileController {
     override val service: CustomerProfileService = testSandboxPersonalIncomeService
     override val accessControl: AccountAccessControlWithHeaderCheck = sandboxCompositeAction
+  }
+}
+
+trait SandboxPaperlessCreated extends SandboxSuccess {
+  override val entityConnector = new TestEntityResolverConnector(PreferencesCreated)
+
+  override val testCustomerProfileService = new TestCustomerProfileService(cdConnector, authConnector, entityConnector)
+
+  override val controller = new CustomerProfileController {
+    override val service: CustomerProfileService = testCustomerProfileService
+    override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
+  }
+}
+
+trait SandboxPaperlessFailed extends SandboxPaperlessCreated {
+  override val entityConnector = new TestEntityResolverConnector(PreferencesFailure)
+  override val testCustomerProfileService = new TestCustomerProfileService(cdConnector, authConnector, entityConnector)
+
+  override val controller = new CustomerProfileController {
+    override val service: CustomerProfileService = testCustomerProfileService
+    override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
   }
 }

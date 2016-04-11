@@ -23,8 +23,6 @@ import play.api.test.{FakeApplication}
 import uk.gov.hmrc.customerprofile.domain._
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
-import scala.concurrent.{ExecutionContext, Future}
-
 
 class TestCustomerProfileGetProfileSpec extends UnitSpec with WithFakeApplication with ScalaFutures with StubApplicationConfiguration {
   override lazy val fakeApplication = FakeApplication(additionalConfiguration = config)
@@ -158,23 +156,58 @@ class TestCustomerProfileGetPersonalDetailsSpec extends UnitSpec with WithFakeAp
   }
 }
 
-//
-////// TODO...
-////    "getPaperlessSetting sandbox controller " should {
-////
-////      "return the summary response from a resource" in new SandboxSuccess {
-////
-////        import uk.gov.hmrc.emailaddress.PlayJsonFormats.{emailAddressReads, emailAddressWrites}
-////
-////        val result = await(controller.paperlessSettings()(paperlessRequest))
-//////
-//////        contentAsJson(result) shouldBe Json.toJson(person)
-////      }
-////
-//////      "return status code 406 when the headers are invalid" in new Success {
-//////        val result = await(controller.getPersonalDetails(nino)(emptyRequest))
-//////
-//////        status(result) shouldBe 406
-//////      }
-//
-//  }
+class TestCustomerProfilePaperlessSettingsSpec extends UnitSpec with WithFakeApplication with ScalaFutures with StubApplicationConfiguration {
+  override lazy val fakeApplication = FakeApplication(additionalConfiguration = config)
+
+  "paperlessSettings live" should {
+
+    "update paperless settings and 200 response code" in new Success {
+      val result = await(controller.paperlessSettings()(paperlessRequest))
+
+      status(result) shouldBe 200
+      contentAsJson(result) shouldBe Json.toJson("The existing record has been updated")
+    }
+
+    "update paperless settings and 201 response code" in new SandboxPaperlessCreated {
+      val result = await(controller.paperlessSettings()(paperlessRequest))
+
+      status(result) shouldBe 201
+    }
+
+    "fail to update paperless settings and 500 response code" in new SandboxPaperlessFailed {
+      val result = await(controller.paperlessSettings()(paperlessRequest))
+
+      status(result) shouldBe 500
+    }
+
+    "return the summary response from a resource" in new Success {
+      val result = await(controller.paperlessSettings()(paperlessRequest))
+
+      status(result) shouldBe 200
+      contentAsJson(result) shouldBe Json.toJson("The existing record has been updated")
+    }
+
+    "return status code 406 when the headers are invalid" in new Success {
+      val result = await(controller.paperlessSettings()(paperlessRequestNoAccept))
+
+      status(result) shouldBe 406
+    }
+  }
+
+  "paperlessSettings sandbox " should {
+
+    "update paperless settings and 200 response code" in new SandboxSuccess {
+      val result = await(controller.paperlessSettings()(paperlessRequest))
+
+      status(result) shouldBe 200
+      contentAsJson(result) shouldBe Json.toJson("The existing record has been updated")
+    }
+
+    "return status code 406 when the headers are invalid" in new SandboxSuccess {
+      val result = await(controller.paperlessSettings()(paperlessRequestNoAccept))
+
+      status(result) shouldBe 406
+    }
+  }
+
+}
