@@ -18,7 +18,6 @@ package uk.gov.hmrc.api.controllers
 
 import play.api.libs.json.Json
 import play.api.mvc.{ActionBuilder, Request, Result, Results}
-import uk.gov.hmrc.customerprofile.controllers.ErrorAcceptHeaderInvalid
 
 import scala.concurrent.Future
 import scala.util.matching.Regex

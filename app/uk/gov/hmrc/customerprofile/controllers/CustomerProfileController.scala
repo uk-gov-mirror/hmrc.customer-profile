@@ -29,7 +29,7 @@ import uk.gov.hmrc.play.microservice.controller.BaseController
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import play.api.libs.json._
-import uk.gov.hmrc.api.controllers.HeaderValidator
+import uk.gov.hmrc.api.controllers._
 
 trait ErrorHandling {
   self:BaseController =>
@@ -50,6 +50,9 @@ trait ErrorHandling {
 }
 
 trait CustomerProfileController extends BaseController with HeaderValidator with ErrorHandling {
+
+  import ErrorResponse.writes
+
   val service: CustomerProfileService
   val accessControl:AccountAccessControlWithHeaderCheck
 

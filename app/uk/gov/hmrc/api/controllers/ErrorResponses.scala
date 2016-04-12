@@ -14,18 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.customerprofile.controllers
+package uk.gov.hmrc.api.controllers
 
-sealed abstract class ErrorResponse(
-                                     val httpStatusCode: Int,
-                                     val errorCode: String,
-                                     val message: String)
+abstract class ErrorResponse( val httpStatusCode: Int,
+                              val errorCode: String,
+                              val message: String)
 
-case object ErrorNinoInvalid extends ErrorResponse(400, "NINO_INVALID", "The provided NINO is invalid")
 
 case object ErrorUnauthorized extends ErrorResponse(401, "UNAUTHORIZED", "Bearer token is missing or not authorized")
-
-case object ErrorUnauthorizedNoNino extends ErrorResponse(401, "UNAUTHORIZED", "NINO does not exist on account")
 
 case object ErrorUnauthorizedLowCL extends ErrorResponse(401, "UNAUTHORIZED", "Confidence Level on account does not allow access")
 
@@ -38,3 +34,12 @@ case object ErrorAcceptHeaderInvalid extends ErrorResponse(406, "ACCEPT_HEADER_I
 case object ErrorInternalServerError extends ErrorResponse(500, "INTERNAL_SERVER_ERROR", "Internal server error")
 
 case object PreferencesSettingsError extends ErrorResponse(500, "PREFERENCE_SETTINGS_ERROR", "Failed to set preferences")
+
+
+object ErrorResponse {
+  import play.api.libs.json.{JsValue, Json, Writes}
+
+  implicit val writes = new Writes[ErrorResponse] {
+    def writes(e: ErrorResponse): JsValue = Json.obj("code" -> e.errorCode, "message" -> e.message)
+  }
+}

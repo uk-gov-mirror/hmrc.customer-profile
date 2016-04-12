@@ -16,16 +16,8 @@
 
 package uk.gov.hmrc.customerprofile.controllers
 
-import org.scalatest.Matchers
-import play.api.libs.json.Json
-import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.api.controllers.ErrorResponse
 
-class ErrorResponseSpec extends UnitSpec with Matchers{
-  "errorResponse" should {
-    "be translated to error Json with only the required fields" in {
-      Json.toJson(ErrorAcceptHeaderInvalid).toString() shouldBe
-        """{"code":"ACCEPT_HEADER_INVALID","message":"The accept header is missing or invalid"}"""
-    }
-  }
+case object ErrorNinoInvalid extends ErrorResponse(400, "NINO_INVALID", "The provided NINO is invalid")
 
-}
+case object ErrorUnauthorizedNoNino extends ErrorResponse(401, "UNAUTHORIZED", "NINO does not exist on account")

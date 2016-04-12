@@ -24,6 +24,7 @@ import play.api.mvc.{RequestHeader, Result}
 import play.api._
 import uk.gov.hmrc.api.config.{ServiceLocatorConfig, ServiceLocatorRegistration}
 import uk.gov.hmrc.api.connector.ServiceLocatorConnector
+import uk.gov.hmrc.api.controllers._
 import uk.gov.hmrc.customerprofile.controllers._
 import uk.gov.hmrc.play.audit.filters.AuditFilter
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
