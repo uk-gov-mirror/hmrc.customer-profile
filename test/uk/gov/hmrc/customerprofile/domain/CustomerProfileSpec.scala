@@ -39,7 +39,7 @@ class CustomerProfileSpec extends UnitSpec with ScalaFutures {
         Future.successful(PersonDetails("etag1234", person, None, None))
       }
 
-      val customerProfile = CustomerProfile.create(accounts, pd).futureValue
+      val customerProfile = await(CustomerProfile.create(accounts, pd))
 
       customerProfile.accounts.nino.get shouldBe nino.get
       customerProfile.accounts.saUtr.get shouldBe saUtr.get
