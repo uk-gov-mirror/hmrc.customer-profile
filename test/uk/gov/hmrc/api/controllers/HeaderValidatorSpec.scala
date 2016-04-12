@@ -16,10 +16,9 @@
 
 package uk.gov.hmrc.api.controllers
 
-import org.scalatest.Matchers
 import uk.gov.hmrc.play.test.UnitSpec
 
-class HeaderValidatorSpec extends UnitSpec with Matchers with HeaderValidator{
+class HeaderValidatorSpec extends UnitSpec with HeaderValidator {
 
   "acceptHeaderValidationRules" should {
     "return false when the header value is missing" in {
