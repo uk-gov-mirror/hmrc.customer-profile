@@ -1,4 +1,4 @@
-GET        /api/definition                                       uk.gov.hmrc.customerprofile.controllers.DocumentationController.definition()
+GET        /api/definition                                  uk.gov.hmrc.api.controllers.DocumentationController.definition()
 
-GET        /api/documentation/:version/:endpointName             uk.gov.hmrc.customerprofile.controllers.DocumentationController.documentation(version:String,endpointName:String)
+GET        /api/documentation/:version/:endpointName        uk.gov.hmrc.api.controllers.DocumentationController.documentation(version:String,endpointName:String)
 

@@ -17,6 +17,7 @@
 package uk.gov.hmrc.customerprofile.controllers
 
 import org.scalatest.Matchers
+import uk.gov.hmrc.api.controllers.HeaderValidator
 import uk.gov.hmrc.play.test.UnitSpec
 
 class HeaderValidatorSpec extends UnitSpec with Matchers with HeaderValidator{

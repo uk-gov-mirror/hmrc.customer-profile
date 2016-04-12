@@ -21,7 +21,7 @@ import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration._
 import play.api.libs.json.Json
-import uk.gov.hmrc.customerprofile.domain.Registration
+import uk.gov.hmrc.api.domain.Registration
 
 trait WiremockServiceLocatorSugar {
   lazy val wireMockUrl = s"http://$stubHost:$stubPort"

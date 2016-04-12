@@ -17,9 +17,10 @@
 package uk.gov.hmrc.customerprofile.controllers.action
 
 import play.api.libs.json.Json
-import play.api.mvc.{Results, ActionBuilder, Request, Result}
+import play.api.mvc.{ActionBuilder, Request, Result, Results}
+import uk.gov.hmrc.api.controllers.HeaderValidator
 import uk.gov.hmrc.customerprofile.connector.AuthConnector
-import uk.gov.hmrc.customerprofile.controllers.{ErrorAcceptHeaderInvalid, HeaderValidator, ErrorUnauthorizedNoNino}
+import uk.gov.hmrc.customerprofile.controllers.{ErrorAcceptHeaderInvalid, ErrorUnauthorizedNoNino}
 import uk.gov.hmrc.play.auth.microservice.connectors.ConfidenceLevel
 import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.play.http.hooks.HttpHook

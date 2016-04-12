@@ -17,18 +17,19 @@
 package uk.gov.hmrc.customerprofile.controllers
 
 import play.api.mvc.{Action, BodyParsers}
-import uk.gov.hmrc.customerprofile.connector.{PreferencesExists, PreferencesFailure, PreferencesCreated}
-import uk.gov.hmrc.customerprofile.controllers.action.{AccountAccessControlWithHeaderCheck, AccountAccessControlForSandbox}
+import uk.gov.hmrc.customerprofile.connector.{PreferencesCreated, PreferencesExists, PreferencesFailure}
+import uk.gov.hmrc.customerprofile.controllers.action.{AccountAccessControlForSandbox, AccountAccessControlWithHeaderCheck}
 import uk.gov.hmrc.customerprofile.domain.Paperless
-import uk.gov.hmrc.customerprofile.services.{SandboxCustomerProfileService, LiveCustomerProfileService, CustomerProfileService}
+import uk.gov.hmrc.customerprofile.services.{CustomerProfileService, LiveCustomerProfileService, SandboxCustomerProfileService}
 import uk.gov.hmrc.domain.Nino
-import play.api.{mvc, Logger}
-import uk.gov.hmrc.play.http.{ForbiddenException, UnauthorizedException, HeaderCarrier, NotFoundException}
+import play.api.{Logger, mvc}
+import uk.gov.hmrc.play.http.{ForbiddenException, HeaderCarrier, NotFoundException, UnauthorizedException}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import play.api.libs.json._
+import uk.gov.hmrc.api.controllers.HeaderValidator
 
 trait ErrorHandling {
   self:BaseController =>

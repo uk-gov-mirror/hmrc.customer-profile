@@ -17,12 +17,12 @@
 package it
 
 import com.github.tomakehurst.wiremock.client.WireMock._
-import uk.gov.hmrc.customerprofile.controllers.DocumentationController
-import it.utils.{WiremockServiceLocatorSugar, MicroserviceLocalRunSugar}
+import it.utils.{MicroserviceLocalRunSugar, WiremockServiceLocatorSugar}
 import org.scalatest.BeforeAndAfter
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
 import play.api.test.FakeRequest
+import uk.gov.hmrc.api.controllers.DocumentationController
 import uk.gov.hmrc.play.test.UnitSpec
 
 /**

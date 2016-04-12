@@ -14,20 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.customerprofile.controllers
+package uk.gov.hmrc.api.domain
 
-import controllers.AssetsBuilder
-import play.api.mvc.{Action, AnyContent}
-import uk.gov.hmrc.play.microservice.controller.BaseController
+import play.api.libs.json.Json
 
-trait DocumentationController extends AssetsBuilder with BaseController {
-  def documentation(version: String, endpointName: String): Action[AnyContent] = {
-    super.at(s"/public/api/documentation/$version", s"${endpointName.replaceAll(" ", "-")}.xml")
-  }
+case class Registration(serviceName: String, serviceUrl: String, metadata: Option[Map[String, String]] = None)
 
-  def definition() = {
-    super.at(s"/public/api", "definition.json")
-  }
+object Registration {
+  implicit val format = Json.format[Registration]
 }
-
-object DocumentationController extends DocumentationController

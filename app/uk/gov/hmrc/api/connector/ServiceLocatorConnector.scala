@@ -14,11 +14,13 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.customerprofile.connector
+package uk.gov.hmrc.api.connector
 
 import play.api.Logger
-import uk.gov.hmrc.customerprofile.config.{WSHttp, AppContext}
-import uk.gov.hmrc.customerprofile.domain.Registration
+import uk.gov.hmrc.api.config.ServiceLocatorConfig
+import uk.gov.hmrc.api.domain.Registration
+import uk.gov.hmrc.customerprofile.config.WSHttp
+import uk.gov.hmrc.play.config.AppName
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpPost}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -48,12 +50,14 @@ trait ServiceLocatorConnector {
 }
 
 
-object ServiceLocatorConnector extends ServiceLocatorConnector {
-  override lazy val appName = AppContext.appName
-  override lazy val appUrl = AppContext.appUrl
-  override lazy val serviceUrl = AppContext.serviceLocatorUrl
-  override val http: HttpPost = WSHttp
-  override val handlerOK: () => Unit = () => Logger.info("Service is registered on the service locator")
-  override val handlerError: Throwable => Unit = e => Logger.error(s"Service could not register on the service locator", e)
-  override val metadata: Option[Map[String, String]] = Some(Map("third-party-api" -> "true"))
+object ServiceLocatorConnector extends ServiceLocatorConnector with ServiceLocatorConfig with AppName {
+  import play.api.Play.current
+
+  lazy val appUrl = current.configuration.getString("appUrl").getOrElse(throw new RuntimeException("appUrl is not configured"))
+  lazy val serviceUrl = serviceLocatorUrl
+
+  val http: HttpPost = WSHttp
+  val handlerOK: () => Unit = () => Logger.info("Service is registered on the service locator")
+  val handlerError: Throwable => Unit = e => Logger.error(s"Service could not register on the service locator", e)
+  val metadata: Option[Map[String, String]] = Some(Map("third-party-api" -> "true"))
 }
