@@ -16,8 +16,6 @@ Please note it is mandatory to supply an Accept HTTP header to all below service
 API
 ---
 
-TODO...
-
 | *Task* | *Supported Methods* | *Description* |
 |--------|----|----|
 | ```/profile/accounts``` | GET | Look up for the current user's tax account identifiers. [More...](docs/accounts.md)  |
@@ -30,10 +28,6 @@ All the above endpoints are accessible on sandbox with `/sandbox` prefix on each
 ```
     GET /sandbox/profile/accounts
 ```
-
-# Definition
-API definition for the service will be available under `/api/definition` endpoint.
-See definition in `/conf/api-definition.json` for the format.
 
 # Version
 Version of API need to be provided in `Accept` request header
