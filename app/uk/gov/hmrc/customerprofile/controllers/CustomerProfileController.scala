@@ -56,13 +56,6 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
   val service: CustomerProfileService
   val accessControl: AccountAccessControlWithHeaderCheck
 
-  @deprecated("confirm that it is a good idea to remove this", "13.04.16")
-  final def getProfile = accessControl.validateAccept(acceptHeaderValidationRules).async {
-    implicit request =>
-      implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, None)
-      errorWrapper(service.getProfile().map(as => Ok(Json.toJson(as))))
-  }
-
   final def getAccounts = accessControl.validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
       implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, None)

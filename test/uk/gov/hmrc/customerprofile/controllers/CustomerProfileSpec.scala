@@ -24,50 +24,6 @@ import uk.gov.hmrc.customerprofile.domain._
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 
-class TestCustomerProfileGetProfileSpec extends UnitSpec with WithFakeApplication with ScalaFutures with StubApplicationConfiguration {
-  override lazy val fakeApplication = FakeApplication(additionalConfiguration = config)
-
-  "getProfile sandbox controller " should {
-
-    "return the profile response from a resource" in new SandboxSuccess {
-      val result = await(controller.getProfile()(emptyRequestWithHeader))
-
-      status(result) shouldBe 200
-
-      contentAsJson(result) shouldBe Json.toJson(customerProfile)
-    }
-
-    "return status code 406 when the headers are invalid" in new Success {
-      val result = await(controller.getProfile()(emptyRequest))
-
-      status(result) shouldBe 406
-    }
-  }
-
-  "getProfile live controller " should {
-
-    "return the profile successfully" in new Success {
-
-      val result = await(controller.getProfile()(emptyRequestWithHeader))
-
-      status(result) shouldBe 200
-      contentAsJson(result) shouldBe Json.toJson(customerProfile)
-    }
-
-    "Return unauthorized when authority record does not contain a NINO" in new AuthWithoutNino {
-      val result = await(controller.getProfile()(emptyRequestWithHeader))
-
-      status(result) shouldBe 401
-    }
-
-    "return status code 406 when the headers are invalid" in new Success {
-      val result = await(controller.getProfile()(emptyRequest))
-
-      status(result) shouldBe 406
-    }
-  }
-}
-
 class TestCustomerProfileGetAccountSpec extends UnitSpec with WithFakeApplication with ScalaFutures with StubApplicationConfiguration {
   override lazy val fakeApplication = FakeApplication(additionalConfiguration = config)
 

@@ -31,20 +31,3 @@ object Accounts {
     Json.format[Accounts]
   }
 }
-
-case class CustomerProfile(accounts: Accounts, personalDetails: PersonDetails)
-
-object CustomerProfile {
-  implicit val formats = {
-    import PersonDetails.formats
-
-    Json.format[CustomerProfile]
-  }
-
-  def create(accounts: () => Future[Accounts], personalDetails: (Option[Nino]) => Future[PersonDetails])(implicit ec : ExecutionContext) : Future[CustomerProfile] = {
-    for {
-      acc <- accounts()
-      pd <- personalDetails(acc.nino)
-    } yield CustomerProfile(acc, pd)
-  }
-}

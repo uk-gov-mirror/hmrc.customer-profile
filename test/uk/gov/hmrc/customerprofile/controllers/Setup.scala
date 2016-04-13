@@ -100,7 +100,6 @@ trait Setup {
   val testAccount = Accounts(Some(nino), None)
   val person = PersonDetails("etag", Person(Some("Firstname"), Some("Middlename"), Some("Lastname"),
     Some("LM"), Some("Mr"), None, Some("Male"), None, None), None, None)
-  val customerProfile = CustomerProfile(testAccount, person)
 
   lazy val http200ResponseCid = Future.successful(HttpResponse(200, Some(Json.toJson(person))))
 

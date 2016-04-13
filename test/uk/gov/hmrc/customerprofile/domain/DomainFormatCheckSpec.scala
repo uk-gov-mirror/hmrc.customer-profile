@@ -22,6 +22,7 @@ import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status
 import uk.gov.hmrc.domain.SaUtr
 import uk.gov.hmrc.emailaddress.EmailAddress
 import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.time.DateTimeUtils
 
 import scala.util.Random
 
@@ -30,14 +31,18 @@ class DomainFormatCheckSpec extends UnitSpec {
   import DomainGenerator._
 
   "Accounts" in {
-    Logger.debug("Accounts response : " + Json.prettyPrint(accountsAsJson))
+    Logger.debug("Accounts response : " + Json.prettyPrint(accountsWithNinoAndSaUtrAsJson))
+  }
+
+  "Personal details" in {
+    Logger.debug("Personal details response : " + Json.prettyPrint(personalDetailsAsJson))
   }
 
   "Paperless" in {
     Logger.debug("Paperless request : " + Json.prettyPrint(paperlessAsJson))
   }
 
-  "verified email Preference" in {
+  "Verified email Preference" in {
     Logger.debug("Preference response : " + Json.prettyPrint(verifiedEmailPreferenceAsJson))
   }
 }
@@ -49,8 +54,8 @@ object DomainGenerator {
   val nino = new Generator().nextNino
   val saUtr = new SaUtrGenerator().nextSaUtr
 
-  val accounts = Accounts(Some(nino), Some(saUtr))
-  lazy val accountsAsJson = Json.toJson(accounts)
+  val accountsWithNinoAndSaUtr = Accounts(Some(nino), Some(saUtr))
+  lazy val accountsWithNinoAndSaUtrAsJson = Json.toJson(accountsWithNinoAndSaUtr)
 
   val email = EmailAddress("name@email.co.uk")
 
@@ -59,6 +64,13 @@ object DomainGenerator {
 
   val verifiedEmailPreference = Preference(true, Some(EmailPreference(email, Status.Verified)))
   lazy val verifiedEmailPreferenceAsJson = Json.toJson(verifiedEmailPreference)
+
+  val etag = "etag12345"
+  val person = Person(Some("John"), Some("Albert"), Some("Smith"), None, Some("Mr"), None, Some("M"), Some(DateTimeUtils.now.minusYears(30)), Some(nino))
+  val address = None
+  val correspondenceAddress = None
+  val personalDetails = PersonDetails(etag, person, address, correspondenceAddress)
+  lazy val personalDetailsAsJson = Json.toJson(personalDetails)
 
 }
 

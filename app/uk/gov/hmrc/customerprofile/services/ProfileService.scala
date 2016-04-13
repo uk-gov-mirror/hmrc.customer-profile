@@ -29,7 +29,6 @@ import scala.concurrent.{ExecutionContext, Future}
 
 
 trait CustomerProfileService {
-  def getProfile()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[CustomerProfile]
 
   def getAccounts()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Accounts]
 
@@ -48,12 +47,6 @@ trait LiveCustomerProfileService extends CustomerProfileService with Auditor {
   def citizenDetailsConnector: CitizenDetailsConnector
 
   def entityResolver: EntityResolverConnector
-
-
-  def getProfile()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[CustomerProfile] =
-    withAudit("getProfile", Map.empty) {
-      CustomerProfile.create(authConnector.accounts, (nino) => citizenDetailsConnector.personDetails(nino.get))
-    }
 
   def getAccounts()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Accounts] =
     withAudit("getAccounts", Map.empty) {
@@ -85,10 +78,6 @@ object SandboxCustomerProfileService extends CustomerProfileService with FileRes
     Some("LM"), Some("Mr"), None, Some("Male"), None, None), None, None)
 
   private val accounts = Accounts(Some(nino), None)
-
-  def getProfile()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[CustomerProfile] = {
-    Future.successful(CustomerProfile(accounts, personDetailsSandbox))
-  }
 
   def getAccounts()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Accounts] = {
     Future.successful(accounts)
