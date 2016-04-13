@@ -16,101 +16,101 @@
 
 package uk.gov.hmrc.customerprofile.services
 
+import uk.gov.hmrc.api.service.Auditor
 import uk.gov.hmrc.api.sandbox.FileResource
 import uk.gov.hmrc.customerprofile.config.MicroserviceAuditConnector
 import uk.gov.hmrc.customerprofile.connector._
 import uk.gov.hmrc.customerprofile.domain._
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.play.audit.model.DataEvent
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.http.HeaderCarrier
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 
 trait CustomerProfileService {
-  def getProfile()(implicit hc:HeaderCarrier): Future[CustomerProfile]
+  def getProfile()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[CustomerProfile]
 
-  def getAccounts()(implicit hc:HeaderCarrier): Future[Accounts]
+  def getAccounts()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Accounts]
 
-  def getPersonalDetails(nino:Nino)(implicit hc:HeaderCarrier): Future[PersonDetails]
+  def getPersonalDetails(nino: Nino)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PersonDetails]
 
-  def paperlessSettings(settings:Paperless)(implicit hc:HeaderCarrier): Future[PreferencesStatus]
+  def paperlessSettings(settings: Paperless)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus]
+
+  def getPreferences()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Option[Preference]]
 }
 
-trait LiveCustomerProfileService extends CustomerProfileService {
+
+trait LiveCustomerProfileService extends CustomerProfileService with Auditor {
+
   def authConnector: AuthConnector
 
   def citizenDetailsConnector: CitizenDetailsConnector
 
-  def entityResolver : EntityResolverConnector
+  def entityResolver: EntityResolverConnector
 
-  def audit(service:String, details:Map[String, String])(implicit hc:HeaderCarrier) = {
-    def auditResponse(): Unit = {
-      MicroserviceAuditConnector.sendEvent(
-        DataEvent("customer-profile", "ServiceResponseSent",
-          tags = Map("transactionName" -> service),
-          detail = details))
-    }
-  }
 
-  def withAudit[T](service: String, details: Map[String, String])(func:Future[T])(implicit hc:HeaderCarrier) = {
-    audit(service, details) // No need to wait!
-    func
-  }
-
-  def getProfile()(implicit hc: HeaderCarrier): Future[CustomerProfile] = {
+  def getProfile()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[CustomerProfile] =
     withAudit("getProfile", Map.empty) {
       CustomerProfile.create(authConnector.accounts, (nino) => citizenDetailsConnector.personDetails(nino.get))
     }
-  }
 
-  def getAccounts()(implicit hc: HeaderCarrier): Future[Accounts] = {
+  def getAccounts()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Accounts] =
     withAudit("getAccounts", Map.empty) {
       authConnector.accounts()
     }
-  }
 
-  override def getPersonalDetails(nino: Nino)(implicit hc: HeaderCarrier): Future[PersonDetails] = {
+  def getPersonalDetails(nino: Nino)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PersonDetails] =
     withAudit("getPersonalDetails", Map("nino" -> nino.value)) {
       citizenDetailsConnector.personDetails(nino)
     }
-  }
 
-  override def paperlessSettings(settings: Paperless)(implicit hc: HeaderCarrier): Future[PreferencesStatus] = {
+  def paperlessSettings(settings: Paperless)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] =
     withAudit("getPaperlessSettings", Map("accepted" -> settings.generic.accepted.toString)) {
       entityResolver.paperlessSettings(settings)
     }
-  }
+
+  def getPreferences()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Option[Preference]] =
+    withAudit("getAccounts", Map.empty) {
+      entityResolver.getPreferences()
+    }
+
 }
 
 object SandboxCustomerProfileService extends CustomerProfileService with FileResource {
-  val nino=Nino("CS700100A")
-  val personDetailsSandbox = PersonDetails("etag", Person(Some("Firstname"), Some("Middlename"), Some("Lastname"),
-    Some("LM"), Some("Mr"), None, Some("Male"), None, None), None, None)
-  val accounts = Accounts(Some(nino), None)
 
-  def getProfile()(implicit hc: HeaderCarrier): Future[CustomerProfile] = {
+  private val nino = Nino("CS700100A")
+
+  private val personDetailsSandbox = PersonDetails("etag", Person(Some("Firstname"), Some("Middlename"), Some("Lastname"),
+    Some("LM"), Some("Mr"), None, Some("Male"), None, None), None, None)
+
+  private val accounts = Accounts(Some(nino), None)
+
+  def getProfile()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[CustomerProfile] = {
     Future.successful(CustomerProfile(accounts, personDetailsSandbox))
   }
 
-  def getAccounts()(implicit hc: HeaderCarrier):  Future[Accounts] = {
+  def getAccounts()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Accounts] = {
     Future.successful(accounts)
   }
 
-  def getPersonalDetails(nino:Nino)(implicit hc: HeaderCarrier): Future[PersonDetails] = {
+  def getPersonalDetails(nino: Nino)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PersonDetails] = {
     Future(personDetailsSandbox)
   }
 
-  def paperlessSettings(settings:Paperless)(implicit hc: HeaderCarrier): Future[PreferencesStatus] = {
+  def paperlessSettings(settings: Paperless)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] = {
     Future(PreferencesExists)
   }
+
+  def getPreferences()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Option[Preference]] = ???
 }
 
 object LiveCustomerProfileService extends LiveCustomerProfileService {
-  override val authConnector: AuthConnector = AuthConnector
+  val authConnector: AuthConnector = AuthConnector
 
-  override val citizenDetailsConnector: CitizenDetailsConnector = CitizenDetailsConnector
+  val citizenDetailsConnector: CitizenDetailsConnector = CitizenDetailsConnector
 
-  override def entityResolver: EntityResolverConnector = EntityResolverConnector
+  val entityResolver: EntityResolverConnector = EntityResolverConnector
+
+  val auditConnector: AuditConnector = MicroserviceAuditConnector
 }

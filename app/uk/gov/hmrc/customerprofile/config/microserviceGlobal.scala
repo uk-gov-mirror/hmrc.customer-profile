@@ -101,9 +101,9 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Se
   override def onBadRequest(request: RequestHeader, error: String): Future[Result] = {
     val errorScenario = error match {
       case "ERROR_NINO_INVALID" => ErrorNinoInvalid
-      case _ => ErrorGenericBadRequest
+      case _ => ErrorGenericBadRequest(error)
     }
-    Future.successful(Status(ErrorGenericBadRequest.httpStatusCode)(Json.toJson(errorScenario)))
+    Future.successful(Status(errorScenario.httpStatusCode)(Json.toJson(errorScenario)))
   }
 
   override def onHandlerNotFound(request: RequestHeader): Future[Result] = Future.successful(NotFound(Json.toJson(ErrorNotFound)))

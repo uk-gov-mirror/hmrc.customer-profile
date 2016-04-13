@@ -6,5 +6,7 @@ GET         /profile/accounts                              uk.gov.hmrc.customerp
 
 GET         /profile/personal-details/:nino                uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.getPersonalDetails(nino : Nino)
 
+GET         /profile/preferences                           uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.getPreferences()
+
 POST        /profile/preferences/paperless-settings        uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.paperlessSettings()
 

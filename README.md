@@ -2,83 +2,44 @@
 
 [![Build Status](https://travis-ci.org/hmrc/customer-profile.svg?branch=master)](https://travis-ci.org/hmrc/customer-profile) [ ![Download](https://api.bintray.com/packages/hmrc/releases/customer-profile/images/download.svg) ](https://bintray.com/hmrc/releases/customer-profile/_latestVersion)
 
-
-# API Definitions
-
-## GET     /profile
-
-Root summary of a complete customer profile.
-
-**Response Status Codes**
-
-See below API Definitions.
-
-**Example Response Body**
-
-TODO
+Allows users to view tax profile and communication preferences
 
 
-## GET     /profile/accounts
+Requirements
+------------
 
-Look up for the current user's tax account identifiers, e.g. National Insurance Number (NINO), Self Assessment UTR.
+The following services are exposed from the micro-service.
 
-**Response Status Codes**
-
-| StatusCode | Description                                                                                                       |
-|------------|-------------------------------------------------------------------------------------------------------------------|
-| 200        | Record found                                                                                                      |
-| 404        | Record not found                                                                                                  |
-| 401        | The user does not have the correct permissions to access this service                                                                                                  |
-| 403        | The user does not have sufficient permissions to access this service                                                                                                  |
-| 500        | There was an unrecoverable error, possibly bad data received from the upstream API
-
-**Example Response Body**
-
-TODO
+Please note it is mandatory to supply an Accept HTTP header to all below services with the value ```application/vnd.hmrc.1.0+json```.
 
 
-## GET     /profile/personal-details/:nino
+API
+---
 
-Finds a user's designatory details
+TODO...
 
-**Response Status Codes**
+| *Task* | *Supported Methods* | *Description* |
+|--------|----|----|
+| ```/profile/accounts``` | GET | Look up for the current user's tax account identifiers. [More...](docs/accounts.md)  |
+| ```/profile/personal-details/:nino``` | GET | Returns a user's designatory details. [More...](docs/personalDetails.md)  |
+| ```/profile/preferences``` | GET | Returns the user's preferences. [More...](docs/preferences.md)|
+| ```/profile/preferences/paperless-settings``` | POST | Sets or Updates the user's paperless preference settings. [More...](docs/paperlessSettings.md)|
 
-| StatusCode | Description                                                                                                       |
-|------------|-------------------------------------------------------------------------------------------------------------------|
-| 200        | Record found                                                                                                      |
-| 404        | Record not found                                                                                                  |
-| 423        | Record was hidden, due to manual correspondence indicator flag being set                                          |
-| 500        | There was an unrecoverable error, possibly bad data received from the upstream API
-
-**Example Response Body**
-
-TODO
-
-
-## POST     /profile/preferences/paperless-settings
-
-Sets or updates the user's preference to go paperless
-
-**Request payload**
-
+# Sandbox
+All the above endpoints are accessible on sandbox with `/sandbox` prefix on each endpoint, e.g.
 ```
-    {
-        "generic": {
-            "accepted":true
-        },
-        "email": "mark@email.co.uk"
-    }
+    GET /sandbox/profile/accounts
 ```
 
-**Response Status Codes**
+# Definition
+API definition for the service will be available under `/api/definition` endpoint.
+See definition in `/conf/api-definition.json` for the format.
 
-| StatusCode | Description                                                                                                       |
-|------------|-------------------------------------------------------------------------------------------------------------------|
-| 200        | Update to an existing record                                                                                                      |
-| 201        | Creation of a new record                                                                                    |
-| 400        | Payload was incorrect                                                                                                              |
-| 500        | There was an unrecoverable error, possibly bad data received from the upstream API
-
+# Version
+Version of API need to be provided in `Accept` request header
+```
+Accept: application/vnd.hmrc.v1.0+json
+```
 
 
 ### License

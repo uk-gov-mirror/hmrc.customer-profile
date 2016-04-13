@@ -17,7 +17,7 @@
 package uk.gov.hmrc.customerprofile.controllers
 
 import play.api.mvc.{Action, BodyParsers}
-import uk.gov.hmrc.customerprofile.connector.{PreferencesCreated, PreferencesExists, PreferencesFailure}
+import uk.gov.hmrc.customerprofile.connector.{EntityResolverConnector, PreferencesCreated, PreferencesExists, PreferencesFailure}
 import uk.gov.hmrc.customerprofile.controllers.action.{AccountAccessControlForSandbox, AccountAccessControlWithHeaderCheck}
 import uk.gov.hmrc.customerprofile.domain.Paperless
 import uk.gov.hmrc.customerprofile.services.{CustomerProfileService, LiveCustomerProfileService, SandboxCustomerProfileService}
@@ -32,15 +32,15 @@ import play.api.libs.json._
 import uk.gov.hmrc.api.controllers._
 
 trait ErrorHandling {
-  self:BaseController =>
+  self: BaseController =>
 
-  def errorWrapper(func: => Future[mvc.Result])(implicit hc:HeaderCarrier) = {
+  def errorWrapper(func: => Future[mvc.Result])(implicit hc: HeaderCarrier) = {
     func.recover {
-      case ex:NotFoundException => Status(ErrorNotFound.httpStatusCode)(Json.toJson(ErrorNotFound))
+      case ex: NotFoundException => Status(ErrorNotFound.httpStatusCode)(Json.toJson(ErrorNotFound))
 
-      case ex:UnauthorizedException => Unauthorized(Json.toJson(ErrorUnauthorizedNoNino))
+      case ex: UnauthorizedException => Unauthorized(Json.toJson(ErrorUnauthorizedNoNino))
 
-      case ex:ForbiddenException => Unauthorized(Json.toJson(ErrorUnauthorizedLowCL))
+      case ex: ForbiddenException => Unauthorized(Json.toJson(ErrorUnauthorizedLowCL))
 
       case e: Throwable =>
         Logger.error(s"Internal server error: ${e.getMessage}", e)
@@ -54,24 +54,31 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
   import ErrorResponse.writes
 
   val service: CustomerProfileService
-  val accessControl:AccountAccessControlWithHeaderCheck
+  val accessControl: AccountAccessControlWithHeaderCheck
 
-  final def getProfile() = accessControl.validateAccept(acceptHeaderValidationRules).async {
-  implicit request =>
-    implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, None)
-    errorWrapper(service.getProfile().map(as => Ok(Json.toJson(as))))
+  @deprecated("confirm that it is a good idea to remove this", "13.04.16")
+  final def getProfile = accessControl.validateAccept(acceptHeaderValidationRules).async {
+    implicit request =>
+      implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, None)
+      errorWrapper(service.getProfile().map(as => Ok(Json.toJson(as))))
   }
 
-  final def getAccounts() = accessControl.validateAccept(acceptHeaderValidationRules).async {
+  final def getAccounts = accessControl.validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
       implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, None)
       errorWrapper(service.getAccounts().map(as => Ok(Json.toJson(as))))
   }
 
-  final def getPersonalDetails(nino:Nino) = accessControl.validateAccept(acceptHeaderValidationRules).async {
+  final def getPersonalDetails(nino: Nino) = accessControl.validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
       implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, None)
       errorWrapper(service.getPersonalDetails(nino).map(as => Ok(Json.toJson(as))))
+  }
+
+  final def getPreferences() = accessControl.validateAccept(acceptHeaderValidationRules).async {
+    implicit request =>
+      implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, None)
+      errorWrapper(service.getPreferences().map(as => Ok(Json.toJson(as))))
   }
 
   final def paperlessSettings() = accessControl.validateAccept(acceptHeaderValidationRules).async(BodyParsers.parse.json) {
@@ -79,20 +86,23 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
     implicit request =>
       implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, None)
 
-      request.body.validate[Paperless].fold (
+      request.body.validate[Paperless].fold(
         errors => {
           Logger.warn("Received error with service getPaperlessSettings: " + errors)
-          Future.successful(BadRequest(Json.obj("message" -> JsError.toFlatJson(errors))))
+          Future.successful(BadRequest(Json.toJson(ErrorGenericBadRequest(errors))))
         },
         settings => {
           errorWrapper(service.paperlessSettings(settings).map {
-            case PreferencesExists => println("OK..");Ok(Json.toJson("The existing record has been updated"))
+            case PreferencesExists => Ok(Json.toJson("The existing record has been updated"))
             case PreferencesCreated => Created(Json.toJson(""))
-              // TODO: check server error status. Does not need to be a 500?
+            // TODO: check server error status. Does not need to be a 500?
             case PreferencesFailure => InternalServerError(Json.toJson(PreferencesSettingsError))
-          })}
+          })
+        }
       )
   }
+
+
 }
 
 object SandboxCustomerProfileController extends CustomerProfileController {

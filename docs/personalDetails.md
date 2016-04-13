@@ -1,27 +1,23 @@
-Paperless Settings
+Personal Details
 ----
-  Sets or Updates the user's paperless preference settings.
-
-  The acceptance is based off the user being shown and agreeing to, these [Terms and Conditions](https://www.tax.service.gov.uk/information/terms#secure)
+  Returns a user's designatory details
 
 * **URL**
 
-  `/profile/preferences/paperless-settings`
+  `/profile/personal-details/{nino}`
 
 * **Method:**
 
-  `POST`
+  `GET`
 
-*  **Request body**
+*  **URL Params**
 
-```json
-    {
-        "generic": {
-            "accepted":true
-        },
-        "email": "name@email.co.uk"
-    }
-```
+   **Required:**
+
+   `nino=[Nino]`
+
+   The [NINO](https://github.com/hmrc/domain/blob/master/src/main/scala/uk/gov/hmrc/domain/Nino.scala#L21), National Insurance Number, given must be a valid NINO, ([http://www.hmrc.gov.uk/manuals/nimmanual/nim39110.htm](http://www.hmrc.gov.uk/manuals/nimmanual/nim39110.htm) / [Regular expression](https://github.com/hmrc/domain/blob/master/src/main/scala/uk/gov/hmrc/domain/Nino.scala#L36))
+
 
 * **Success Response:**
 

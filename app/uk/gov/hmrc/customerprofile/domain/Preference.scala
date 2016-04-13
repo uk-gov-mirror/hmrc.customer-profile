@@ -21,11 +21,7 @@ import play.api.libs.json.{JsError, Json, _}
 import uk.gov.hmrc.emailaddress.EmailAddress
 
 
-case class EmailPreference(email: EmailAddress,
-                           status: EmailPreference.Status,
-                           mailboxFull: Boolean = false,
-                           message: Option[String] = None,
-                           linkSent: Option[LocalDate] = None)
+case class EmailPreference(email: EmailAddress, status: EmailPreference.Status)
 
 object EmailPreference {
 
@@ -37,7 +33,7 @@ object EmailPreference {
     case object Bounced extends Status
     case object Verified extends Status
 
-    implicit val reads: Reads[Status] = new Reads[Status] {
+    val reads: Reads[Status] = new Reads[Status] {
       override def reads(json: JsValue): JsResult[Status] = json match {
         case JsString("pending") => JsSuccess(Pending)
         case JsString("bounced") => JsSuccess(Bounced)
@@ -45,13 +41,26 @@ object EmailPreference {
         case _ => JsError()
       }
     }
+
+    val writes: Writes[Status] = new Writes[Status] {
+      override def writes(status: Status) = status match {
+        case Pending => JsString("pending")
+        case Bounced => JsString("bounced")
+        case Verified => JsString("verified")
+      }
+    }
+
+    implicit val formats = Format(reads, writes)
   }
 
-  implicit val reads = Json.reads[EmailPreference]
+  implicit val formats = Json.format[EmailPreference]
 }
 
 case class Preference(digital: Boolean, email: Option[EmailPreference] = None)
 
 object Preference {
-  implicit val reads = Json.reads[Preference]
+  implicit val format = {
+    import EmailPreference.formats
+    Json.format[Preference]
+  }
 }
