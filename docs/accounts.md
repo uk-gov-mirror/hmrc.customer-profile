@@ -17,11 +17,12 @@ User Tax Accounts
 * **Success Response:**
 
   * **Code:** 200 <br />
-    **Content:**
+    **Response body:**
 
 ```json
 {
-
+  "nino" : "WX772755B",
+  "saUtr" : "618567"
 }
 ```
 

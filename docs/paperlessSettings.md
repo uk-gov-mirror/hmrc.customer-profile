@@ -15,12 +15,12 @@ Paperless Settings
 *  **Request body**
 
 ```json
-    {
-        "generic": {
-            "accepted":true
-        },
-        "email": "name@email.co.uk"
-    }
+{
+    "generic": {
+        "accepted":true
+    },
+    "email": "name@email.co.uk"
+}
 ```
 
 * **Success Response:**

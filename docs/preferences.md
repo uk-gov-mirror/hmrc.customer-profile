@@ -13,11 +13,15 @@ User Preferences
 * **Success Response:**
 
   * **Code:** 200 <br />
-    **Content:**
+    **Response body:**
 
 ```json
 {
-
+  "digital" : true,
+  "email" : {
+    "email" : "name@email.co.uk",
+    "status" : "verified"
+  }
 }
 ```
 

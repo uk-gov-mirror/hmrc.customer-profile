@@ -22,14 +22,24 @@ Personal Details
 * **Success Response:**
 
   * **Code:** 200 <br />
-    **Description:** Update to an existing record
-  * **Code:** 201 <br />
-    **Description:** Created a new record
+    **Response body:**
+
+```json
+{
+  "etag" : "etag12345",
+  "person" : {
+    "firstName" : "John",
+    "middleName" : "Albert",
+    "lastName" : "Smith",
+    "title" : "Mr",
+    "sex" : "M",
+    "dateOfBirth" : 513774181935,
+    "nino" : "YH261980B"
+  }
+}
+```
 
 * **Error Response:**
-
-  * **Code:** 400 BAD <br />
-    **Content:** `{"code":"BAD_REQUEST","message":"{Decription of the error with payload}"}`
 
   * **Code:** 401 UNAUTHORIZED <br />
     **Content:** `{"code":"UNAUTHORIZED","Confidence Level on account does not allow access"}`
