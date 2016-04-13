@@ -32,7 +32,7 @@ User Tax Accounts
     **Content:** `{"code":"UNAUTHORIZED","message":"NINO does not exist on account"}`
 
   * **Code:** 401 UNAUTHORIZED <br />
-    **Content:** `{"code":"UNAUTHORIZED","Confidence Level on account does not allow access"}`
+    **Content:** `{"code":"LOW_CONFIDENCE_LEVEL","Confidence Level on account does not allow access"}`
 
   * **Code:** 406 NOT ACCEPTABLE <br />
     **Content:** `{"code":"ACCEPT_HEADER_INVALID","message":"The accept header is missing or invalid"}`
