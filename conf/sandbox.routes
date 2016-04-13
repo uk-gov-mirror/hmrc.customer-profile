@@ -1,10 +1,10 @@
 # microservice specific routes
 
-GET         /profile                                       uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getProfile()
-
 GET         /profile/accounts                              uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getAccounts()
 
 GET         /profile/personal-details/:nino                uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getPersonalDetails(nino : Nino)
+
+GET         /profile/preferences                           uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getPreferences()
 
 POST        /profile/preferences/paperless-settings        uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.paperlessSettings()
 
