@@ -16,9 +16,33 @@
         "status":"PROTOTYPED",
         "endpoints":[
           {
-            "uriPattern":"/:nino/tax-summary/:year",
-            "endpointName":"Get Profile",
+            "uriPattern":"/profile/accounts",
+            "endpointName":"Get Accounts",
             "method":"GET",
+            "authType":"USER",
+            "throttlingTier":"UNLIMITED",
+            "scope":"read:customer-profile"
+          },
+          {
+            "uriPattern":"/:nino/tax-summary/:year",
+            "endpointName":"Get Personal Details",
+            "method":"GET",
+            "authType":"USER",
+            "throttlingTier":"UNLIMITED",
+            "scope":"read:customer-profile"
+          },
+          {
+            "uriPattern":"/profile/preferences",
+            "endpointName":"Get Preferences",
+            "method":"GET",
+            "authType":"USER",
+            "throttlingTier":"UNLIMITED",
+            "scope":"read:customer-profile"
+          },
+          {
+            "uriPattern":"/profile/preferences/paperless-settings ",
+            "endpointName":"Set Preferences",
+            "method":"POST",
             "authType":"USER",
             "throttlingTier":"UNLIMITED",
             "scope":"read:customer-profile"
