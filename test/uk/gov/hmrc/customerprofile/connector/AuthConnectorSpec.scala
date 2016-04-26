@@ -145,7 +145,7 @@ class AuthConnectorSpec extends UnitSpec with ScalaFutures {
       val response = HttpResponse(200, Some(authorityJson(authorityConfidenceLevel, saUtr, nino)))
 
       try{
-        authConnector(response, serviceConfidenceLevel).hasNino()
+        authConnector(response, serviceConfidenceLevel).grantAccess()
       } catch {
         case e : UnauthorizedException =>
           e.message shouldBe "The user must have a National Insurance Number to access this service"
@@ -164,7 +164,7 @@ class AuthConnectorSpec extends UnitSpec with ScalaFutures {
       val nino = Some(Nino("CS100700A"))
       val response = HttpResponse(200, Some(authorityJson(authorityConfidenceLevel, saUtr, nino)))
 
-      authConnector(response, serviceConfidenceLevel).hasNino().futureValue
+      authConnector(response, serviceConfidenceLevel).grantAccess().futureValue
 
     }
   }

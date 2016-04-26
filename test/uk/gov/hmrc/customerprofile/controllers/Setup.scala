@@ -63,7 +63,7 @@ class TestAuthConnector(nino: Option[Nino]) extends AuthConnector {
 
   override def accounts()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Accounts] = Future(Accounts(nino, None))
 
-  override def hasNino()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = Future(Unit)
+  override def grantAccess()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = Future(Unit)
 }
 
 class TestCustomerProfileService(testCDConnector: CitizenDetailsConnector,
@@ -126,7 +126,7 @@ trait Success extends Setup {
 trait AuthWithoutNino extends Setup {
 
   override val authConnector = new TestAuthConnector(None) {
-    override def hasNino()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = Future.failed(new uk.gov.hmrc.play.http.Upstream4xxResponse("Error", 401, 401))
+    override def grantAccess()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = Future.failed(new uk.gov.hmrc.play.http.Upstream4xxResponse("Error", 401, 401))
   }
 
   override val testAccess = new TestAccessCheck(authConnector)
