@@ -41,6 +41,9 @@ Personal Details
 
 * **Error Response:**
 
+  * **Code:** 400 BADREQUEST <br />
+    **Content:** `{"code":"BAD_REQUEST","message":"Bad Request"}`
+
   * **Code:** 401 UNAUTHORIZED <br />
     **Content:** `{"code":"UNAUTHORIZED","message":"NINO does not exist on account"}`
 
