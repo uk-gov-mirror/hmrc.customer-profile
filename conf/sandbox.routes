@@ -8,4 +8,4 @@ GET         /profile/preferences                           uk.gov.hmrc.customerp
 
 POST        /profile/preferences/paperless-settings        uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.paperlessSettings()
 
-POST        /profile/version-check                         uk.gov.hmrc.customerprofile.controllers.SandboxNativeVersionCheckerController.validateAppVersion()
+POST        /profile/native-app/version-check              uk.gov.hmrc.customerprofile.controllers.SandboxNativeVersionCheckerController.validateAppVersion()
