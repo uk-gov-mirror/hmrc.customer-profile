@@ -41,8 +41,16 @@
             "scope":"read:customer-profile"
           },
           {
-            "uriPattern":"/profile/preferences/paperless-settings ",
+            "uriPattern":"/profile/preferences/paperless-settings",
             "endpointName":"Set Paperless Preferences",
+            "method":"POST",
+            "authType":"USER",
+            "throttlingTier":"UNLIMITED",
+            "scope":"read:customer-profile"
+          },
+          {
+            "uriPattern":"/profile/native-app/version-check",
+            "endpointName":"Validate App Version",
             "method":"POST",
             "authType":"USER",
             "throttlingTier":"UNLIMITED",

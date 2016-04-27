@@ -1,6 +1,6 @@
 <endpoint>
   <name>Get Personal Details</name>
-  <description>This endpoint retrieves personal details.</description>
+  <description>This endpoint retrieves a user's designatory details</description>
   <section id="resource">
     <title>Resource</title>
     <resource>/profile/personal-details/:nino</resource>
@@ -21,12 +21,6 @@
           <cell><code>NS123456B</code></cell>
           <cell>The NINO for the individual.</cell>
         </row>
-        <row>
-          <cell><code>Year</code></cell>
-          <cell><code>Int</code></cell>
-          <cell><code>10</code></cell>
-          <cell>The tax-summary for the specific year.</cell>
-        </row>
       </rows>
     </table>
   </section>
@@ -34,7 +28,7 @@
     <title>Authorisation</title>
     <authorisation>
       <type>USER</type>
-      <scope>read:personal-income</scope>
+      <scope>read:customer-profile</scope>
     </authorisation>
   </section>
   <section id="content-types">
@@ -49,12 +43,16 @@
     <title>Response</title>
     <httpStatus>200 (OK)</httpStatus>
     <json><![CDATA[{
-        "nino":"KM569110B",
-        "version":1,
-        "workingTaxableTotal":0,
-        "actualTaxableTotal":0,
-        "remainingTaxFree":0,
-        "adjustedNetIncome":0
+      "etag" : "etag12345",
+      "person" : {
+        "firstName" : "John",
+        "middleName" : "Albert",
+        "lastName" : "Smith",
+        "title" : "Mr",
+        "sex" : "M",
+        "dateOfBirth" : 513774181935,
+        "nino" : "YH261980B"
+      }
 }]]></json>
     <table>
       <headings>
@@ -69,18 +67,6 @@
           <cell><code>String</code></cell>
           <cell><code>KM569110B</code></cell>
           <cell>An example NINO.</cell>
-        </row>
-        <row>
-          <cell><code>Version</code></cell>
-          <cell><code>Int</code></cell>
-          <cell><code>1</code></cell>
-          <cell>An example version number.</cell>
-        </row>
-        <row>
-          <cell><code>workingTaxableTotal</code></cell>
-          <cell><code>Int</code></cell>
-          <cell><code>1</code></cell>
-          <cell>An example version number.</cell>
         </row>
       </rows>
     </table>

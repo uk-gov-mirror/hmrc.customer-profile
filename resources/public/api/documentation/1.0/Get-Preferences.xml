@@ -16,16 +16,10 @@
       </headings>
       <rows>
         <row>
-          <cell><code>NINO</code></cell>
-          <cell><code>String</code></cell>
-          <cell><code>NS123456B</code></cell>
-          <cell>The NINO for the individual.</cell>
-        </row>
-        <row>
-          <cell><code>Year</code></cell>
-          <cell><code>Int</code></cell>
-          <cell><code>10</code></cell>
-          <cell>The tax-summary for the specific year.</cell>
+          <cell><code></code></cell>
+          <cell><code></code></cell>
+          <cell><code></code></cell>
+          <cell></cell>
         </row>
       </rows>
     </table>
@@ -34,7 +28,7 @@
     <title>Authorisation</title>
     <authorisation>
       <type>USER</type>
-      <scope>read:personal-income</scope>
+      <scope>read:customer-profile</scope>
     </authorisation>
   </section>
   <section id="content-types">
@@ -49,12 +43,11 @@
     <title>Response</title>
     <httpStatus>200 (OK)</httpStatus>
     <json><![CDATA[{
-        "nino":"KM569110B",
-        "version":1,
-        "workingTaxableTotal":0,
-        "actualTaxableTotal":0,
-        "remainingTaxFree":0,
-        "adjustedNetIncome":0
+    "digital" : true,
+    "email" : {
+      "email" : "name@email.co.uk",
+      "status" : "verified"
+    }
 }]]></json>
     <table>
       <headings>
@@ -65,22 +58,22 @@
       </headings>
       <rows>
         <row>
-          <cell><code>NINO</code></cell>
+          <cell><code>digital</code></cell>
+          <cell><code>Boolean</code></cell>
+          <cell><code>true</code></cell>
+          <cell>The user's chosen preference for paperless settings</cell>
+        </row>
+        <row>
+          <cell><code>email.email</code></cell>
+          <cell><code>Email Address</code></cell>
+          <cell><code>name@email.co.uk</code></cell>
+          <cell>A valid email address for the user</cell>
+        </row>
+        <row>
+          <cell><code>email.status</code></cell>
           <cell><code>String</code></cell>
-          <cell><code>KM569110B</code></cell>
-          <cell>An example NINO.</cell>
-        </row>
-        <row>
-          <cell><code>Version</code></cell>
-          <cell><code>Int</code></cell>
-          <cell><code>1</code></cell>
-          <cell>An example version number.</cell>
-        </row>
-        <row>
-          <cell><code>workingTaxableTotal</code></cell>
-          <cell><code>Int</code></cell>
-          <cell><code>1</code></cell>
-          <cell>An example version number.</cell>
+          <cell><code>verified</code></cell>
+          <cell>The verification status of the user's email address</cell>
         </row>
       </rows>
     </table>

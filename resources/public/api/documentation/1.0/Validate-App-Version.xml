@@ -1,9 +1,9 @@
 <endpoint>
-  <name>Get Accounts</name>
-  <description>This endpoint retrieves the accounts associated with the auth record.</description>
+  <name>Validate App Version</name>
+  <description>Validates the version </description>
   <section id="resource">
     <title>Resource</title>
-    <resource>GET /profile/accounts</resource>
+    <resource>/profile/native-app/version-check</resource>
   </section>
   <section id="path-parameters">
     <title>Path Parameters</title>
@@ -43,8 +43,7 @@
     <title>Response</title>
     <httpStatus>200 (OK)</httpStatus>
     <json><![CDATA[{
-      "nino" : "WX772755B",
-      "saUtr" : "618567"
+        "upgrade":true
 }]]></json>
     <table>
       <headings>
@@ -55,16 +54,10 @@
       </headings>
       <rows>
         <row>
-          <cell><code>nino</code></cell>
-          <cell><code>String</code></cell>
-          <cell><code>NS123456B</code></cell>
-          <cell>The National Insurance Number (NINO) for the individual.</cell>
-        </row>
-        <row>
-          <cell><code>sautr</code></cell>
-          <cell><code>String</code></cell>
-          <cell><code>618567</code></cell>
-          <cell>The Self Assessment Unique Tax Reference for the individual.</cell>
+          <cell><code>upgrade</code></cell>
+          <cell><code>Boolean</code></cell>
+          <cell><code>false</code></cell>
+          <cell>Determines if the user is required to upgrade the installed version of the app</cell>
         </row>
       </rows>
     </table>
