@@ -52,7 +52,10 @@ object ValidateAppVersion extends ApprovedAppVersions {
 
   def apply(deviceVersion: DeviceVersion) : Future[Boolean] = {
     //TODO add comparison base it off https://github.com/hmrc/sbt-bobby/blob/master/src/main/scala/uk/gov/hmrc/bobby/domain/DependencyChecker.scala#L34
-    Future.successful(true)
+//    !appVersion.ios.includes(Version(deviceVersion.version))
+//    !appVersion.android.includes(Version(deviceVersion.version))
+
+    Future.successful(false)
   }
 }
 
