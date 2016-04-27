@@ -25,7 +25,7 @@
             "scope":"read:customer-profile"
           },
           {
-            "uriPattern":"/:nino/tax-summary/:year",
+            "uriPattern":"/profile/personal-details/:nino",
             "endpointName":"Get Personal Details",
             "method":"GET",
             "authType":"USER",
@@ -42,7 +42,7 @@
           },
           {
             "uriPattern":"/profile/preferences/paperless-settings ",
-            "endpointName":"Set Preferences",
+            "endpointName":"Set Paperless Preferences",
             "method":"POST",
             "authType":"USER",
             "throttlingTier":"UNLIMITED",
