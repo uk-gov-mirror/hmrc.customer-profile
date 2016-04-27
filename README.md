@@ -22,6 +22,7 @@ API
 | ```/profile/personal-details/:nino``` | GET | Returns a user's designatory details. [More...](docs/personalDetails.md)  |
 | ```/profile/preferences``` | GET | Returns the user's preferences. [More...](docs/preferences.md)|
 | ```/profile/preferences/paperless-settings``` | POST | Sets or Updates the user's paperless preference settings. [More...](docs/paperlessSettings.md)|
+| ```/profile/native-app/version-check``` | POST | Confirms that the user's native app installation is valid and should not be prompted to upgrade. [More...](docs/versionCheck.md)|
 
 # Sandbox
 All the above endpoints are accessible on sandbox with `/sandbox` prefix on each endpoint, e.g.
