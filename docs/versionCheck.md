@@ -1,6 +1,6 @@
 Version Check
 ----
-  Confirms that the user's native app installation is valid
+  Confirms that the user's native app installation is valid and should not be prompted to upgrade
 
 * **URL**
 
