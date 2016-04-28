@@ -7,7 +7,7 @@
     }
   ],
   "api":{
-    "name":"customer-profile",
+    "name":"Customer Profile",
     "description":"The API is used to retrieve customer profile information.",
     "context":"customer-profile",
     "requiresTrust": true,
@@ -25,7 +25,7 @@
             "scope":"read:customer-profile"
           },
           {
-            "uriPattern":"/profile/personal-details/:nino",
+            "uriPattern":"/profile/personal-details/{nino}",
             "endpointName":"Get Personal Details",
             "method":"GET",
             "authType":"USER",
