@@ -23,6 +23,8 @@ case class VersionRange(lowerBound: Option[Version],
                         upperBoundInclusive: Boolean,
                         qualifierStartsWith: Option[String] = None) {
 
+  def excluded(version: Version): Boolean = !includes(version)
+
   def includes(version: Version): Boolean = {
 
     if (qualifierStartsWith.isDefined) {

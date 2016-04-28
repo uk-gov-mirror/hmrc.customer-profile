@@ -32,7 +32,7 @@ trait LiveUpgradeRequiredCheckerService extends UpgradeRequiredCheckerService wi
 
   override def upgradeRequired(deviceVersion: DeviceVersion)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Boolean] =
     withAudit("upgradeRequired", Map("os" -> deviceVersion.os.toString)) {
-      ValidateAppVersion(deviceVersion)
+      ValidateAppVersion.upgrade(deviceVersion)
     }
 }
 

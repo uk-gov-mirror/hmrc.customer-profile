@@ -44,19 +44,23 @@ trait ApprovedAppVersions extends LoadConfig {
   val appVersion: NativeVersion = config.as[NativeVersion]("approvedAppVersions")
 }
 
-object ValidateAppVersion extends ApprovedAppVersions {
+trait ValidateAppVersion extends ApprovedAppVersions {
 
-  import com.typesafe.config.{Config, ConfigFactory}
+  import uk.gov.hmrc.customerprofile.domain.NativeOS.{iOS, Android}
 
-  lazy val config: Config = ConfigFactory.load()
-
-  def apply(deviceVersion: DeviceVersion) : Future[Boolean] = {
-    //TODO add comparison base it off https://github.com/hmrc/sbt-bobby/blob/master/src/main/scala/uk/gov/hmrc/bobby/domain/DependencyChecker.scala#L34
-//    !appVersion.ios.includes(Version(deviceVersion.version))
-//    !appVersion.android.includes(Version(deviceVersion.version))
-
-    Future.successful(false)
+  def upgrade(deviceVersion: DeviceVersion) : Future[Boolean] = {
+    val outsideValidRange = deviceVersion.os match {
+      case `iOS` => appVersion.ios.excluded(Version(deviceVersion.version))
+      case Android => appVersion.android.excluded(Version(deviceVersion.version))
+    }
+    Future.successful(outsideValidRange)
   }
+}
+
+object ValidateAppVersion extends ValidateAppVersion {
+  import com.typesafe.config.{Config, ConfigFactory}
+  
+  lazy val config: Config = ConfigFactory.load()
 }
 
 
