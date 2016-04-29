@@ -8,7 +8,7 @@ GET         /profile/preferences                                   uk.gov.hmrc.c
 
 POST        /profile/preferences/paperless-settings                uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.paperlessSettings()
 
-POST        /profile/preferences/paperless-settings/opt-out        uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.paperlessSettings()
+POST        /profile/preferences/paperless-settings/opt-out        uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.paperlessSettingsOptOut()
 
 POST        /profile/native-app/version-check                      uk.gov.hmrc.customerprofile.controllers.LiveNativeVersionCheckerController.validateAppVersion()
 
