@@ -1,12 +1,14 @@
 # microservice specific routes
 
-GET         /profile/accounts                              uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.getAccounts()
+GET         /profile/accounts                                      uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.getAccounts()
 
-GET         /profile/personal-details/:nino                uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.getPersonalDetails(nino : Nino)
+GET         /profile/personal-details/:nino                        uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.getPersonalDetails(nino : Nino)
 
-GET         /profile/preferences                           uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.getPreferences()
+GET         /profile/preferences                                   uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.getPreferences()
 
-POST        /profile/preferences/paperless-settings        uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.paperlessSettings()
+POST        /profile/preferences/paperless-settings                uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.paperlessSettings()
 
-POST        /profile/native-app/version-check              uk.gov.hmrc.customerprofile.controllers.LiveNativeVersionCheckerController.validateAppVersion()
+POST        /profile/preferences/paperless-settings/opt-out        uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.paperlessSettings()
+
+POST        /profile/native-app/version-check                      uk.gov.hmrc.customerprofile.controllers.LiveNativeVersionCheckerController.validateAppVersion()
 

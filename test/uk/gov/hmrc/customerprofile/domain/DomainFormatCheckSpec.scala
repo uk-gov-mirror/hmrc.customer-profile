@@ -42,6 +42,10 @@ class DomainFormatCheckSpec extends UnitSpec {
     Logger.debug("Paperless request : " + Json.prettyPrint(paperlessAsJson))
   }
 
+  "Paperless opt out" in {
+    Logger.debug("Paperless opt out response : " + Json.prettyPrint(paperlessOptOutAsJson))
+  }
+
   "Verified email Preference" in {
     Logger.debug("Preference response : " + Json.prettyPrint(verifiedEmailPreferenceAsJson))
   }
@@ -61,6 +65,9 @@ object DomainGenerator {
 
   val paperless = Paperless(TermsAccepted(true), email)
   lazy val paperlessAsJson = Json.toJson(paperless)
+
+  val paperlessOptOut = PaperlessOptOut(true, Some("Some reason that is not needed"))
+  lazy val paperlessOptOutAsJson = Json.toJson(paperlessOptOut)
 
   val verifiedEmailPreference = Preference(true, Some(EmailPreference(email, Status.Verified)))
   lazy val verifiedEmailPreferenceAsJson = Json.toJson(verifiedEmailPreference)

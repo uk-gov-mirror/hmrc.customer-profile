@@ -1,11 +1,13 @@
 # microservice specific routes
 
-GET         /profile/accounts                              uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getAccounts()
+GET         /profile/accounts                                      uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getAccounts()
 
-GET         /profile/personal-details/:nino                uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getPersonalDetails(nino : Nino)
+GET         /profile/personal-details/:nino                        uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getPersonalDetails(nino : Nino)
 
-GET         /profile/preferences                           uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getPreferences()
+GET         /profile/preferences                                   uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getPreferences()
 
-POST        /profile/preferences/paperless-settings        uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.paperlessSettings()
+POST        /profile/preferences/paperless-settings                uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.paperlessSettings()
 
-POST        /profile/native-app/version-check              uk.gov.hmrc.customerprofile.controllers.SandboxNativeVersionCheckerController.validateAppVersion()
+POST        /profile/preferences/paperless-settings/opt-out        uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.paperlessSettings()
+
+POST        /profile/native-app/version-check                      uk.gov.hmrc.customerprofile.controllers.SandboxNativeVersionCheckerController.validateAppVersion()

@@ -20,10 +20,12 @@ import uk.gov.hmrc.api.service.Auditor
 import uk.gov.hmrc.api.sandbox.FileResource
 import uk.gov.hmrc.customerprofile.config.MicroserviceAuditConnector
 import uk.gov.hmrc.customerprofile.connector._
+import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status
 import uk.gov.hmrc.customerprofile.domain._
 import uk.gov.hmrc.domain.Nino
+import uk.gov.hmrc.emailaddress.EmailAddress
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.http.HeaderCarrier
+import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -35,6 +37,8 @@ trait CustomerProfileService {
   def getPersonalDetails(nino: Nino)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PersonDetails]
 
   def paperlessSettings(settings: Paperless)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus]
+
+  def paperlessSettingsOptOut()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[HttpResponse]
 
   def getPreferences()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Option[Preference]]
 }
@@ -59,8 +63,13 @@ trait LiveCustomerProfileService extends CustomerProfileService with Auditor {
     }
 
   def paperlessSettings(settings: Paperless)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] =
-    withAudit("getPaperlessSettings", Map("accepted" -> settings.generic.accepted.toString)) {
+    withAudit("paperlessSettings", Map("accepted" -> settings.generic.accepted.toString)) {
       entityResolver.paperlessSettings(settings)
+    }
+
+  def paperlessSettingsOptOut()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[HttpResponse] =
+    withAudit("paperlessSettingsOptOut", Map.empty) {
+      entityResolver.paperlessOptOut()
     }
 
   def getPreferences()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Option[Preference]] =
@@ -91,7 +100,15 @@ object SandboxCustomerProfileService extends CustomerProfileService with FileRes
     Future(PreferencesExists)
   }
 
-  def getPreferences()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Option[Preference]] = ???
+  override def paperlessSettingsOptOut()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[HttpResponse] = {
+    Future(HttpResponse(200))
+  }
+
+  private val email = EmailAddress("name@email.co.uk")
+
+  def getPreferences()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Option[Preference]] = {
+    Future(Some(Preference(true, Some(EmailPreference(email, Status.Verified)))))
+  }
 }
 
 object LiveCustomerProfileService extends LiveCustomerProfileService {

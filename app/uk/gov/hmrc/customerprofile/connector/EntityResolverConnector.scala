@@ -19,7 +19,7 @@ package uk.gov.hmrc.customerprofile.connector
 import play.api.Logger
 import play.api.http.Status
 import uk.gov.hmrc.customerprofile.config.{ServicesCircuitBreaker, WSHttp}
-import uk.gov.hmrc.customerprofile.domain.{Paperless, Preference}
+import uk.gov.hmrc.customerprofile.domain.{Paperless, PaperlessOptOut, Preference}
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http.{NotFoundException, _}
 
@@ -62,6 +62,18 @@ trait EntityResolverConnector extends Status {
         Logger.warn("Failed to update paperless settings")
         PreferencesFailure
     }
+
+  def paperlessOptOut()(implicit hc: HeaderCarrier, ex : ExecutionContext): Future[HttpResponse] =
+    withCircuitBreaker(http.POST(url(s"/preferences/terms-and-conditions"), PaperlessOptOut(true)))
+
+//      .map(_.status).map {
+//      case OK => PreferencesExists
+//      case _ =>
+//        Logger.warn("Failed to update paperless settings")
+//        PreferencesFailure
+//    }
+
+
 }
 
 object EntityResolverConnector extends EntityResolverConnector with ServicesConfig with ServicesCircuitBreaker {

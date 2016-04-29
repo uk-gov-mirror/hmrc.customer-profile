@@ -95,6 +95,12 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
       )
   }
 
+  final def paperlessSettingsOptOut() = accessControl.validateAccept(acceptHeaderValidationRules).async {
+    implicit request =>
+      implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, None)
+      errorWrapper(service.paperlessSettingsOptOut().map(_ => Ok(Json.toJson(""))))
+  }
+
 
 }
 
