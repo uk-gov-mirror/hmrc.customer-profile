@@ -38,7 +38,7 @@ trait CustomerProfileService {
 
   def paperlessSettings(settings: Paperless)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus]
 
-  def paperlessSettingsOptOut()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[HttpResponse]
+  def paperlessSettingsOptOut()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus]
 
   def getPreferences()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Option[Preference]]
 }
@@ -67,7 +67,7 @@ trait LiveCustomerProfileService extends CustomerProfileService with Auditor {
       entityResolver.paperlessSettings(settings)
     }
 
-  def paperlessSettingsOptOut()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[HttpResponse] =
+  def paperlessSettingsOptOut()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] =
     withAudit("paperlessSettingsOptOut", Map.empty) {
       entityResolver.paperlessOptOut()
     }
@@ -88,6 +88,8 @@ object SandboxCustomerProfileService extends CustomerProfileService with FileRes
 
   private val accounts = Accounts(Some(nino), None)
 
+  private val email = EmailAddress("name@email.co.uk")
+
   def getAccounts()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Accounts] = {
     Future.successful(accounts)
   }
@@ -96,15 +98,12 @@ object SandboxCustomerProfileService extends CustomerProfileService with FileRes
     Future(personDetailsSandbox)
   }
 
-  def paperlessSettings(settings: Paperless)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] = {
+  def paperlessSettings(settings: Paperless)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] =
     Future(PreferencesExists)
-  }
 
-  override def paperlessSettingsOptOut()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[HttpResponse] = {
-    Future(HttpResponse(200))
-  }
+  override def paperlessSettingsOptOut()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] =
+    Future(PreferencesExists)
 
-  private val email = EmailAddress("name@email.co.uk")
 
   def getPreferences()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Option[Preference]] = {
     Future(Some(Preference(true, Some(EmailPreference(email, Status.Verified)))))

@@ -16,20 +16,20 @@
 
 package uk.gov.hmrc.customerprofile.controllers
 
-import play.api.mvc.{Action, BodyParsers}
-import uk.gov.hmrc.customerprofile.connector.{EntityResolverConnector, PreferencesCreated, PreferencesExists, PreferencesFailure}
+import play.api.libs.json._
+import play.api.mvc.BodyParsers
+import play.api.{Logger, mvc}
+import uk.gov.hmrc.api.controllers._
+import uk.gov.hmrc.customerprofile.connector.{PreferencesCreated, PreferencesExists, PreferencesDoesNotExist, PreferencesFailure}
 import uk.gov.hmrc.customerprofile.controllers.action.{AccountAccessControlForSandbox, AccountAccessControlWithHeaderCheck}
 import uk.gov.hmrc.customerprofile.domain.Paperless
 import uk.gov.hmrc.customerprofile.services.{CustomerProfileService, LiveCustomerProfileService, SandboxCustomerProfileService}
 import uk.gov.hmrc.domain.Nino
-import play.api.{Logger, mvc}
 import uk.gov.hmrc.play.http.{ForbiddenException, HeaderCarrier, NotFoundException, UnauthorizedException}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import play.api.libs.json._
-import uk.gov.hmrc.api.controllers._
 
 trait ErrorHandling {
   self: BaseController =>
@@ -98,7 +98,12 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
   final def paperlessSettingsOptOut() = accessControl.validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
       implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, None)
-      errorWrapper(service.paperlessSettingsOptOut().map(_ => Ok(Json.toJson(""))))
+      errorWrapper(service.paperlessSettingsOptOut().map {
+        case PreferencesExists => Ok(Json.toJson("The opt-out preference has been updated"))
+        case PreferencesCreated => Created(Json.toJson(""))
+        case PreferencesDoesNotExist => NotFound("No record to set opt-out preference against")
+        case PreferencesFailure => InternalServerError(Json.toJson(PreferencesSettingsError))
+      })
   }
 
 

@@ -32,6 +32,8 @@ case object PreferencesExists extends PreferencesStatus
 
 case object PreferencesCreated extends PreferencesStatus
 
+case object PreferencesDoesNotExist extends PreferencesStatus
+
 case object PreferencesFailure extends PreferencesStatus
 
 trait EntityResolverConnector extends Status {
@@ -63,17 +65,20 @@ trait EntityResolverConnector extends Status {
         PreferencesFailure
     }
 
-  def paperlessOptOut()(implicit hc: HeaderCarrier, ex : ExecutionContext): Future[HttpResponse] =
-    withCircuitBreaker(http.POST(url(s"/preferences/terms-and-conditions"), PaperlessOptOut(true)))
-
-//      .map(_.status).map {
-//      case OK => PreferencesExists
-//      case _ =>
-//        Logger.warn("Failed to update paperless settings")
-//        PreferencesFailure
-//    }
-
-
+  def paperlessOptOut()(implicit hc: HeaderCarrier, ex : ExecutionContext): Future[PreferencesStatus] =
+    withCircuitBreaker(http.POST(url(s"/preferences/terms-and-conditions"), PaperlessOptOut(true))).map(_.status).map {
+      case OK => PreferencesExists
+      case CREATED =>
+        //how could you create an opt-out paperless setting prior to opting-in??
+        Logger.warn("Unexpected behaviour : creating paperless setting opt-out")
+        PreferencesCreated
+      case NOT_FOUND =>
+        Logger.warn("Failed to find a record to apply request to opt-out of paperless settings")
+        PreferencesDoesNotExist
+      case _ =>
+        Logger.warn("Failed to apply request to opt-out of paperless settings")
+        PreferencesFailure
+    }
 }
 
 object EntityResolverConnector extends EntityResolverConnector with ServicesConfig with ServicesCircuitBreaker {
