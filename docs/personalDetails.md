@@ -41,7 +41,7 @@ Personal Details
 
 * **Error Response:**
 
-  * **Code:** 400 BADREQUEST <br />
+  * **Code:** 400 BAD REQUEST <br />
     **Content:** `{"code":"BAD_REQUEST","message":"Bad Request"}`
 
   * **Code:** 401 UNAUTHORIZED <br />

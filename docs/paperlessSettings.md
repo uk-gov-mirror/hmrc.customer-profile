@@ -32,7 +32,7 @@ Paperless Settings
 
 * **Error Response:**
 
-  * **Code:** 400 BAD <br />
+  * **Code:** 400 BAD REQUEST<br />
     **Content:** `{"code":"BAD_REQUEST","message":"JSON error flattened to a string describing the error that occured on the request"}`
 
   * **Code:** 401 UNAUTHORIZED <br />
