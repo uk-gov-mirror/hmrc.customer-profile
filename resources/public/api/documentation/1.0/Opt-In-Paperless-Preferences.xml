@@ -1,6 +1,6 @@
 <endpoint>
   <name>Opt In Paperless Preferences</name>
-  <description>This endpoint sets the preferences.</description>
+  <description>This endpoint sets or updates the user's paperless opt-in preference settings.</description>
   <section id="resource">
     <title>Resource</title>
     <resource>/profile/preferences/paperless-settings/opt-in</resource>

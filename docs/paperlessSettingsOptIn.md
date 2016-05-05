@@ -1,12 +1,12 @@
 Paperless Settings
 ----
-  Sets or Updates the user's paperless preference settings.
+  Sets or Updates the user's paperless opt-in preference settings.
 
   The acceptance is based off the user being shown and agreeing to, these [Terms and Conditions](https://www.tax.service.gov.uk/information/terms#secure)
 
 * **URL**
 
-  `/profile/preferences/paperless-settings`
+  `/profile/preferences/paperless-settings/opt-in`
 
 * **Method:**
 

@@ -1,6 +1,6 @@
 <endpoint>
   <name>Opt Out Paperless Preferences</name>
-  <description>This endpoint sets the preferences.</description>
+  <description>This endpoint opts the user out of paperless.</description>
   <section id="resource">
     <title>Resource</title>
     <resource>/profile/preferences/paperless-settings/opt-out</resource>
