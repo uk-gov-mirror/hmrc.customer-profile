@@ -1,9 +1,9 @@
 <endpoint>
-  <name>Set Paperless Preferences</name>
+  <name>Opt Out Paperless Preferences</name>
   <description>This endpoint sets the preferences.</description>
   <section id="resource">
     <title>Resource</title>
-    <resource>/profile/preferences/paperless-settings</resource>
+    <resource>/profile/preferences/paperless-settings/opt-out</resource>
   </section>
   <section id="path-parameters">
     <title>Path Parameters</title>

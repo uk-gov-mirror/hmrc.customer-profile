@@ -41,8 +41,16 @@
             "scope":"read:customer-profile"
           },
           {
-            "uriPattern":"/profile/preferences/paperless-settings",
-            "endpointName":"Set Paperless Preferences",
+            "uriPattern":"/profile/preferences/paperless-settings/opt-in",
+            "endpointName":"Opt In Paperless Preferences",
+            "method":"POST",
+            "authType":"USER",
+            "throttlingTier":"UNLIMITED",
+            "scope":"read:customer-profile"
+          },
+          {
+            "uriPattern":"/profile/preferences/paperless-settings/opt-out",
+            "endpointName":"Opt Out Paperless Preferences",
             "method":"POST",
             "authType":"USER",
             "throttlingTier":"UNLIMITED",

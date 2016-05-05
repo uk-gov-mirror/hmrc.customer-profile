@@ -6,7 +6,7 @@ GET         /profile/personal-details/:nino                        uk.gov.hmrc.c
 
 GET         /profile/preferences                                   uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getPreferences()
 
-POST        /profile/preferences/paperless-settings                uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.paperlessSettings()
+POST        /profile/preferences/paperless-settings/opt-in         uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.paperlessSettingsOptIn()
 
 POST        /profile/preferences/paperless-settings/opt-out        uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.paperlessSettingsOptOut()
 

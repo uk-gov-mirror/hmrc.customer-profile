@@ -21,7 +21,7 @@ import play.api.mvc.BodyParsers
 import play.api.{Logger, mvc}
 import uk.gov.hmrc.api.controllers._
 import uk.gov.hmrc.customerprofile.connector.{PreferencesCreated, PreferencesExists, PreferencesDoesNotExist, PreferencesFailure}
-import uk.gov.hmrc.customerprofile.controllers.action.{AccountAccessControlForSandbox, AccountAccessControlWithHeaderCheck}
+import uk.gov.hmrc.customerprofile.controllers.action.{AccountAccessControlCheckOff, AccountAccessControlWithHeaderCheck}
 import uk.gov.hmrc.customerprofile.domain.Paperless
 import uk.gov.hmrc.customerprofile.services.{CustomerProfileService, LiveCustomerProfileService, SandboxCustomerProfileService}
 import uk.gov.hmrc.domain.Nino
@@ -56,7 +56,7 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
   val service: CustomerProfileService
   val accessControl: AccountAccessControlWithHeaderCheck
 
-  final def getAccounts = accessControl.validateAccept(acceptHeaderValidationRules).async {
+  final def getAccounts = AccountAccessControlCheckOff.validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
       implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, None)
       errorWrapper(service.getAccounts().map(as => Ok(Json.toJson(as))))
@@ -74,7 +74,7 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
       errorWrapper(service.getPreferences().map(as => Ok(Json.toJson(as))))
   }
 
-  final def paperlessSettings() = accessControl.validateAccept(acceptHeaderValidationRules).async(BodyParsers.parse.json) {
+  final def paperlessSettingsOptIn() = accessControl.validateAccept(acceptHeaderValidationRules).async(BodyParsers.parse.json) {
 
     implicit request =>
       implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, None)
@@ -89,7 +89,7 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
             case PreferencesExists => Ok(Json.toJson("The existing record has been updated"))
             case PreferencesCreated => Created(Json.toJson(""))
             // TODO: check server error status. Does not need to be a 500?
-            case PreferencesFailure => InternalServerError(Json.toJson(PreferencesSettingsError))
+            case _ => InternalServerError(Json.toJson(PreferencesSettingsError))
           })
         }
       )
@@ -111,7 +111,7 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
 
 object SandboxCustomerProfileController extends CustomerProfileController {
   override val service = SandboxCustomerProfileService
-  override val accessControl = AccountAccessControlForSandbox
+  override val accessControl = AccountAccessControlCheckOff
 }
 
 object LiveCustomerProfileController extends CustomerProfileController {

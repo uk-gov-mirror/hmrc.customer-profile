@@ -20,7 +20,7 @@ import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc.BodyParsers
 import uk.gov.hmrc.api.controllers.{ErrorGenericBadRequest, ErrorResponse, HeaderValidator}
-import uk.gov.hmrc.customerprofile.controllers.action.{AccountAccessControlForSandbox, AccountAccessControlWithHeaderCheck}
+import uk.gov.hmrc.customerprofile.controllers.action.{AccountAccessControlCheckOff, AccountAccessControlWithHeaderCheck}
 import uk.gov.hmrc.customerprofile.domain.DeviceVersion
 import uk.gov.hmrc.customerprofile.services.{LiveUpgradeRequiredCheckerService, SandboxUpgradeRequiredCheckerService, UpgradeRequiredCheckerService}
 import uk.gov.hmrc.play.http.HeaderCarrier
@@ -64,7 +64,7 @@ trait NativeVersionCheckerController extends BaseController with HeaderValidator
 }
 
 object SandboxNativeVersionCheckerController extends NativeVersionCheckerController {
-  override val accessControl = AccountAccessControlForSandbox
+  override val accessControl = AccountAccessControlCheckOff
   override val upgradeRequiredCheckerService: UpgradeRequiredCheckerService = SandboxUpgradeRequiredCheckerService
 }
 

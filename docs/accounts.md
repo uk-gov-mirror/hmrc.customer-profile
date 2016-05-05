@@ -1,6 +1,7 @@
-User Tax Accounts
+User Tax Account Profile
 ----
-  Look up for the current user's tax account identifiers, e.g. National Insurance Number (NINO), Self Assessment UTR, etc
+  Retrieves the current user's tax account identifiers, e.g. National Insurance Number (NINO), Self Assessment UTR, etc,
+  and flag to describe if Identity Verification is required
 
 * **URL**
 
@@ -22,7 +23,8 @@ User Tax Accounts
 ```json
 {
   "nino" : "WX772755B",
-  "saUtr" : "618567"
+  "saUtr" : "618567",
+  "routeToIV" : false
 }
 ```
 

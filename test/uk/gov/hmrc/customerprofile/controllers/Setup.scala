@@ -20,7 +20,7 @@ import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import uk.gov.hmrc.customerprofile.config.{MicroserviceAuditConnector, ServicesCircuitBreaker}
 import uk.gov.hmrc.customerprofile.connector._
-import uk.gov.hmrc.customerprofile.controllers.action.{AccountAccessControl, AccountAccessControlForSandbox, AccountAccessControlWithHeaderCheck}
+import uk.gov.hmrc.customerprofile.controllers.action.{AccountAccessControl, AccountAccessControlCheckOff, AccountAccessControlWithHeaderCheck}
 import uk.gov.hmrc.customerprofile.domain._
 import uk.gov.hmrc.customerprofile.services.{CustomerProfileService, LiveCustomerProfileService, SandboxCustomerProfileService}
 import uk.gov.hmrc.domain.Nino
@@ -61,7 +61,7 @@ class TestAuthConnector(nino: Option[Nino]) extends AuthConnector {
 
   override def http: HttpGet = ???
 
-  override def accounts()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Accounts] = Future(Accounts(nino, None))
+  override def accounts()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Accounts] = Future(Accounts(nino, None, false))
 
   override def grantAccess()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = Future(Unit)
 }
@@ -97,23 +97,23 @@ trait Setup {
     .withHeaders("Content-Type" -> "application/json", "Accept" -> "application/vnd.hmrc.1.0+json")
 
   val nino = Nino("CS700100A")
-  val testAccount = Accounts(Some(nino), None)
+  val testAccount = Accounts(Some(nino), None, false)
   val person = PersonDetails("etag", Person(Some("Firstname"), Some("Middlename"), Some("Lastname"),
     Some("LM"), Some("Mr"), None, Some("Male"), None, None), None, None)
 
   lazy val http200ResponseCid = Future.successful(HttpResponse(200, Some(Json.toJson(person))))
 
-  val authConnector = new TestAuthConnector(Some(nino))
-  val cdConnector = new TestCitizenDetailsConnector(http200ResponseCid)
-  val entityConnector = new TestEntityResolverConnector(PreferencesExists)
+  lazy val authConnector = new TestAuthConnector(Some(nino))
+  lazy val cdConnector = new TestCitizenDetailsConnector(http200ResponseCid)
+  lazy val entityConnector = new TestEntityResolverConnector(PreferencesExists)
 
-  val testAccess = new TestAccessCheck(authConnector)
+  lazy val testAccess = new TestAccessCheck(authConnector)
 
-  val testCompositeAction = new TestAccountAccessControlWithAccept(testAccess)
-  val testCustomerProfileService = new TestCustomerProfileService(cdConnector, authConnector, entityConnector, MicroserviceAuditConnector)
+  lazy val testCompositeAction = new TestAccountAccessControlWithAccept(testAccess)
+  lazy val testCustomerProfileService = new TestCustomerProfileService(cdConnector, authConnector, entityConnector, MicroserviceAuditConnector)
 
-  val testSandboxCustomerProfileService = SandboxCustomerProfileService
-  val sandboxCompositeAction = AccountAccessControlForSandbox
+  lazy val testSandboxCustomerProfileService = SandboxCustomerProfileService
+  lazy val sandboxCompositeAction = AccountAccessControlCheckOff
 }
 
 trait Success extends Setup {
@@ -125,12 +125,12 @@ trait Success extends Setup {
 
 trait AuthWithoutNino extends Setup {
 
-  override val authConnector = new TestAuthConnector(None) {
+  override lazy val authConnector = new TestAuthConnector(None) {
     override def grantAccess()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = Future.failed(new uk.gov.hmrc.play.http.Upstream4xxResponse("Error", 401, 401))
   }
 
-  override val testAccess = new TestAccessCheck(authConnector)
-  override val testCompositeAction = new TestAccountAccessControlWithAccept(testAccess)
+  override lazy val testAccess = new TestAccessCheck(authConnector)
+  override lazy val testCompositeAction = new TestAccountAccessControlWithAccept(testAccess)
 
   val controller = new CustomerProfileController {
     override val service: CustomerProfileService = testCustomerProfileService
@@ -146,9 +146,9 @@ trait SandboxSuccess extends Setup {
 }
 
 trait SandboxPaperlessCreated extends SandboxSuccess {
-  override val entityConnector = new TestEntityResolverConnector(PreferencesCreated)
+  override lazy val entityConnector = new TestEntityResolverConnector(PreferencesCreated)
 
-  override val testCustomerProfileService = new TestCustomerProfileService(cdConnector, authConnector, entityConnector, MicroserviceAuditConnector)
+  override lazy val testCustomerProfileService = new TestCustomerProfileService(cdConnector, authConnector, entityConnector, MicroserviceAuditConnector)
 
   override val controller = new CustomerProfileController {
     override val service: CustomerProfileService = testCustomerProfileService
@@ -157,8 +157,8 @@ trait SandboxPaperlessCreated extends SandboxSuccess {
 }
 
 trait SandboxPaperlessFailed extends SandboxPaperlessCreated {
-  override val entityConnector = new TestEntityResolverConnector(PreferencesFailure)
-  override val testCustomerProfileService = new TestCustomerProfileService(cdConnector, authConnector, entityConnector, MicroserviceAuditConnector)
+  override lazy val entityConnector = new TestEntityResolverConnector(PreferencesFailure)
+  override lazy val testCustomerProfileService = new TestCustomerProfileService(cdConnector, authConnector, entityConnector, MicroserviceAuditConnector)
 
   override val controller = new CustomerProfileController {
     override val service: CustomerProfileService = testCustomerProfileService

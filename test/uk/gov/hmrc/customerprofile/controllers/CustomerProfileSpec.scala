@@ -51,13 +51,13 @@ class TestCustomerProfileGetAccountSpec extends UnitSpec with WithFakeApplicatio
       val result = await(controller.getAccounts()(emptyRequestWithHeader))
 
       status(result) shouldBe 200
-      contentAsJson(result) shouldBe Json.toJson(Accounts(Some(nino), None))
+      contentAsJson(result) shouldBe Json.toJson(Accounts(Some(nino), None, false))
     }
 
-    "Return unauthorized when authority record does not contain a NINO" in new AuthWithoutNino {
+    "not restrict access based on presence of NINO" in new AuthWithoutNino {
       val result = await(controller.getAccounts()(emptyRequestWithHeader))
 
-      status(result) shouldBe 401
+      status(result) shouldBe 200
     }
 
     "return status code 406 when the headers are invalid" in new Success {
@@ -118,33 +118,33 @@ class TestCustomerProfilePaperlessSettingsSpec extends UnitSpec with WithFakeApp
   "paperlessSettings live" should {
 
     "update paperless settings and 200 response code" in new Success {
-      val result = await(controller.paperlessSettings()(paperlessRequest))
+      val result = await(controller.paperlessSettingsOptIn()(paperlessRequest))
 
       status(result) shouldBe 200
       contentAsJson(result) shouldBe Json.toJson("The existing record has been updated")
     }
 
     "update paperless settings and 201 response code" in new SandboxPaperlessCreated {
-      val result = await(controller.paperlessSettings()(paperlessRequest))
+      val result = await(controller.paperlessSettingsOptIn()(paperlessRequest))
 
       status(result) shouldBe 201
     }
 
     "fail to update paperless settings and 500 response code" in new SandboxPaperlessFailed {
-      val result = await(controller.paperlessSettings()(paperlessRequest))
+      val result = await(controller.paperlessSettingsOptIn()(paperlessRequest))
 
       status(result) shouldBe 500
     }
 
     "return the summary response from a resource" in new Success {
-      val result = await(controller.paperlessSettings()(paperlessRequest))
+      val result = await(controller.paperlessSettingsOptIn()(paperlessRequest))
 
       status(result) shouldBe 200
       contentAsJson(result) shouldBe Json.toJson("The existing record has been updated")
     }
 
     "return status code 406 when the headers are invalid" in new Success {
-      val result = await(controller.paperlessSettings()(paperlessRequestNoAccept))
+      val result = await(controller.paperlessSettingsOptIn()(paperlessRequestNoAccept))
 
       status(result) shouldBe 406
     }
@@ -153,14 +153,14 @@ class TestCustomerProfilePaperlessSettingsSpec extends UnitSpec with WithFakeApp
   "paperlessSettings sandbox " should {
 
     "update paperless settings and 200 response code" in new SandboxSuccess {
-      val result = await(controller.paperlessSettings()(paperlessRequest))
+      val result = await(controller.paperlessSettingsOptIn()(paperlessRequest))
 
       status(result) shouldBe 200
       contentAsJson(result) shouldBe Json.toJson("The existing record has been updated")
     }
 
     "return status code 406 when the headers are invalid" in new SandboxSuccess {
-      val result = await(controller.paperlessSettings()(paperlessRequestNoAccept))
+      val result = await(controller.paperlessSettingsOptIn()(paperlessRequestNoAccept))
 
       status(result) shouldBe 406
     }

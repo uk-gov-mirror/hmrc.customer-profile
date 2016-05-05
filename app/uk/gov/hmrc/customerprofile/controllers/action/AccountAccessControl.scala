@@ -75,7 +75,7 @@ object AccountAccessControlWithHeaderCheck extends AccountAccessControlWithHeade
   val accessControl: AccountAccessControl = AccountAccessControl
 }
 
-object AccountAccessControlSandbox extends AccountAccessControl {
+object AccountAccessControlOff extends AccountAccessControl {
     val authConnector: AuthConnector = new AuthConnector {
       override val serviceUrl: String = "NO SERVICE"
 
@@ -88,9 +88,9 @@ object AccountAccessControlSandbox extends AccountAccessControl {
     }
 }
 
-object AccountAccessControlForSandbox extends AccountAccessControlWithHeaderCheck {
+object AccountAccessControlCheckOff extends AccountAccessControlWithHeaderCheck {
   override val checkAccess=false
 
-  val accessControl: AccountAccessControl = AccountAccessControlSandbox
+  val accessControl: AccountAccessControl = AccountAccessControlOff
 }
 

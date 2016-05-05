@@ -6,7 +6,7 @@ GET         /profile/personal-details/:nino                        uk.gov.hmrc.c
 
 GET         /profile/preferences                                   uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.getPreferences()
 
-POST        /profile/preferences/paperless-settings                uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.paperlessSettings()
+POST        /profile/preferences/paperless-settings/opt-in         uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.paperlessSettingsOptIn()
 
 POST        /profile/preferences/paperless-settings/opt-out        uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.paperlessSettingsOptOut()
 

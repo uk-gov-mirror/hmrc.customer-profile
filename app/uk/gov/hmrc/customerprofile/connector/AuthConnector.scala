@@ -41,7 +41,6 @@ trait AuthConnector {
     http.GET(s"$serviceUrl/auth/authority") map {
       resp =>
         val json = resp.json
-        confirmConfiendenceLevel(json)
 
         val accounts = json \ "accounts"
 
@@ -49,9 +48,9 @@ trait AuthConnector {
 
         val nino = (accounts \ "paye" \ "nino").asOpt[String]
 
-        val acc = Accounts(nino.map(Nino(_)), utr.map(SaUtr(_)))
+        val acc = Accounts(nino.map(Nino(_)), utr.map(SaUtr(_)), upliftRequired(json))
         acc match {
-          case Accounts(None, _) => {
+          case Accounts(None, _, _) => {
             //TODO add a metric for this ????
             Logger.warn("User without a NINO has accessed the service this should not be possible")
             throw new UnauthorizedException("The user must have a National Insurance Number")
@@ -73,11 +72,14 @@ trait AuthConnector {
     }
   }
 
-  private def confirmConfiendenceLevel(jsValue : JsValue) = {
-    val usersCL = (jsValue \ "confidenceLevel").as[Int]
-    if (serviceConfidenceLevel.level > usersCL) {
+  private def confirmConfiendenceLevel(jsValue : JsValue) =
+    if (upliftRequired(jsValue)) {
       throw new ForbiddenException("The user does not have sufficient permissions to access this service")
     }
+
+  private def upliftRequired(jsValue : JsValue) = {
+    val usersCL = (jsValue \ "confidenceLevel").as[Int]
+    serviceConfidenceLevel.level > usersCL
   }
 }
 
