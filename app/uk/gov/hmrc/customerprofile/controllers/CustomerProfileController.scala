@@ -86,8 +86,8 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
         },
         settings => {
           errorWrapper(service.paperlessSettings(settings).map {
-            case PreferencesExists => Ok(Json.toJson("The existing record has been updated"))
-            case PreferencesCreated => Created(Json.toJson(""))
+            case PreferencesExists => Ok
+            case PreferencesCreated => Created
             // TODO: check server error status. Does not need to be a 500?
             case _ => InternalServerError(Json.toJson(PreferencesSettingsError))
           })
@@ -99,9 +99,9 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
     implicit request =>
       implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, None)
       errorWrapper(service.paperlessSettingsOptOut().map {
-        case PreferencesExists => Ok(Json.toJson("The opt-out preference has been updated"))
-        case PreferencesCreated => Created(Json.toJson(""))
-        case PreferencesDoesNotExist => NotFound("No record to set opt-out preference against")
+        case PreferencesExists => Ok
+        case PreferencesCreated => Created
+        case PreferencesDoesNotExist => NotFound
         case PreferencesFailure => InternalServerError(Json.toJson(PreferencesSettingsError))
       })
   }
