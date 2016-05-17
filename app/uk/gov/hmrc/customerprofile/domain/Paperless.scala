@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.customerprofile.domain
 
-import play.api.libs.json.{JsError, JsSuccess, Writes, _}
+import play.api.libs.json.Json
 import uk.gov.hmrc.emailaddress.EmailAddress
 
 case class TermsAccepted(accepted: Boolean)
@@ -34,23 +34,8 @@ object Paperless {
   }
 }
 
-case class PaperlessOptOut(deEnrolling : Boolean, reason : Option[String] = None)
+case class PaperlessOptOut(digital : Boolean, reason : Option[String] = None)
 
 object PaperlessOptOut {
-
-  import play.api.libs.json._
-  import play.api.libs.json.Reads._
-  import play.api.libs.functional.syntax._
-
-  private val reads: Reads[PaperlessOptOut] = (
-      (JsPath \ "de-enrolling").read[Boolean] and
-      (JsPath \ "reason").read[Option[String]]
-    )(PaperlessOptOut.apply _)
-
-  private val writes: Writes[PaperlessOptOut] = (
-      (JsPath \ "de-enrolling").write[Boolean] and
-      (JsPath \ "reason").write[Option[String]]
-    )(unlift(PaperlessOptOut.unapply))
-
-  implicit val formats = Format(reads, writes)
+  implicit val format = Json.format[PaperlessOptOut]
 }

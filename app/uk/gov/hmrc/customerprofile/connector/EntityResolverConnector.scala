@@ -66,7 +66,7 @@ trait EntityResolverConnector extends Status {
     }
 
   def paperlessOptOut()(implicit hc: HeaderCarrier, ex : ExecutionContext): Future[PreferencesStatus] =
-    withCircuitBreaker(http.POST(url(s"/preferences"), PaperlessOptOut(true))).map(_.status).map {
+    withCircuitBreaker(http.POST(url(s"/preferences"), PaperlessOptOut(false, Some("Mobile opt-out")))).map(_.status).map {
       case OK => PreferencesExists
       case CREATED =>
         //how could you create an opt-out paperless setting prior to opting-in??
