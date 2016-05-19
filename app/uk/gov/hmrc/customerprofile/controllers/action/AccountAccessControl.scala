@@ -16,11 +16,12 @@
 
 package uk.gov.hmrc.customerprofile.controllers.action
 
+import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc.{ActionBuilder, Request, Result, Results}
-import uk.gov.hmrc.api.controllers.{ErrorAcceptHeaderInvalid, HeaderValidator}
-import uk.gov.hmrc.customerprofile.connector.AuthConnector
-import uk.gov.hmrc.customerprofile.controllers.ErrorUnauthorizedNoNino
+import uk.gov.hmrc.api.controllers.{ErrorUnauthorizedLowCL, ErrorAcceptHeaderInvalid, HeaderValidator}
+import uk.gov.hmrc.customerprofile.connector.{AccountWithLowCL, NinoNotFoundOnAccount, AuthConnector}
+import uk.gov.hmrc.customerprofile.controllers.{ErrorUnauthorizedMicroService, ErrorUnauthorizedNoNino}
 import uk.gov.hmrc.play.auth.microservice.connectors.ConfidenceLevel
 import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.play.http.hooks.HttpHook
@@ -41,7 +42,15 @@ trait AccountAccessControl extends ActionBuilder[Request] with Results {
       _ =>
         block(request)
     }.recover {
-      case ex:uk.gov.hmrc.play.http.Upstream4xxResponse => Unauthorized(Json.toJson(ErrorUnauthorizedNoNino))
+      case ex:uk.gov.hmrc.play.http.Upstream4xxResponse =>
+        Logger.info("Unauthorized! Failed to grant access since 4xx response!")
+        Unauthorized(Json.toJson(ErrorUnauthorizedMicroService))
+      case ex:NinoNotFoundOnAccount =>
+        Logger.info("Unauthorized! NINO not found on account!")
+        Unauthorized(Json.toJson(ErrorUnauthorizedNoNino))
+      case ex:AccountWithLowCL =>
+        Logger.info("Unauthorized! Account with low CL!")
+        Unauthorized(Json.toJson(ErrorUnauthorizedLowCL))
     }
   }
 

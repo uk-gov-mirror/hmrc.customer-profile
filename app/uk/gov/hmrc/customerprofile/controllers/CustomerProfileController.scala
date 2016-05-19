@@ -20,12 +20,12 @@ import play.api.libs.json._
 import play.api.mvc.BodyParsers
 import play.api.{Logger, mvc}
 import uk.gov.hmrc.api.controllers._
-import uk.gov.hmrc.customerprofile.connector.{PreferencesCreated, PreferencesExists, PreferencesDoesNotExist, PreferencesFailure}
+import uk.gov.hmrc.customerprofile.connector._
 import uk.gov.hmrc.customerprofile.controllers.action.{AccountAccessControlCheckOff, AccountAccessControlWithHeaderCheck}
 import uk.gov.hmrc.customerprofile.domain.Paperless
 import uk.gov.hmrc.customerprofile.services.{CustomerProfileService, LiveCustomerProfileService, SandboxCustomerProfileService}
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.play.http.{ForbiddenException, HeaderCarrier, NotFoundException, UnauthorizedException}
+import uk.gov.hmrc.play.http.{HeaderCarrier, NotFoundException, UnauthorizedException}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -33,17 +33,22 @@ import scala.concurrent.Future
 
 trait ErrorHandling {
   self: BaseController =>
+  val app:String
+
+  def log(message:String) = Logger.info(s"$app $message")
 
   def errorWrapper(func: => Future[mvc.Result])(implicit hc: HeaderCarrier) = {
     func.recover {
-      case ex: NotFoundException => Status(ErrorNotFound.httpStatusCode)(Json.toJson(ErrorNotFound))
+      case ex: NotFoundException =>
+        log("Resource not found!")
+        Status(ErrorNotFound.httpStatusCode)(Json.toJson(ErrorNotFound))
 
-      case ex: UnauthorizedException => Unauthorized(Json.toJson(ErrorUnauthorizedNoNino))
-
-      case ex: ForbiddenException => Unauthorized(Json.toJson(ErrorUnauthorizedLowCL))
+      case ex: NinoNotFoundOnAccount =>
+        log("User has no NINO. Unauthorized!")
+        Unauthorized(Json.toJson(ErrorUnauthorizedNoNino))
 
       case e: Throwable =>
-        Logger.error(s"Internal server error: ${e.getMessage}", e)
+        Logger.error(s"$app Internal server error: ${e.getMessage}", e)
         Status(ErrorInternalServerError.httpStatusCode)(Json.toJson(ErrorInternalServerError))
     }
   }
@@ -68,7 +73,7 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
       errorWrapper(service.getPersonalDetails(nino).map(as => Ok(Json.toJson(as))))
   }
 
-  final def getPreferences() = accessControl.validateAccept(acceptHeaderValidationRules).async {
+  final def getPreferences = accessControl.validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
       implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, None)
       errorWrapper(service.getPreferences().map(as => Ok(Json.toJson(as))))
@@ -106,15 +111,16 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
       })
   }
 
-
 }
 
 object SandboxCustomerProfileController extends CustomerProfileController {
+  val app = "Sandbox-Customer-Profile"
   override val service = SandboxCustomerProfileService
   override val accessControl = AccountAccessControlCheckOff
 }
 
 object LiveCustomerProfileController extends CustomerProfileController {
+  val app = "Live-Customer-Profile"
   override val service = LiveCustomerProfileService
   override val accessControl = AccountAccessControlWithHeaderCheck
 }

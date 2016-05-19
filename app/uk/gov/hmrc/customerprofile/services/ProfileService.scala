@@ -25,7 +25,7 @@ import uk.gov.hmrc.customerprofile.domain._
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.emailaddress.EmailAddress
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -83,7 +83,7 @@ object SandboxCustomerProfileService extends CustomerProfileService with FileRes
 
   private val nino = Nino("CS700100A")
 
-  private val personDetailsSandbox = PersonDetails("etag", Person(Some("Firstname"), Some("Middlename"), Some("Lastname"),
+  private val personDetailsSandbox = PersonDetails("etag", Person(Some("Nuala"), Some("Theo"), Some("O'Shea"),
     Some("LM"), Some("Mr"), None, Some("Male"), None, None), None, None)
 
   private val accounts = Accounts(Some(nino), None, false)

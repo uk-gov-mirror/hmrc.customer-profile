@@ -30,8 +30,11 @@ import uk.gov.hmrc.play.auth.microservice.connectors.ConfidenceLevel
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.play.http.hooks.HttpHook
+import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
+import play.api.test.Helpers._
+
 
 class TestCitizenDetailsConnector(httpResponse: Future[HttpResponse]) extends CitizenDetailsConnector {
   override lazy val citizenDetailsConnectorUrl = "someUrl"
@@ -53,7 +56,6 @@ class TestEntityResolverConnector(preferencesStatus: PreferencesStatus) extends 
   }
 }
 
-// TODO...basic auditing!
 class TestAuthConnector(nino: Option[Nino]) extends AuthConnector {
   override val serviceUrl: String = "someUrl"
 
@@ -92,13 +94,15 @@ trait Setup {
   val emptyRequestWithHeader = FakeRequest().withHeaders("Accept" -> "application/vnd.hmrc.1.0+json")
 
   val paperlessJsonBody = Json.toJson(Paperless(TermsAccepted(true), EmailAddress("a@b.com")))
+  val noNinoOnAccount = Json.parse("""{"code":"UNAUTHORIZED","message":"NINO does not exist on account"}""")
+  val lowCL = Json.parse("""{"code":"LOW_CONFIDENCE_LEVEL","message":"Confidence Level on account does not allow access"}""")
   val paperlessRequestNoAccept = FakeRequest().withBody(paperlessJsonBody).withHeaders("Content-Type" -> "application/json")
   val paperlessRequest = FakeRequest().withBody(paperlessJsonBody)
     .withHeaders("Content-Type" -> "application/json", "Accept" -> "application/vnd.hmrc.1.0+json")
 
   val nino = Nino("CS700100A")
   val testAccount = Accounts(Some(nino), None, false)
-  val person = PersonDetails("etag", Person(Some("Firstname"), Some("Middlename"), Some("Lastname"),
+  val person = PersonDetails("etag", Person(Some("Nuala"), Some("Theo"), Some("O'Shea"),
     Some("LM"), Some("Mr"), None, Some("Male"), None, None), None, None)
 
   lazy val http200ResponseCid = Future.successful(HttpResponse(200, Some(Json.toJson(person))))
@@ -116,30 +120,71 @@ trait Setup {
   lazy val sandboxCompositeAction = AccountAccessControlCheckOff
 }
 
+trait AuthorityTest extends UnitSpec {
+  self: Setup =>
+
+  def testNoNINO(func: => play.api.mvc.Result) = {
+    val result: play.api.mvc.Result = func
+
+    status(result) shouldBe 401
+    contentAsJson(result) shouldBe noNinoOnAccount
+  }
+
+  def testLowCL(func: => play.api.mvc.Result) = {
+    val result: play.api.mvc.Result = func
+
+    status(result) shouldBe 401
+    contentAsJson(result) shouldBe lowCL
+  }
+}
+
 trait Success extends Setup {
   val controller = new CustomerProfileController {
+    val app = "Success Customer Profile"
     override val service: CustomerProfileService = testCustomerProfileService
     override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
   }
 }
 
-trait AuthWithoutNino extends Setup {
+trait AuthWithoutNino extends Setup with AuthorityTest {
 
   override lazy val authConnector = new TestAuthConnector(None) {
-    override def grantAccess()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = Future.failed(new uk.gov.hmrc.play.http.Upstream4xxResponse("Error", 401, 401))
+    lazy val exception = new NinoNotFoundOnAccount("The user must have a National Insurance Number")
+    override def accounts()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Accounts] = Future.failed(exception)
+    override def grantAccess()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = Future.failed(exception)
   }
 
   override lazy val testAccess = new TestAccessCheck(authConnector)
   override lazy val testCompositeAction = new TestAccountAccessControlWithAccept(testAccess)
 
   val controller = new CustomerProfileController {
+    val app = "AuthWithoutNino Customer Profile"
     override val service: CustomerProfileService = testCustomerProfileService
     override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
   }
 }
 
+trait AuthWithLowCL extends Setup with AuthorityTest {
+  override lazy val authConnector = new TestAuthConnector(None) {
+    lazy val exception = new AccountWithLowCL("Forbidden to access since low CL")
+    override def accounts()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Accounts] = Future.successful(Accounts(Some(nino), None, true))
+    override def grantAccess()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = Future.failed(exception)
+  }
+
+  override lazy val testAccess = new TestAccessCheck(authConnector)
+  override lazy val testCompositeAction = new TestAccountAccessControlWithAccept(testAccess)
+
+  val controller = new CustomerProfileController {
+    val app = "AuthWithoutNino Customer Profile"
+    override val service: CustomerProfileService = testCustomerProfileService
+    override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
+  }
+
+}
+
 trait SandboxSuccess extends Setup {
   val controller = new CustomerProfileController {
+    val app = "Sandbox Customer Profile"
     override val service: CustomerProfileService = testSandboxCustomerProfileService
     override val accessControl: AccountAccessControlWithHeaderCheck = sandboxCompositeAction
   }
@@ -151,6 +196,7 @@ trait SandboxPaperlessCreated extends SandboxSuccess {
   override lazy val testCustomerProfileService = new TestCustomerProfileService(cdConnector, authConnector, entityConnector, MicroserviceAuditConnector)
 
   override val controller = new CustomerProfileController {
+    val app = "SandboxPaperlessCreated Customer Profile"
     override val service: CustomerProfileService = testCustomerProfileService
     override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
   }
@@ -161,6 +207,7 @@ trait SandboxPaperlessFailed extends SandboxPaperlessCreated {
   override lazy val testCustomerProfileService = new TestCustomerProfileService(cdConnector, authConnector, entityConnector, MicroserviceAuditConnector)
 
   override val controller = new CustomerProfileController {
+    val app = "SandboxPaperlessFailed Customer Profile"
     override val service: CustomerProfileService = testCustomerProfileService
     override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
   }

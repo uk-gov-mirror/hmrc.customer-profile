@@ -18,6 +18,7 @@ package uk.gov.hmrc.customerprofile.controllers
 
 import org.scalatest.concurrent.ScalaFutures
 import play.api.libs.json.Json
+import play.api.mvc.Result
 import play.api.test.Helpers._
 import play.api.test.{FakeApplication}
 import uk.gov.hmrc.customerprofile.domain._
@@ -27,14 +28,24 @@ import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 class TestCustomerProfileGetAccountSpec extends UnitSpec with WithFakeApplication with ScalaFutures with StubApplicationConfiguration {
   override lazy val fakeApplication = FakeApplication(additionalConfiguration = config)
 
-  "getAccount sandbox controller " should {
+  "getAccount live controller " should {
 
-    "return the accounts response from a resource" in new SandboxSuccess {
+    "return the accounts successfully" in new Success {
       val result = await(controller.getAccounts()(emptyRequestWithHeader))
 
       status(result) shouldBe 200
+      contentAsJson(result) shouldBe Json.toJson(Accounts(Some(nino), None, false))
+    }
 
-      contentAsJson(result) shouldBe Json.toJson(testAccount)
+    "return 401 result with json status detailing no nino on authority" in new AuthWithoutNino {
+      testNoNINO(controller.getAccounts()(emptyRequestWithHeader))
+    }
+
+    "return 200 result with json status detailing low CL on authority" in new AuthWithLowCL {
+      val result = await(controller.getAccounts()(emptyRequestWithHeader))
+
+      status(result) shouldBe 200
+      contentAsJson(result) shouldBe Json.toJson(Accounts(Some(nino), None, true))
     }
 
     "return status code 406 when the headers are invalid" in new Success {
@@ -44,20 +55,13 @@ class TestCustomerProfileGetAccountSpec extends UnitSpec with WithFakeApplicatio
     }
   }
 
-  "getAccount live controller " should {
+  "getAccount sandbox controller " should {
 
-    "return the accounts successfully" in new Success {
-
+    "return the accounts response from a resource" in new SandboxSuccess {
       val result = await(controller.getAccounts()(emptyRequestWithHeader))
 
       status(result) shouldBe 200
-      contentAsJson(result) shouldBe Json.toJson(Accounts(Some(nino), None, false))
-    }
-
-    "not restrict access based on presence of NINO" in new AuthWithoutNino {
-      val result = await(controller.getAccounts()(emptyRequestWithHeader))
-
-      status(result) shouldBe 200
+      contentAsJson(result) shouldBe Json.toJson(testAccount)
     }
 
     "return status code 406 when the headers are invalid" in new Success {
@@ -71,15 +75,21 @@ class TestCustomerProfileGetAccountSpec extends UnitSpec with WithFakeApplicatio
 class TestCustomerProfileGetPersonalDetailsSpec extends UnitSpec with WithFakeApplication with ScalaFutures with StubApplicationConfiguration {
   override lazy val fakeApplication = FakeApplication(additionalConfiguration = config)
 
+  "getPersonalDetails live " should {
 
-  "getPersonalDetails sandbox controller " should {
-
-    "return the PersonalDetails response from a resource" in new SandboxSuccess {
-      val result = await(controller.getPersonalDetails(nino)(emptyRequestWithHeader))
+    "return the PersonalDetails successfully" in new Success {
+      val result: Result = await(controller.getPersonalDetails(nino)(emptyRequestWithHeader))
 
       status(result) shouldBe 200
-
       contentAsJson(result) shouldBe Json.toJson(person)
+    }
+
+    "return unauthorized when authority record does not contain a NINO" in new AuthWithoutNino {
+      testNoNINO(await(controller.getPersonalDetails(nino)(emptyRequestWithHeader)))
+    }
+
+    "return 401 result with json status detailing low CL on authority" in new AuthWithLowCL {
+      testLowCL(await(controller.getPersonalDetails(nino)(emptyRequestWithHeader)))
     }
 
     "return status code 406 when the headers are invalid" in new Success {
@@ -89,19 +99,13 @@ class TestCustomerProfileGetPersonalDetailsSpec extends UnitSpec with WithFakeAp
     }
   }
 
-  "live controller " should {
+  "getPersonalDetails sandbox " should {
 
-    "return the PersonalDetails successfully" in new Success {
+    "return the PersonalDetails response from a resource" in new SandboxSuccess {
       val result = await(controller.getPersonalDetails(nino)(emptyRequestWithHeader))
 
       status(result) shouldBe 200
       contentAsJson(result) shouldBe Json.toJson(person)
-    }
-
-    "Return unauthorized when authority record does not contain a NINO" in new AuthWithoutNino {
-      val result = await(controller.getPersonalDetails(nino)(emptyRequestWithHeader))
-
-      status(result) shouldBe 401
     }
 
     "return status code 406 when the headers are invalid" in new Success {
@@ -129,16 +133,18 @@ class TestCustomerProfilePaperlessSettingsSpec extends UnitSpec with WithFakeApp
       status(result) shouldBe 201
     }
 
+    "return unauthorized when authority record does not contain a NINO" in new AuthWithoutNino {
+      testNoNINO(await(controller.paperlessSettingsOptIn()(paperlessRequest)))
+    }
+
+    "return 401 result with json status detailing low CL on authority" in new AuthWithLowCL {
+      testLowCL(await(controller.paperlessSettingsOptIn()(paperlessRequest)))
+    }
+
     "fail to update paperless settings and 500 response code" in new SandboxPaperlessFailed {
       val result = await(controller.paperlessSettingsOptIn()(paperlessRequest))
 
       status(result) shouldBe 500
-    }
-
-    "return the summary response from a resource" in new Success {
-      val result = await(controller.paperlessSettingsOptIn()(paperlessRequest))
-
-      status(result) shouldBe 200
     }
 
     "return status code 406 when the headers are invalid" in new Success {
