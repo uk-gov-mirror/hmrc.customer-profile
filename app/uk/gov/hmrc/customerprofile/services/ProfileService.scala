@@ -86,7 +86,7 @@ object SandboxCustomerProfileService extends CustomerProfileService with FileRes
   private val personDetailsSandbox = PersonDetails("etag", Person(Some("Nuala"), Some("Theo"), Some("O'Shea"),
     Some("LM"), Some("Mr"), None, Some("Male"), None, None), None, None)
 
-  private val accounts = Accounts(Some(nino), None, false)
+  private val accounts = Accounts(Some(nino), None, false, false)
 
   private val email = EmailAddress("name@email.co.uk")
 

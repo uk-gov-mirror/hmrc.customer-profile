@@ -63,7 +63,7 @@ class TestAuthConnector(nino: Option[Nino]) extends AuthConnector {
 
   override def http: HttpGet = ???
 
-  override def accounts()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Accounts] = Future(Accounts(nino, None, false))
+  override def accounts()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Accounts] = Future(Accounts(nino, None, false, false))
 
   override def grantAccess()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = Future(Unit)
 }
@@ -96,12 +96,13 @@ trait Setup {
   val paperlessJsonBody = Json.toJson(Paperless(TermsAccepted(true), EmailAddress("a@b.com")))
   val noNinoOnAccount = Json.parse("""{"code":"UNAUTHORIZED","message":"NINO does not exist on account"}""")
   val lowCL = Json.parse("""{"code":"LOW_CONFIDENCE_LEVEL","message":"Confidence Level on account does not allow access"}""")
+  val weakCredStrength = Json.parse("""{"code":"WEAK_CRED_STRENGTH","message":"Credential Strength on account does not allow access"}""")
   val paperlessRequestNoAccept = FakeRequest().withBody(paperlessJsonBody).withHeaders("Content-Type" -> "application/json")
   val paperlessRequest = FakeRequest().withBody(paperlessJsonBody)
     .withHeaders("Content-Type" -> "application/json", "Accept" -> "application/vnd.hmrc.1.0+json")
 
   val nino = Nino("CS700100A")
-  val testAccount = Accounts(Some(nino), None, false)
+  val testAccount = Accounts(Some(nino), None, false, false)
   val person = PersonDetails("etag", Person(Some("Nuala"), Some("Theo"), Some("O'Shea"),
     Some("LM"), Some("Mr"), None, Some("Male"), None, None), None, None)
 
@@ -136,6 +137,13 @@ trait AuthorityTest extends UnitSpec {
     status(result) shouldBe 401
     contentAsJson(result) shouldBe lowCL
   }
+
+  def testWeakCredStrength(func: => play.api.mvc.Result) = {
+    val result: play.api.mvc.Result = func
+
+    status(result) shouldBe 401
+    contentAsJson(result) shouldBe weakCredStrength
+  }
 }
 
 trait Success extends Setup {
@@ -165,9 +173,12 @@ trait AuthWithoutNino extends Setup with AuthorityTest {
 }
 
 trait AuthWithLowCL extends Setup with AuthorityTest {
+  val routeToIv=true
+  val routeToTwoFactor=false
+
   override lazy val authConnector = new TestAuthConnector(None) {
     lazy val exception = new AccountWithLowCL("Forbidden to access since low CL")
-    override def accounts()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Accounts] = Future.successful(Accounts(Some(nino), None, true))
+    override def accounts()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Accounts] = Future.successful(Accounts(Some(nino), None, routeToIv, routeToTwoFactor))
     override def grantAccess()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = Future.failed(exception)
   }
 
@@ -175,7 +186,28 @@ trait AuthWithLowCL extends Setup with AuthorityTest {
   override lazy val testCompositeAction = new TestAccountAccessControlWithAccept(testAccess)
 
   val controller = new CustomerProfileController {
-    val app = "AuthWithoutNino Customer Profile"
+    val app = "AuthWithLowCL Customer Profile"
+    override val service: CustomerProfileService = testCustomerProfileService
+    override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
+  }
+
+}
+
+trait AuthWithWeakCreds extends Setup with AuthorityTest {
+  val routeToIv=false
+  val routeToTwoFactor=true
+
+  override lazy val authConnector = new TestAuthConnector(None) {
+    lazy val exception = new AccountWithWeakCredStrength("Forbidden to access since weak cred strength")
+    override def accounts()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Accounts] = Future.successful(Accounts(Some(nino), None, routeToIv, routeToTwoFactor))
+    override def grantAccess()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = Future.failed(exception)
+  }
+
+  override lazy val testAccess = new TestAccessCheck(authConnector)
+  override lazy val testCompositeAction = new TestAccountAccessControlWithAccept(testAccess)
+
+  val controller = new CustomerProfileController {
+    val app = "AuthWithWeakCreds Customer Profile"
     override val service: CustomerProfileService = testCustomerProfileService
     override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
   }

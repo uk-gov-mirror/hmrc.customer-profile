@@ -34,7 +34,7 @@ class TestCustomerProfileGetAccountSpec extends UnitSpec with WithFakeApplicatio
       val result = await(controller.getAccounts()(emptyRequestWithHeader))
 
       status(result) shouldBe 200
-      contentAsJson(result) shouldBe Json.toJson(Accounts(Some(nino), None, false))
+      contentAsJson(result) shouldBe Json.toJson(Accounts(Some(nino), None, false, false))
     }
 
     "return 401 result with json status detailing no nino on authority" in new AuthWithoutNino {
@@ -45,7 +45,14 @@ class TestCustomerProfileGetAccountSpec extends UnitSpec with WithFakeApplicatio
       val result = await(controller.getAccounts()(emptyRequestWithHeader))
 
       status(result) shouldBe 200
-      contentAsJson(result) shouldBe Json.toJson(Accounts(Some(nino), None, true))
+      contentAsJson(result) shouldBe Json.toJson(Accounts(Some(nino), None, true, false))
+    }
+
+    "return 200 result with json status detailing weak cred strength on authority" in new AuthWithWeakCreds {
+      val result = await(controller.getAccounts()(emptyRequestWithHeader))
+
+      status(result) shouldBe 200
+      contentAsJson(result) shouldBe Json.toJson(Accounts(Some(nino), None, false, true))
     }
 
     "return status code 406 when the headers are invalid" in new Success {
@@ -90,6 +97,10 @@ class TestCustomerProfileGetPersonalDetailsSpec extends UnitSpec with WithFakeAp
 
     "return 401 result with json status detailing low CL on authority" in new AuthWithLowCL {
       testLowCL(await(controller.getPersonalDetails(nino)(emptyRequestWithHeader)))
+    }
+
+    "return 401 result with json status detailing weak credStrength on authority" in new AuthWithWeakCreds {
+      testWeakCredStrength(await(controller.getPersonalDetails(nino)(emptyRequestWithHeader)))
     }
 
     "return status code 406 when the headers are invalid" in new Success {
@@ -139,6 +150,10 @@ class TestCustomerProfilePaperlessSettingsSpec extends UnitSpec with WithFakeApp
 
     "return 401 result with json status detailing low CL on authority" in new AuthWithLowCL {
       testLowCL(await(controller.paperlessSettingsOptIn()(paperlessRequest)))
+    }
+
+    "return 401 result with json status detailing weak credStrength on authority" in new AuthWithWeakCreds {
+      testWeakCredStrength(await(controller.paperlessSettingsOptIn()(paperlessRequest)))
     }
 
     "fail to update paperless settings and 500 response code" in new SandboxPaperlessFailed {
