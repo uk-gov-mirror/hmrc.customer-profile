@@ -34,8 +34,7 @@ object Paperless {
   }
 }
 
-case class PaperlessOptOut(digital : Boolean, reason : Option[String] = None)
-
+case class PaperlessOptOut(generic: TermsAccepted)
 object PaperlessOptOut {
   implicit val format = Json.format[PaperlessOptOut]
 }

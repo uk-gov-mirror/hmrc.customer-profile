@@ -19,7 +19,7 @@ package uk.gov.hmrc.customerprofile.connector
 import play.api.Logger
 import play.api.http.Status
 import uk.gov.hmrc.customerprofile.config.{ServicesCircuitBreaker, WSHttp}
-import uk.gov.hmrc.customerprofile.domain.{Paperless, PaperlessOptOut, Preference}
+import uk.gov.hmrc.customerprofile.domain.{TermsAccepted, Paperless, PaperlessOptOut, Preference}
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http.{NotFoundException, _}
 
@@ -66,7 +66,7 @@ trait EntityResolverConnector extends Status {
     }
 
   def paperlessOptOut()(implicit hc: HeaderCarrier, ex : ExecutionContext): Future[PreferencesStatus] =
-    withCircuitBreaker(http.POST(url(s"/preferences"), PaperlessOptOut(false, Some("Mobile opt-out")))).map(_.status).map {
+    withCircuitBreaker(http.POST(url(s"/preferences/terms-and-conditions"), PaperlessOptOut(TermsAccepted(false)))).map(_.status).map {
       case OK => PreferencesExists
       case CREATED =>
         //how could you create an opt-out paperless setting prior to opting-in??
