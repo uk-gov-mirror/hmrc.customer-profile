@@ -61,7 +61,6 @@ trait AuthConnector {
       resp => {
         val json = resp.json
         confirmConfiendenceLevel(json)
-        confirmCredStrength(json)
 
         if((json \ "accounts" \ "paye" \ "nino").asOpt[String].isEmpty)
           throw new NinoNotFoundOnAccount("The user must have a National Insurance Number")
