@@ -16,6 +16,9 @@
 
 package uk.gov.hmrc.customerprofile.connector
 
+import java.util.UUID
+
+import com.fasterxml.jackson.annotation.ObjectIdGenerators.UUIDGenerator
 import play.api.Play
 import play.api.libs.json.JsValue
 import uk.gov.hmrc.customerprofile.config.WSHttp
@@ -51,8 +54,9 @@ trait AuthConnector {
         val accounts = json \ "accounts"
         val utr = (accounts \ "sa" \ "utr").asOpt[String]
         val nino = (accounts \ "paye" \ "nino").asOpt[String]
+        val journeyId = UUID.randomUUID().toString
 
-        Accounts(nino.map(Nino(_)), utr.map(SaUtr(_)), upliftRequired(json), twoFactorRequired(json))
+        Accounts(nino.map(Nino(_)), utr.map(SaUtr(_)), upliftRequired(json), twoFactorRequired(json), journeyId)
     }
   }
 

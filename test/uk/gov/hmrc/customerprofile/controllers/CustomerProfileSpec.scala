@@ -34,7 +34,7 @@ class TestCustomerProfileGetAccountSpec extends UnitSpec with WithFakeApplicatio
       val result = await(controller.getAccounts()(emptyRequestWithHeader))
 
       status(result) shouldBe 200
-      contentAsJson(result) shouldBe Json.toJson(Accounts(Some(nino), None, false, false))
+      contentAsJson(result) shouldBe Json.toJson(Accounts(Some(nino), None, false, false, "102030394AAA"))
     }
 
     "return 401 result with json status detailing no nino on authority" in new AuthWithoutNino {
@@ -45,14 +45,14 @@ class TestCustomerProfileGetAccountSpec extends UnitSpec with WithFakeApplicatio
       val result = await(controller.getAccounts()(emptyRequestWithHeader))
 
       status(result) shouldBe 200
-      contentAsJson(result) shouldBe Json.toJson(Accounts(Some(nino), None, true, false))
+      contentAsJson(result) shouldBe Json.toJson(Accounts(Some(nino), None, true, false, "102030394AAA"))
     }
 
     "return 200 result with json status detailing weak cred strength on authority" in new AuthWithWeakCreds {
       val result = await(controller.getAccounts()(emptyRequestWithHeader))
 
       status(result) shouldBe 200
-      contentAsJson(result) shouldBe Json.toJson(Accounts(Some(nino), None, false, true))
+      contentAsJson(result) shouldBe Json.toJson(Accounts(Some(nino), None, false, true, "102030394AAA"))
     }
 
     "return status code 406 when the headers are invalid" in new Success {
@@ -68,7 +68,9 @@ class TestCustomerProfileGetAccountSpec extends UnitSpec with WithFakeApplicatio
       val result = await(controller.getAccounts()(emptyRequestWithHeader))
 
       status(result) shouldBe 200
-      contentAsJson(result) shouldBe Json.toJson(testAccount)
+
+      val journeyId: String = (contentAsJson(result) \ "journeyId").as[String]
+      contentAsJson(result) shouldBe Json.toJson(Accounts(Some(nino), None, false, false, journeyId))
     }
 
     "return status code 406 when the headers are invalid" in new Success {

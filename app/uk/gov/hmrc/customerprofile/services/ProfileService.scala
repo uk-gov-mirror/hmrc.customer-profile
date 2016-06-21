@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.customerprofile.services
 
+import java.util.UUID
+
 import uk.gov.hmrc.api.service.Auditor
 import uk.gov.hmrc.api.sandbox.FileResource
 import uk.gov.hmrc.customerprofile.config.MicroserviceAuditConnector
@@ -86,7 +88,7 @@ object SandboxCustomerProfileService extends CustomerProfileService with FileRes
   private val personDetailsSandbox = PersonDetails("etag", Person(Some("Nuala"), Some("Theo"), Some("O'Shea"),
     Some("LM"), Some("Mr"), None, Some("Male"), None, None), None, None)
 
-  private val accounts = Accounts(Some(nino), None, false, false)
+  private val accounts = Accounts(Some(nino), None, false, false, UUID.randomUUID().toString)
 
   private val email = EmailAddress("name@email.co.uk")
 

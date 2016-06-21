@@ -21,7 +21,7 @@ import uk.gov.hmrc.domain.{Nino, SaUtr}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-case class Accounts(nino: Option[Nino], saUtr: Option[SaUtr], routeToIV : Boolean, routeToTwoFactor: Boolean)
+case class Accounts(nino: Option[Nino], saUtr: Option[SaUtr], routeToIV : Boolean, routeToTwoFactor: Boolean, journeyId: String)
 
 object Accounts {
   implicit val accountsFmt = {

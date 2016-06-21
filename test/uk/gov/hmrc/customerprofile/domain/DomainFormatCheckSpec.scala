@@ -58,7 +58,7 @@ object DomainGenerator {
   val nino = new Generator().nextNino
   val saUtr = new SaUtrGenerator().nextSaUtr
 
-  val accountsWithNinoAndSaUtr = Accounts(Some(nino), Some(saUtr), false, false)
+  val accountsWithNinoAndSaUtr = Accounts(Some(nino), Some(saUtr), false, false, "102030394AAA")
   lazy val accountsWithNinoAndSaUtrAsJson = Json.toJson(accountsWithNinoAndSaUtr)
 
   val email = EmailAddress("name@email.co.uk")
