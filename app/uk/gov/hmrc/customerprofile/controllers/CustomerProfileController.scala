@@ -67,19 +67,19 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
       errorWrapper(service.getAccounts().map(as => Ok(Json.toJson(as))))
   }
 
-  final def getPersonalDetails(nino: Nino) = accessControl.validateAccept(acceptHeaderValidationRules).async {
+  final def getPersonalDetails(nino: Nino, journeyId: Option[String] = None) = accessControl.validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
       implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, None)
       errorWrapper(service.getPersonalDetails(nino).map(as => Ok(Json.toJson(as))))
   }
 
-  final def getPreferences = accessControl.validateAccept(acceptHeaderValidationRules).async {
+  final def getPreferences(journeyId: Option[String] = None) = accessControl.validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
       implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, None)
       errorWrapper(service.getPreferences().map(as => Ok(Json.toJson(as))))
   }
 
-  final def paperlessSettingsOptIn() = accessControl.validateAccept(acceptHeaderValidationRules).async(BodyParsers.parse.json) {
+  final def paperlessSettingsOptIn(journeyId: Option[String] = None) = accessControl.validateAccept(acceptHeaderValidationRules).async(BodyParsers.parse.json) {
 
     implicit request =>
       implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, None)
@@ -100,7 +100,7 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
       )
   }
 
-  final def paperlessSettingsOptOut() = accessControl.validateAccept(acceptHeaderValidationRules).async {
+  final def paperlessSettingsOptOut(journeyId: Option[String] = None) = accessControl.validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
       implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, None)
       errorWrapper(service.paperlessSettingsOptOut().map {

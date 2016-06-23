@@ -44,7 +44,7 @@ trait NativeVersionCheckerController extends BaseController with HeaderValidator
   val upgradeRequiredCheckerService : UpgradeRequiredCheckerService
   val accessControl: AccountAccessControlWithHeaderCheck
 
-  final def validateAppVersion() = accessControl.validateAccept(acceptHeaderValidationRules).async(BodyParsers.parse.json) {
+  final def validateAppVersion(journeyId: Option[String] = None) = accessControl.validateAccept(acceptHeaderValidationRules).async(BodyParsers.parse.json) {
 
     implicit request =>
       implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, None)
