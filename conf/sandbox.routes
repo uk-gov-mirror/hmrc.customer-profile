@@ -1,13 +1,13 @@
 # microservice specific routes
 
-GET         /profile/accounts                                      uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getAccounts()
+GET         /profile/accounts                                      uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getAccounts
 
-GET         /profile/personal-details/:nino                        uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getPersonalDetails(nino : Nino)
+GET         /profile/personal-details/:nino                        uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getPersonalDetails(nino : Nino, journeyId: Option[String])
 
-GET         /profile/preferences                                   uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getPreferences()
+GET         /profile/preferences                                   uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getPreferences(journeyId: Option[String])
 
-POST        /profile/preferences/paperless-settings/opt-in         uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.paperlessSettingsOptIn()
+POST        /profile/preferences/paperless-settings/opt-in         uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.paperlessSettingsOptIn(journeyId: Option[String])
 
-POST        /profile/preferences/paperless-settings/opt-out        uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.paperlessSettingsOptOut()
+POST        /profile/preferences/paperless-settings/opt-out        uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.paperlessSettingsOptOut(journeyId: Option[String])
 
-POST        /profile/native-app/version-check                      uk.gov.hmrc.customerprofile.controllers.SandboxNativeVersionCheckerController.validateAppVersion()
+POST        /profile/native-app/version-check                      uk.gov.hmrc.customerprofile.controllers.SandboxNativeVersionCheckerController.validateAppVersion(journeyId: Option[String])

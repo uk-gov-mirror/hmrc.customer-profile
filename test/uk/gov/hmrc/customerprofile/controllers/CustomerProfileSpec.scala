@@ -69,8 +69,8 @@ class TestCustomerProfileGetAccountSpec extends UnitSpec with WithFakeApplicatio
 
       status(result) shouldBe 200
 
-      val journeyId: String = (contentAsJson(result) \ "journeyId").as[String]
-      contentAsJson(result) shouldBe Json.toJson(Accounts(Some(nino), None, false, false, journeyId))
+      val journeyIdRetrieve: String = (contentAsJson(result) \ "journeyId").as[String]
+      contentAsJson(result) shouldBe Json.toJson(Accounts(Some(nino), None, false, false, journeyIdRetrieve))
     }
 
     "return status code 406 when the headers are invalid" in new Success {
@@ -88,6 +88,13 @@ class TestCustomerProfileGetPersonalDetailsSpec extends UnitSpec with WithFakeAp
 
     "return the PersonalDetails successfully" in new Success {
       val result: Result = await(controller.getPersonalDetails(nino)(emptyRequestWithHeader))
+
+      status(result) shouldBe 200
+      contentAsJson(result) shouldBe Json.toJson(person)
+    }
+
+    "return the PersonalDetails successfully with journeyId" in new Success {
+      val result: Result = await(controller.getPersonalDetails(nino, Some(journeyId))(emptyRequestWithHeader))
 
       status(result) shouldBe 200
       contentAsJson(result) shouldBe Json.toJson(person)
@@ -121,6 +128,14 @@ class TestCustomerProfileGetPersonalDetailsSpec extends UnitSpec with WithFakeAp
       contentAsJson(result) shouldBe Json.toJson(person)
     }
 
+    "return the PersonalDetails response from a resource with journeyId" in new SandboxSuccess {
+      val result = await(controller.getPersonalDetails(nino,Some(journeyId))(emptyRequestWithHeader))
+
+      status(result) shouldBe 200
+      contentAsJson(result) shouldBe Json.toJson(person)
+    }
+
+
     "return status code 406 when the headers are invalid" in new Success {
       val result = await(controller.getPersonalDetails(nino)(emptyRequest))
 
@@ -136,6 +151,12 @@ class TestCustomerProfilePaperlessSettingsSpec extends UnitSpec with WithFakeApp
 
     "update paperless settings and 200 response code" in new Success {
       val result = await(controller.paperlessSettingsOptIn()(paperlessRequest))
+
+      status(result) shouldBe 200
+    }
+
+    "update paperless settings and 200 response code with JourneyId" in new Success {
+      val result = await(controller.paperlessSettingsOptIn(Some(journeyId))(paperlessRequest))
 
       status(result) shouldBe 200
     }
@@ -175,6 +196,12 @@ class TestCustomerProfilePaperlessSettingsSpec extends UnitSpec with WithFakeApp
 
     "update paperless settings and 200 response code" in new SandboxSuccess {
       val result = await(controller.paperlessSettingsOptIn()(paperlessRequest))
+
+      status(result) shouldBe 200
+    }
+
+    "update paperless settings and 200 response code with journeyId" in new SandboxSuccess {
+      val result = await(controller.paperlessSettingsOptIn(Some(journeyId))(paperlessRequest))
 
       status(result) shouldBe 200
     }

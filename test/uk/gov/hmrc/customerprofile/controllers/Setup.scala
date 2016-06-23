@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.customerprofile.controllers
 
+import java.util.UUID
+
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import uk.gov.hmrc.customerprofile.config.{MicroserviceAuditConnector, ServicesCircuitBreaker}
@@ -90,6 +92,7 @@ class TestAccountAccessControlWithAccept(testAccessCheck: AccountAccessControl) 
 trait Setup {
   implicit val hc = HeaderCarrier()
 
+  val journeyId = UUID.randomUUID().toString
   val emptyRequest = FakeRequest()
   val emptyRequestWithHeader = FakeRequest().withHeaders("Accept" -> "application/vnd.hmrc.1.0+json")
 
