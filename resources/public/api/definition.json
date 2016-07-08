@@ -22,7 +22,14 @@
             "method":"GET",
             "authType":"USER",
             "throttlingTier":"UNLIMITED",
-            "scope":"read:customer-profile"
+            "scope":"read:customer-profile",
+            "scope":"read:personal-income",
+            "queryParameters": [
+              {
+                "name": "journeyId",
+                "required": false
+              }
+            ]
           },
           {
             "uriPattern":"/profile/personal-details/{nino}",
@@ -30,7 +37,14 @@
             "method":"GET",
             "authType":"USER",
             "throttlingTier":"UNLIMITED",
-            "scope":"read:customer-profile"
+            "scope":"read:customer-profile",
+            "scope":"read:personal-income",
+            "queryParameters": [
+              {
+                "name": "journeyId",
+                "required": false
+              }
+            ]
           },
           {
             "uriPattern":"/profile/preferences",
@@ -38,7 +52,14 @@
             "method":"GET",
             "authType":"USER",
             "throttlingTier":"UNLIMITED",
-            "scope":"read:customer-profile"
+            "scope":"read:customer-profile",
+            "scope":"read:personal-income",
+            "queryParameters": [
+              {
+                "name": "journeyId",
+                "required": false
+              }
+            ]
           },
           {
             "uriPattern":"/profile/preferences/paperless-settings/opt-in",
@@ -46,7 +67,14 @@
             "method":"POST",
             "authType":"USER",
             "throttlingTier":"UNLIMITED",
-            "scope":"read:customer-profile"
+            "scope":"read:customer-profile",
+            "scope":"read:personal-income",
+            "queryParameters": [
+              {
+                "name": "journeyId",
+                "required": false
+              }
+            ]
           },
           {
             "uriPattern":"/profile/preferences/paperless-settings/opt-out",
@@ -54,7 +82,14 @@
             "method":"POST",
             "authType":"USER",
             "throttlingTier":"UNLIMITED",
-            "scope":"read:customer-profile"
+            "scope":"read:customer-profile",
+            "scope":"read:personal-income",
+            "queryParameters": [
+              {
+                "name": "journeyId",
+                "required": false
+              }
+            ]
           },
           {
             "uriPattern":"/profile/native-app/version-check",
@@ -62,7 +97,14 @@
             "method":"POST",
             "authType":"USER",
             "throttlingTier":"UNLIMITED",
-            "scope":"read:customer-profile"
+            "scope":"read:customer-profile",
+            "scope":"read:personal-income",
+            "queryParameters": [
+              {
+                "name": "journeyId",
+                "required": false
+              }
+            ]
           }
         ]
       }
