@@ -23,7 +23,6 @@
             "authType":"USER",
             "throttlingTier":"UNLIMITED",
             "scope":"read:customer-profile",
-            "scope":"read:personal-income",
             "queryParameters": [
               {
                 "name": "journeyId",
@@ -38,7 +37,6 @@
             "authType":"USER",
             "throttlingTier":"UNLIMITED",
             "scope":"read:customer-profile",
-            "scope":"read:personal-income",
             "queryParameters": [
               {
                 "name": "journeyId",
@@ -53,7 +51,6 @@
             "authType":"USER",
             "throttlingTier":"UNLIMITED",
             "scope":"read:customer-profile",
-            "scope":"read:personal-income",
             "queryParameters": [
               {
                 "name": "journeyId",
@@ -68,7 +65,6 @@
             "authType":"USER",
             "throttlingTier":"UNLIMITED",
             "scope":"read:customer-profile",
-            "scope":"read:personal-income",
             "queryParameters": [
               {
                 "name": "journeyId",
@@ -83,7 +79,6 @@
             "authType":"USER",
             "throttlingTier":"UNLIMITED",
             "scope":"read:customer-profile",
-            "scope":"read:personal-income",
             "queryParameters": [
               {
                 "name": "journeyId",
@@ -98,7 +93,6 @@
             "authType":"USER",
             "throttlingTier":"UNLIMITED",
             "scope":"read:customer-profile",
-            "scope":"read:personal-income",
             "queryParameters": [
               {
                 "name": "journeyId",
