@@ -18,13 +18,14 @@ package uk.gov.hmrc.customerprofile.controllers
 
 import java.util.UUID
 
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.api.test.FakeRequest
 import uk.gov.hmrc.customerprofile.config.{MicroserviceAuditConnector, ServicesCircuitBreaker}
 import uk.gov.hmrc.customerprofile.connector._
 import uk.gov.hmrc.customerprofile.controllers.action.{AccountAccessControl, AccountAccessControlCheckOff, AccountAccessControlWithHeaderCheck}
+import uk.gov.hmrc.customerprofile.domain.NativeOS.Android
 import uk.gov.hmrc.customerprofile.domain._
-import uk.gov.hmrc.customerprofile.services.{CustomerProfileService, LiveCustomerProfileService, SandboxCustomerProfileService}
+import uk.gov.hmrc.customerprofile.services._
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.emailaddress.EmailAddress
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -109,6 +110,16 @@ trait Setup {
   val person = PersonDetails("etag", Person(Some("Nuala"), Some("Theo"), Some("O'Shea"),
     Some("LM"), Some("Mr"), None, Some("Male"), None, None), None, None)
 
+  val acceptHeader = "Accept" -> "application/vnd.hmrc.1.0+json"
+  def fakeRequest(body:JsValue) = FakeRequest(POST, "url").withBody(body)
+    .withHeaders("Content-Type" -> "application/json")
+
+  val upgradeFalse = Json.parse("""{"upgrade":false}""")
+  val upgradeTrue = Json.parse("""{"upgrade":true}""")
+
+  val deviceVersion = DeviceVersion(Android, "1.0.1")
+  lazy val jsonDeviceVersionRequest = fakeRequest(Json.toJson(deviceVersion)).withHeaders(acceptHeader)
+
   lazy val http200ResponseCid = Future.successful(HttpResponse(200, Some(Json.toJson(person))))
 
   lazy val authConnector = new TestAuthConnector(Some(nino))
@@ -122,6 +133,13 @@ trait Setup {
 
   lazy val testSandboxCustomerProfileService = SandboxCustomerProfileService
   lazy val sandboxCompositeAction = AccountAccessControlCheckOff
+
+  def upgradeService(status:Boolean) = new TestUpgradeRequiredCheckerService(status)
+
+  class TestUpgradeRequiredCheckerService(state:Boolean) extends UpgradeRequiredCheckerService {
+    override def upgradeRequired(deviceVersion: DeviceVersion)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Boolean] = Future.successful(state)
+  }
+
 }
 
 trait AuthorityTest extends UnitSpec {
@@ -244,6 +262,27 @@ trait SandboxPaperlessFailed extends SandboxPaperlessCreated {
   override val controller = new CustomerProfileController {
     val app = "SandboxPaperlessFailed Customer Profile"
     override val service: CustomerProfileService = testCustomerProfileService
+    override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
+  }
+}
+
+trait SuccessNativeVersionChecker extends Setup {
+  lazy val upgrade = false
+
+  val controller = new NativeVersionCheckerController {
+    val app = "Test-Native-Version-Checker"
+    override val upgradeRequiredCheckerService = upgradeService(upgrade)
+    override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
+  }
+}
+
+
+trait SandboxNativeVersionChecker extends Setup {
+  lazy val upgrade = false
+
+  val controller = new NativeVersionCheckerController {
+    val app = "Test-Native-Version-Checker"
+    override val upgradeRequiredCheckerService = SandboxUpgradeRequiredCheckerService
     override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
   }
 }
