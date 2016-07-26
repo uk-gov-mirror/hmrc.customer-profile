@@ -71,6 +71,6 @@ object SandboxNativeVersionCheckerController extends NativeVersionCheckerControl
 
 object LiveNativeVersionCheckerController extends NativeVersionCheckerController {
   val app = "Live-Native-Version-Checker"
-  override val accessControl = AccountAccessControlWithHeaderCheck
+  override val accessControl = AccountAccessControlCheckOff
   override val upgradeRequiredCheckerService: UpgradeRequiredCheckerService = LiveUpgradeRequiredCheckerService
 }
