@@ -25,6 +25,7 @@ class ApprovedAppVersionsSpec extends UnitSpec {
     """approvedAppVersions {
       |  ios = "[0.0.1,)"
       |  android = "[0.0.1,)"
+      |  windows = "[0.0.1,)"
       |}
       | """.stripMargin)
 
