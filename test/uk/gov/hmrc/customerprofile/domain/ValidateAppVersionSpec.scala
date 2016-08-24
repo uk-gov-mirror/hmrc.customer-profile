@@ -17,16 +17,17 @@
 package uk.gov.hmrc.customerprofile.domain
 
 import com.typesafe.config.{Config, ConfigFactory}
-import uk.gov.hmrc.customerprofile.domain.NativeOS.{Android, iOS}
+import uk.gov.hmrc.customerprofile.domain.NativeOS.{Android, Windows, iOS}
 import uk.gov.hmrc.play.test.UnitSpec
 
 class ValidateAppVersionSpec extends UnitSpec {
 
-  def validateAppVersion(iosVersionRange : String = "[0.0.1,)", androidVersionRange : String = "[0.0.1,)") = new ValidateAppVersion {
+  def validateAppVersion(iosVersionRange : String = "[0.0.1,)", androidVersionRange : String = "[0.0.1,)", windowsVersionRange : String = "[0.0.1,)") = new ValidateAppVersion {
     override lazy val config: Config = ConfigFactory.parseString(
       s"""approvedAppVersions {
         |  ios = "${iosVersionRange}"
         |  android = "${androidVersionRange}"
+        |  windows = "${windowsVersionRange}"
         |}
         | """.stripMargin)
   }
@@ -37,7 +38,12 @@ class ValidateAppVersionSpec extends UnitSpec {
       await(validateAppVersion().upgrade(deviceVersion)) shouldBe false
     }
     "app version 1.3.0 valid" in {
-      val deviceVersion = DeviceVersion(iOS, "1.3.0")
+      val deviceVersion = DeviceVersion(Android, "1.3.0")
+      await(validateAppVersion("[1.3.0,)").upgrade(deviceVersion)) shouldBe false
+    }
+
+    "app version 1.4.0 valid" in {
+      val deviceVersion = DeviceVersion(Windows, "1.4.0")
       await(validateAppVersion("[1.3.0,)").upgrade(deviceVersion)) shouldBe false
     }
 
@@ -48,6 +54,10 @@ class ValidateAppVersionSpec extends UnitSpec {
     "upgrade required for Android app version 1.0.0 valid" in {
       val deviceVersion = DeviceVersion(Android, "1.0.0")
       await(validateAppVersion(androidVersionRange = "[1.2.0,1.3.0]").upgrade(deviceVersion)) shouldBe true
+    }
+    "upgrade required for Windows app version 1.0.0 valid" in {
+      val deviceVersion = DeviceVersion(Windows, "1.0.0")
+      await(validateAppVersion(windowsVersionRange = "[1.2.0,1.3.0]").upgrade(deviceVersion)) shouldBe true
     }
   }
 }
