@@ -25,6 +25,13 @@ User Preferences
 }
 ```
 
+```json
+{
+  "digital" : false
+}
+```
+
+
 * **Error Response:**
 
   * **Code:** 401 UNAUTHORIZED <br />
@@ -32,6 +39,8 @@ User Preferences
 
   * **Code:** 401 UNAUTHORIZED <br />
     **Content:** `{"code":"LOW_CONFIDENCE_LEVEL","Confidence Level on account does not allow access"}`
+
+  * **Code:** 404 NOT FOUND <br />
 
   * **Code:** 406 NOT ACCEPTABLE <br />
     **Content:** `{"code":"ACCEPT_HEADER_INVALID","message":"The accept header is missing or invalid"}`
