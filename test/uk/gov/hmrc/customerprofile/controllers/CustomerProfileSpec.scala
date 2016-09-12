@@ -144,6 +144,78 @@ class TestCustomerProfileGetPersonalDetailsSpec extends UnitSpec with WithFakeAp
   }
 }
 
+class TestCustomerProfilePreferencesSpec extends UnitSpec with WithFakeApplication with ScalaFutures with StubApplicationConfiguration {
+  override lazy val fakeApplication = FakeApplication(additionalConfiguration = config)
+
+  "preferences live " should {
+
+    "return the preferences successfully" in new Success {
+      val result: Result = await(controller.getPreferences()(emptyRequestWithHeader))
+
+      status(result) shouldBe 200
+      contentAsJson(result) shouldBe Json.parse("""{"digital":true,"email":{"email":"someone@something.com","status":"pending"}}""")
+    }
+
+    "return the preference as off" in new Success {
+      override lazy val defaultPreference = Some(Preference(false, None))
+
+      val result: Result = await(controller.getPreferences()(emptyRequestWithHeader))
+
+      status(result) shouldBe 200
+      contentAsJson(result) shouldBe Json.parse("""{"digital":false}""")
+    }
+
+    "return 404 if no preference found for the user" in new PreferenceNotFound {
+      val result: Result = await(controller.getPreferences()(emptyRequestWithHeader))
+
+      status(result) shouldBe 404
+    }
+
+    "return unauthorized when authority record does not contain a NINO" in new AuthWithoutNino {
+      testNoNINO(await(controller.getPreferences()(emptyRequestWithHeader)))
+    }
+
+    "return 401 result with json status detailing low CL on authority" in new AuthWithLowCL {
+      testLowCL(await(controller.getPreferences()(emptyRequestWithHeader)))
+    }
+
+    "return 401 result with json status detailing weak credStrength on authority" in new AuthWithWeakCreds {
+      testWeakCredStrength(await(controller.getPreferences()(emptyRequestWithHeader)))
+    }
+
+    "return status code 406 when the headers are invalid" in new Success {
+      val result = await(controller.getPreferences()(emptyRequest))
+
+      status(result) shouldBe 406
+    }
+  }
+
+  "preferences sandbox " should {
+
+    "return the Preferences response from a resource" in new SandboxSuccess {
+      val result = await(controller.getPreferences()(emptyRequestWithHeader))
+
+      status(result) shouldBe 200
+      contentAsJson(result) shouldBe preferenceSuccess
+    }
+
+    "return the Preferences response from a resource with journeyId" in new SandboxSuccess {
+      val result = await(controller.getPreferences(Some(journeyId))(emptyRequestWithHeader))
+
+      status(result) shouldBe 200
+      contentAsJson(result) shouldBe preferenceSuccess
+    }
+
+
+    "return status code 406 when the headers are invalid" in new Success {
+      val result = await(controller.getPreferences()(emptyRequest))
+
+      status(result) shouldBe 406
+    }
+  }
+}
+
+
 class TestCustomerProfilePaperlessSettingsSpec extends UnitSpec with WithFakeApplication with ScalaFutures with StubApplicationConfiguration {
   override lazy val fakeApplication = FakeApplication(additionalConfiguration = config)
 
