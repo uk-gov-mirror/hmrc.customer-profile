@@ -25,7 +25,7 @@ import uk.gov.hmrc.customerprofile.controllers.action.{AccountAccessControlCheck
 import uk.gov.hmrc.customerprofile.domain.Paperless
 import uk.gov.hmrc.customerprofile.services.{CustomerProfileService, LiveCustomerProfileService, SandboxCustomerProfileService}
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.play.http.{HeaderCarrier, NotFoundException, UnauthorizedException}
+import uk.gov.hmrc.play.http.{HeaderCarrier, NotFoundException}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -76,7 +76,12 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
   final def getPreferences(journeyId: Option[String] = None) = accessControl.validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
       implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, None)
-      errorWrapper(service.getPreferences().map(as => Ok(Json.toJson(as))))
+      errorWrapper(
+        service.getPreferences().map {
+          case Some(response) => Ok(Json.toJson(response))
+          case _ => NotFound
+        }
+      )
   }
 
   final def paperlessSettingsOptIn(journeyId: Option[String] = None) = accessControl.validateAccept(acceptHeaderValidationRules).async(BodyParsers.parse.json) {
@@ -93,7 +98,6 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
           errorWrapper(service.paperlessSettings(settings).map {
             case PreferencesExists => Ok
             case PreferencesCreated => Created
-            // TODO: check server error status. Does not need to be a 500?
             case _ => InternalServerError(Json.toJson(PreferencesSettingsError))
           })
         }
