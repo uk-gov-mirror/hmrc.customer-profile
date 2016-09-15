@@ -67,7 +67,7 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
       errorWrapper(service.getAccounts().map(as => Ok(Json.toJson(as))))
   }
 
-  final def getPersonalDetails(nino: Nino, journeyId: Option[String] = None) = accessControl.validateAccept(acceptHeaderValidationRules).async {
+  final def getPersonalDetails(nino: Nino, journeyId: Option[String] = None) = accessControl.validateAcceptWithAuth(acceptHeaderValidationRules, Some(nino)).async {
     implicit request =>
       implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, None)
       errorWrapper(service.getPersonalDetails(nino).map(as => Ok(Json.toJson(as))))
