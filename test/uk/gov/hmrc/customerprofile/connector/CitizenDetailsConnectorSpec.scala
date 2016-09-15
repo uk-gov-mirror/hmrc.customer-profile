@@ -72,11 +72,6 @@ class CitizenDetailsConnectorSpec
       }
     }
 
-//// TODO...
-//    "return a valid resoonse when a 200 response is received with a valid json payload" in new Setup {
-//      override lazy val response = http200Response
-//      await(connector.personDetails(nino)) shouldBe person
-//    }
   }
 
 }

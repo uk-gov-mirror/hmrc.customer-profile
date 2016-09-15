@@ -93,6 +93,12 @@ class TestCustomerProfileGetPersonalDetailsSpec extends UnitSpec with WithFakeAp
       contentAsJson(result) shouldBe Json.toJson(person)
     }
 
+    "return 401 when the nino in the request does not match the authority nino" in new AccessCheck {
+      val result = await(controller.getPersonalDetails(nino)(emptyRequestWithHeader))
+
+      status(result) shouldBe 401
+    }
+
     "return the PersonalDetails successfully with journeyId" in new Success {
       val result: Result = await(controller.getPersonalDetails(nino, Some(journeyId))(emptyRequestWithHeader))
 

@@ -63,7 +63,7 @@ class TestEntityResolverConnector(preferencesStatus: PreferencesStatus, preferen
   }
 }
 
-class TestAuthConnector(nino: Option[Nino]) extends AuthConnector {
+class TestAuthConnector(nino: Option[Nino], ex:Option[Exception]=None) extends AuthConnector {
   override val serviceUrl: String = "someUrl"
 
   override def serviceConfidenceLevel: ConfidenceLevel = ???
@@ -72,7 +72,12 @@ class TestAuthConnector(nino: Option[Nino]) extends AuthConnector {
 
   override def accounts()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Accounts] = Future(Accounts(nino, None, false, false, "102030394AAA"))
 
-  override def grantAccess()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = Future(Unit)
+  override def grantAccess(taxId:Option[Nino])(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = {
+    ex match {
+      case None => Future(Unit)
+      case Some(failure) => Future.failed(failure)
+    }
+  }
 }
 
 class TestCustomerProfileService(testCDConnector: CitizenDetailsConnector,
@@ -181,6 +186,18 @@ trait Success extends Setup {
   }
 }
 
+trait AccessCheck extends Setup {
+  override lazy val authConnector = new TestAuthConnector(None, Some(new FailToMatchTaxIdOnAuth("controlled explosion")))
+  override lazy val testAccess = new TestAccessCheck(authConnector)
+  override lazy val testCompositeAction = new TestAccountAccessControlWithAccept(testAccess)
+
+  val controller = new CustomerProfileController {
+    override val app: String = "Access Check"
+    override val service: CustomerProfileService = testCustomerProfileService
+    override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
+  }
+}
+
 trait PreferenceNotFound extends Setup {
   val controller = new CustomerProfileController {
     val app = "Preference Not Found"
@@ -196,7 +213,7 @@ trait AuthWithoutNino extends Setup with AuthorityTest {
   override lazy val authConnector = new TestAuthConnector(None) {
     lazy val exception = new NinoNotFoundOnAccount("The user must have a National Insurance Number")
     override def accounts()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Accounts] = Future.failed(exception)
-    override def grantAccess()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = Future.failed(exception)
+    override def grantAccess(taxId:Option[Nino])(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = Future.failed(exception)
   }
 
   override lazy val testAccess = new TestAccessCheck(authConnector)
@@ -216,7 +233,7 @@ trait AuthWithLowCL extends Setup with AuthorityTest {
   override lazy val authConnector = new TestAuthConnector(None) {
     lazy val exception = new AccountWithLowCL("Forbidden to access since low CL")
     override def accounts()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Accounts] = Future.successful(Accounts(Some(nino), None, routeToIv, routeToTwoFactor, "102030394AAA"))
-    override def grantAccess()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = Future.failed(exception)
+    override def grantAccess(taxId:Option[Nino])(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = Future.failed(exception)
   }
 
   override lazy val testAccess = new TestAccessCheck(authConnector)
@@ -237,7 +254,7 @@ trait AuthWithWeakCreds extends Setup with AuthorityTest {
   override lazy val authConnector = new TestAuthConnector(None) {
     lazy val exception = new AccountWithWeakCredStrength("Forbidden to access since weak cred strength")
     override def accounts()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Accounts] = Future.successful(Accounts(Some(nino), None, routeToIv, routeToTwoFactor, "102030394AAA"))
-    override def grantAccess()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = Future.failed(exception)
+    override def grantAccess(taxId:Option[Nino])(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = Future.failed(exception)
   }
 
   override lazy val testAccess = new TestAccessCheck(authConnector)
