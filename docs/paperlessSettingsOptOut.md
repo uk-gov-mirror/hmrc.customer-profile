@@ -10,6 +10,12 @@ Paperless Settings Opt Out
 
   `POST`
 
+*  **Request body**
+
+```json
+{}
+```
+
 * **Success Response:**
 
   * **Code:** 200 <br />
