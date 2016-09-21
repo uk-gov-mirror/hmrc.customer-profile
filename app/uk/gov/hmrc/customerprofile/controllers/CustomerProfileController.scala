@@ -61,7 +61,7 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
   val service: CustomerProfileService
   val accessControl: AccountAccessControlWithHeaderCheck
 
-  final def getAccounts = AccountAccessControlCheckOff.validateAccept(acceptHeaderValidationRules).async {
+  final def getAccounts(journeyId: Option[String] = None) = AccountAccessControlCheckOff.validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
       implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, None)
       errorWrapper(service.getAccounts().map(as => Ok(Json.toJson(as))))

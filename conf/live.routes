@@ -1,6 +1,6 @@
 # microservice specific routes
 
-GET         /profile/accounts                                      uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.getAccounts()
+GET         /profile/accounts                                      uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.getAccounts(journeyId: Option[String])
 
 GET         /profile/personal-details/:nino                        uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.getPersonalDetails(nino : Nino, journeyId: Option[String])
 
