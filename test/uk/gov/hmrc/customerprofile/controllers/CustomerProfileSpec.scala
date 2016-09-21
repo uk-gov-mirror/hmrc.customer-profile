@@ -37,6 +37,13 @@ class TestCustomerProfileGetAccountSpec extends UnitSpec with WithFakeApplicatio
       contentAsJson(result) shouldBe Json.toJson(Accounts(Some(nino), None, false, false, "102030394AAA"))
     }
 
+    "return the accounts successfully when journeyId is supplied" in new Success {
+      val result = await(controller.getAccounts(Some(journeyId))(emptyRequestWithHeader))
+
+      status(result) shouldBe 200
+      contentAsJson(result) shouldBe Json.toJson(Accounts(Some(nino), None, false, false, "102030394AAA"))
+    }
+
     "return 401 result with json status detailing no nino on authority" in new AuthWithoutNino {
       testNoNINO(controller.getAccounts()(emptyRequestWithHeader))
     }
@@ -72,6 +79,16 @@ class TestCustomerProfileGetAccountSpec extends UnitSpec with WithFakeApplicatio
       val journeyIdRetrieve: String = (contentAsJson(result) \ "journeyId").as[String]
       contentAsJson(result) shouldBe Json.toJson(Accounts(Some(nino), None, false, false, journeyIdRetrieve))
     }
+
+    "return the accounts response from a resource when the journey Id is supplied" in new SandboxSuccess {
+      val result = await(controller.getAccounts(Some(journeyId))(emptyRequestWithHeader))
+
+      status(result) shouldBe 200
+
+      val journeyIdRetrieve: String = (contentAsJson(result) \ "journeyId").as[String]
+      contentAsJson(result) shouldBe Json.toJson(Accounts(Some(nino), None, false, false, journeyIdRetrieve))
+    }
+
 
     "return status code 406 when the headers are invalid" in new Success {
       val result = await(controller.getAccounts()(emptyRequest))
