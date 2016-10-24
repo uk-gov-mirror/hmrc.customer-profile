@@ -2,7 +2,7 @@
 
 GET         /profile/accounts                                      uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getAccounts(journeyId: Option[String])
 
-GET         /profile/personal-details/:nino                        uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getPersonalDetails(nino : Nino, journeyId: Option[String])
+GET         /profile/personal-details/:nino                        uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getPersonalDetails(nino : uk.gov.hmrc.domain.Nino, journeyId: Option[String])
 
 GET         /profile/preferences                                   uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getPreferences(journeyId: Option[String])
 

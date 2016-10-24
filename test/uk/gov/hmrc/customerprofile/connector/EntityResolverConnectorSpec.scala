@@ -18,7 +18,7 @@ package uk.gov.hmrc.customerprofile.connector
 
 import org.scalatest.concurrent.ScalaFutures
 import play.api.libs.json.{Json, Writes}
-import uk.gov.hmrc.circuitbreaker.UnhealthyServiceException
+import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UnhealthyServiceException}
 import uk.gov.hmrc.customerprofile.config.ServicesCircuitBreaker
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status
 import uk.gov.hmrc.customerprofile.domain.{EmailPreference, Paperless, Preference, TermsAccepted}
@@ -28,11 +28,11 @@ import uk.gov.hmrc.play.audit.http.HttpAuditing
 import uk.gov.hmrc.play.config.{AppName, ServicesConfig}
 import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.play.http.hooks.HttpHook
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
+import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
-class EntityResolverConnectorSpec extends UnitSpec with ScalaFutures with WithFakeApplication {
+class EntityResolverConnectorSpec extends UnitSpec with ScalaFutures {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -52,6 +52,9 @@ class EntityResolverConnectorSpec extends UnitSpec with ScalaFutures with WithFa
 
   class TestPreferencesConnector extends EntityResolverConnector with ServicesConfig with ServicesCircuitBreaker {
     val serviceUrl = "http://entity-resolver.service/"
+
+    override protected def circuitBreakerConfig = CircuitBreakerConfig(externalServiceName, 5, 2000, 2000)
+
     def http: HttpGet with HttpPost with HttpPut = ???
   }
 

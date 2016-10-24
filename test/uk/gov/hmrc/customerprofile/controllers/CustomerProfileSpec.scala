@@ -20,13 +20,11 @@ import org.scalatest.concurrent.ScalaFutures
 import play.api.libs.json.Json
 import play.api.mvc.Result
 import play.api.test.Helpers._
-import play.api.test.{FakeApplication}
 import uk.gov.hmrc.customerprofile.domain._
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
+import uk.gov.hmrc.play.test.UnitSpec
 
+class TestCustomerProfileGetAccountSpec extends UnitSpec with ScalaFutures with StubApplicationConfiguration {
 
-class TestCustomerProfileGetAccountSpec extends UnitSpec with WithFakeApplication with ScalaFutures with StubApplicationConfiguration {
-  override lazy val fakeApplication = FakeApplication(additionalConfiguration = config)
 
   "getAccount live controller " should {
 
@@ -98,8 +96,7 @@ class TestCustomerProfileGetAccountSpec extends UnitSpec with WithFakeApplicatio
   }
 }
 
-class TestCustomerProfileGetPersonalDetailsSpec extends UnitSpec with WithFakeApplication with ScalaFutures with StubApplicationConfiguration {
-  override lazy val fakeApplication = FakeApplication(additionalConfiguration = config)
+class TestCustomerProfileGetPersonalDetailsSpec extends UnitSpec with ScalaFutures with StubApplicationConfiguration {
 
   "getPersonalDetails live " should {
 
@@ -167,8 +164,7 @@ class TestCustomerProfileGetPersonalDetailsSpec extends UnitSpec with WithFakeAp
   }
 }
 
-class TestCustomerProfilePreferencesSpec extends UnitSpec with WithFakeApplication with ScalaFutures with StubApplicationConfiguration {
-  override lazy val fakeApplication = FakeApplication(additionalConfiguration = config)
+class TestCustomerProfilePreferencesSpec extends UnitSpec with ScalaFutures with StubApplicationConfiguration {
 
   "preferences live " should {
 
@@ -238,9 +234,7 @@ class TestCustomerProfilePreferencesSpec extends UnitSpec with WithFakeApplicati
   }
 }
 
-
-class TestCustomerProfilePaperlessSettingsSpec extends UnitSpec with WithFakeApplication with ScalaFutures with StubApplicationConfiguration {
-  override lazy val fakeApplication = FakeApplication(additionalConfiguration = config)
+class TestCustomerProfilePaperlessSettingsSpec extends UnitSpec with ScalaFutures with StubApplicationConfiguration {
 
   "paperlessSettings live" should {
 

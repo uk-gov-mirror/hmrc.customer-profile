@@ -18,15 +18,15 @@ package uk.gov.hmrc.customerprofile.controllers
 
 import org.scalatest.concurrent.ScalaFutures
 import play.api.test.Helpers._
-import play.api.test.FakeApplication
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
+import uk.gov.hmrc.play.test.UnitSpec
 
-class NativeVersionCheckerSpec extends UnitSpec with WithFakeApplication with ScalaFutures with StubApplicationConfiguration {
-  override lazy val fakeApplication = FakeApplication(additionalConfiguration = config)
+
+class NativeVersionCheckerSpec extends UnitSpec with ScalaFutures with StubApplicationConfiguration {
 
   "nativeVersionChecker live controller " should {
 
     "return upgrade as false when the version does not require updating" in new SuccessNativeVersionChecker {
+
       val result = await(controller.validateAppVersion(None)(jsonDeviceVersionRequest))
 
       status(result) shouldBe 200
