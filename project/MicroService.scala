@@ -4,7 +4,6 @@ import sbt.Tests.{Group, SubProcess}
 import sbt._
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin._
 
-
 trait MicroService {
 
   import uk.gov.hmrc._
@@ -28,6 +27,7 @@ trait MicroService {
     .settings(playSettings : _*)
     .settings(scalaSettings: _*)
     .settings(publishingSettings: _*)
+    .settings(staticCompileResourceSettings)
     .settings(defaultSettings(): _*)
     .settings(
       libraryDependencies ++= appDependencies,
@@ -47,6 +47,10 @@ trait MicroService {
       resolvers += Resolver.bintrayRepo("hmrc", "releases"),
       resolvers += Resolver.jcenterRepo
     )
+
+  lazy val staticCompileResourceSettings =
+    unmanagedResourceDirectories in Compile += baseDirectory.value / "resources"
+
 }
 
 private object TestPhases {

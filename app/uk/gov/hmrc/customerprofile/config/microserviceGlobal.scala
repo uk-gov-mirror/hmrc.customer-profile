@@ -45,7 +45,6 @@ import scala.concurrent.Future
 
 
 object ControllerConfiguration extends ControllerConfig {
-  // TODO...use DI!
   lazy val controllerConfigs = Play.current.configuration.underlying.as[Config]("controllers")
 }
 

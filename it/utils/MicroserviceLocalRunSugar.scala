@@ -26,8 +26,8 @@ trait MicroserviceLocalRunSugar {
   lazy val fakeApplication = FakeApplication(additionalConfiguration = additionalConfiguration)
 
   def run(block: () => Unit) = {
-    Play.start(fakeApplication)
+    val app = Play.start(fakeApplication)
     block()
-    Play.stop()
+    Play.stop(fakeApplication)
   }
 }
