@@ -21,14 +21,13 @@ import uk.gov.hmrc.customerprofile.config.WSHttp
 import uk.gov.hmrc.domain._
 import uk.gov.hmrc.play.config.ServicesConfig
 
+import scala.concurrent.{ExecutionContext,Future}
 
 trait CitizenDetailsConnector {
 
   import play.api.http.Status.LOCKED
   import uk.gov.hmrc.customerprofile.domain.PersonDetails
   import uk.gov.hmrc.play.http.{HeaderCarrier, HttpGet, NotFoundException, Upstream4xxResponse}
-
-  import scala.concurrent.{ExecutionContext, Future}
 
   def citizenDetailsConnectorUrl: String
 
