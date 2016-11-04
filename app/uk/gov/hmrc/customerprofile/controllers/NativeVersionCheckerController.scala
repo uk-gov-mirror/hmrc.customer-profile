@@ -19,6 +19,7 @@ package uk.gov.hmrc.customerprofile.controllers
 import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc.BodyParsers
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import uk.gov.hmrc.api.controllers.{ErrorGenericBadRequest, ErrorResponse, HeaderValidator}
 import uk.gov.hmrc.customerprofile.controllers.action.{AccountAccessControlCheckOff, AccountAccessControlWithHeaderCheck}
 import uk.gov.hmrc.customerprofile.domain.DeviceVersion
@@ -38,8 +39,6 @@ trait NativeVersionCheckerController extends BaseController with HeaderValidator
   import DeviceVersion.formats
   import ErrorResponse.writes
   import UpgradeRequired.formats
-
-  import scala.concurrent.ExecutionContext.Implicits.global
 
   val upgradeRequiredCheckerService : UpgradeRequiredCheckerService
   val accessControl: AccountAccessControlWithHeaderCheck
