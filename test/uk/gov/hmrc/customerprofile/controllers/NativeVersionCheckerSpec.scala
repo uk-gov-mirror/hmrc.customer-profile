@@ -41,6 +41,13 @@ class NativeVersionCheckerSpec extends UnitSpec with ScalaFutures with StubAppli
       status(result) shouldBe 200
       contentAsJson(result) shouldBe upgradeTrue
     }
+
+    "return 400 when a version check is attempted with an unknown OS" in new SuccessNativeVersionChecker {
+      val result = await(controller.validateAppVersion(None)(jsonUnknownDeviceOSRequest))
+
+      status(result) shouldBe 400
+      contentAsJson(result) shouldBe unknownOS
+    }
   }
 
   "nativeVersionChecker Sandbox controller " should {
