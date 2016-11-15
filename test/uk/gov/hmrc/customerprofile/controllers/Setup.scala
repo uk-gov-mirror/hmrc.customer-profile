@@ -131,11 +131,13 @@ trait Setup {
 
   val upgradeFalse = Json.parse("""{"upgrade":false}""")
   val upgradeTrue = Json.parse("""{"upgrade":true}""")
+  val unknownOS = Json.parse("""{"obj.os":[{"msg":["unknown os"],"args":[]}]}""")
 
   val preferenceSuccess = Json.parse("""{"digital":true,"email":{"email":"name@email.co.uk","status":"verified"}}""")
 
   val deviceVersion = DeviceVersion(Android, "1.0.1")
   lazy val jsonDeviceVersionRequest = fakeRequest(Json.toJson(deviceVersion)).withHeaders(acceptHeader)
+  lazy val jsonUnknownDeviceOSRequest = fakeRequest(Json.parse("""{"os":"unicorn","version":"1.2.3"}""")).withHeaders(acceptHeader)
 
   lazy val http200ResponseCid = Future.successful(HttpResponse(200, Some(Json.toJson(person))))
 

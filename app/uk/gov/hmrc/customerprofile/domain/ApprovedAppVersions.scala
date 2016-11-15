@@ -86,7 +86,7 @@ object NativeOS {
       case JsString("ios") => JsSuccess(iOS)
       case JsString("android") => JsSuccess(Android)
       case JsString("windows") => JsSuccess(Windows)
-      case _ => JsError()
+      case _ => JsError("unknown os")
     }
   }
 

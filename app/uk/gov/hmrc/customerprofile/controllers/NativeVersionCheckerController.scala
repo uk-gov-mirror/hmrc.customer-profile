@@ -17,14 +17,14 @@
 package uk.gov.hmrc.customerprofile.controllers
 
 import play.api.Logger
-import play.api.libs.json.Json
+import play.api.libs.json.{JsError, Json}
 import play.api.mvc.BodyParsers
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
-import uk.gov.hmrc.api.controllers.{ErrorGenericBadRequest, ErrorResponse, HeaderValidator}
+import uk.gov.hmrc.api.controllers.HeaderValidator
 import uk.gov.hmrc.customerprofile.controllers.action.{AccountAccessControlCheckOff, AccountAccessControlWithHeaderCheck}
 import uk.gov.hmrc.customerprofile.domain.DeviceVersion
 import uk.gov.hmrc.customerprofile.services.{LiveUpgradeRequiredCheckerService, SandboxUpgradeRequiredCheckerService, UpgradeRequiredCheckerService}
 import uk.gov.hmrc.play.http.HeaderCarrier
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.Future
@@ -37,7 +37,6 @@ object UpgradeRequired {
 trait NativeVersionCheckerController extends BaseController with HeaderValidator with ErrorHandling {
 
   import DeviceVersion.formats
-  import ErrorResponse.writes
   import UpgradeRequired.formats
 
   val upgradeRequiredCheckerService : UpgradeRequiredCheckerService
@@ -51,7 +50,7 @@ trait NativeVersionCheckerController extends BaseController with HeaderValidator
       request.body.validate[DeviceVersion].fold(
         errors => {
           Logger.warn("Received error with service validate app version: " + errors)
-          Future.successful(BadRequest(Json.toJson(ErrorGenericBadRequest(errors))))
+          Future.successful(BadRequest(JsError.toJson(errors)))
         },
         deviceVersion => {
           errorWrapper(upgradeRequiredCheckerService.upgradeRequired(deviceVersion).map {
