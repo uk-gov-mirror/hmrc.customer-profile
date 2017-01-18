@@ -1,0 +1,7 @@
+{
+    "digital" : true,
+    "email" : {
+      "email" : "name@email.co.uk",
+      "status" : "verified"
+    }
+}
