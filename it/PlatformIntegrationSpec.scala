@@ -119,8 +119,8 @@ class PlatformIntegrationSpec extends UnitSpec with MockitoSugar with ScalaFutur
       override val additionalConfiguration: Map[String, Any] = Map(
         "appName" -> "application-name",
         "appUrl" -> "http://microservice-name.service",
-        "Test.microservice.services.service-locator.host" -> stubHost,
-        "Test.microservice.services.service-locator.port" -> stubPort)
+        "microservice.services.service-locator.host" -> stubHost,
+        "microservice.services.service-locator.port" -> stubPort)
       run {
         () => {
           val result = documentationController.conf("1.0", "application.raml")(request)
