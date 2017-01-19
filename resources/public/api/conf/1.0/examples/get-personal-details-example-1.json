@@ -1,0 +1,12 @@
+{
+      "etag" : "etag12345",
+      "person" : {
+        "firstName" : "John",
+        "middleName" : "Albert",
+        "lastName" : "Smith",
+        "title" : "Mr",
+        "sex" : "M",
+        "dateOfBirth" : 513774181935,
+        "nino" : "YH261980B"
+      }
+}

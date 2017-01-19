@@ -1,0 +1,143 @@
+#%RAML 1.0
+---
+
+title: Customer Profile
+version: 1.0
+protocols: [ HTTPS ]
+baseUri: https://api.service.hmrc.gov.uk/
+
+documentation:
+ - title: Overview
+   content: !include docs/overview.md
+ - title: Versioning
+   content: !include http://api-documentation-raml-frontend.service/api-documentation/assets/common/docs/versioning.md
+ - title: Errors
+   content: !include http://api-documentation-raml-frontend.service/api-documentation/assets/common/docs/errors.md
+
+mediaType: [ application/json, application/hal+json ]
+
+uses:
+  sec: http://api-documentation-raml-frontend.service/api-documentation/assets/common/modules/securitySchemes.raml
+  headers: http://api-documentation-raml-frontend.service/api-documentation/assets/common/modules/headers.raml
+  annotations: http://api-documentation-raml-frontend.service/api-documentation/assets/common/modules/annotations.raml
+  types: http://api-documentation-raml-frontend.service/api-documentation/assets/common/modules/types.raml
+
+/customer-profile:
+  /profile:
+    /accounts:
+      get:
+        displayName: Get accounts
+        description: This endpoint retrieves the accounts associated with the auth record.
+        is: [headers.acceptHeader]
+        (annotations.scope): "read:customer-profile"
+        securedBy: [ sec.oauth_2_0: { scopes: [ "read:customer-profile" ] } ]
+        queryParameters:
+          journeyId:
+            type: string
+            required: false
+        responses:
+          200:
+            body:
+              application/json:
+                examples:
+                  example-1:
+                    value: !include examples/get-accounts-example-1.json
+    /personal-details:
+      /{nino}:
+        uriParameters:
+          nino:
+            description: The NINO for the individual.
+            type: string
+            example: NS123456B
+        get:
+          displayName: Get personal details
+          description: This endpoint retrieves a user's designatory details
+          is: [headers.acceptHeader]
+          (annotations.scope): "read:customer-profile"
+          securedBy: [ sec.oauth_2_0: { scopes: [ "read:customer-profile" ] } ]
+          queryParameters:
+            journeyId:
+              type: string
+              required: false
+          responses:
+            200:
+              body:
+                application/json:
+                  examples:
+                    example-1:
+                      value: !include examples/get-personal-details-example-1.json
+    /preferences:
+      get:
+        displayName: Get preferences
+        description: This endpoint retrieves the preferences.
+        is: [headers.acceptHeader]
+        (annotations.scope): "read:customer-profile"
+        securedBy: [ sec.oauth_2_0: { scopes: [ "read:customer-profile" ] } ]
+        queryParameters:
+          journeyId:
+            type: string
+            required: false
+        responses:
+          200:
+            body:
+              application/json:
+                examples:
+                  example-1:
+                    value: !include examples/get-preferences-example-1.json
+      /paperless-settings:
+        /opt-in:
+          post:
+            displayName: Opt in paperless preferences
+            description: This endpoint sets or updates the user's paperless opt-in preference settings.
+            is: [headers.acceptHeader]
+            (annotations.scope): "read:customer-profile"
+            securedBy: [ sec.oauth_2_0: { scopes: [ "read:customer-profile" ] } ]
+            queryParameters:
+              journeyId:
+                type: string
+                required: false
+            responses:
+              200:
+                body:
+                  application/json:
+                    examples:
+                      example-1:
+                        value: !include examples/opt-in-paperless-preferences-example-1.json
+        /opt-out:
+          post:
+            displayName: Opt out paperless preferences
+            description: This endpoint opts the user out of paperless.
+            is: [headers.acceptHeader]
+            (annotations.scope): "read:customer-profile"
+            securedBy: [ sec.oauth_2_0: { scopes: [ "read:customer-profile" ] } ]
+            queryParameters:
+              journeyId:
+                type: string
+                required: false
+            responses:
+              200:
+                body:
+                  application/json:
+                    examples:
+                      example-1:
+                        value: !include examples/opt-out-paperless-preferences-example-1.json
+    /native-app:
+      /version-check:
+        post:
+          displayName: Validate app version
+          description: Validates the version
+          is: [headers.acceptHeader]
+          (annotations.scope): "read:customer-profile"
+          securedBy: [ sec.oauth_2_0: { scopes: [ "read:customer-profile" ] } ]
+          queryParameters:
+            journeyId:
+              type: string
+              required: false
+          responses:
+            200:
+              body:
+                application/json:
+                  examples:
+                    example-1:
+                      value: !include examples/validate-app-version-example-1.json
+
