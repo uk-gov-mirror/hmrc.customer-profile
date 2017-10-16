@@ -19,9 +19,9 @@ package uk.gov.hmrc.customerprofile.connector
 import play.api.Logger
 import play.api.http.Status
 import uk.gov.hmrc.customerprofile.config.{ServicesCircuitBreaker, WSHttp}
-import uk.gov.hmrc.customerprofile.domain.{TermsAccepted, Paperless, PaperlessOptOut, Preference}
+import uk.gov.hmrc.customerprofile.domain.{Paperless, PaperlessOptOut, Preference, TermsAccepted}
+import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http.{NotFoundException, _}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -43,7 +43,7 @@ trait EntityResolverConnector extends Status {
 
   val externalServiceName = "entity-resolver"
 
-  def http: HttpGet with HttpPost with HttpPut
+  def http: CoreGet with CorePost
 
   def serviceUrl: String
 

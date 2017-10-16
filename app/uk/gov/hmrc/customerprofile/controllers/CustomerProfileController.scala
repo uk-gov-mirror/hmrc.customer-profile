@@ -25,9 +25,11 @@ import uk.gov.hmrc.customerprofile.controllers.action.{AccountAccessControlCheck
 import uk.gov.hmrc.customerprofile.domain.Paperless
 import uk.gov.hmrc.customerprofile.services.{CustomerProfileService, LiveCustomerProfileService, SandboxCustomerProfileService}
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.play.http.{HeaderCarrier, NotFoundException}
-import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.http.{HeaderCarrier, NotFoundException}
+import uk.gov.hmrc.play.HeaderCarrierConverter
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+import uk.gov.hmrc.play.microservice.controller.BaseController
+
 import scala.concurrent.Future
 
 trait ErrorHandling {
@@ -55,26 +57,24 @@ trait ErrorHandling {
 
 trait CustomerProfileController extends BaseController with HeaderValidator with ErrorHandling {
 
-  import ErrorResponse.writes
-
   val service: CustomerProfileService
   val accessControl: AccountAccessControlWithHeaderCheck
 
   final def getAccounts(journeyId: Option[String] = None) = AccountAccessControlCheckOff.validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
-      implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, None)
+      implicit val hc = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
       errorWrapper(service.getAccounts().map(as => Ok(Json.toJson(as))))
   }
 
   final def getPersonalDetails(nino: Nino, journeyId: Option[String] = None) = accessControl.validateAcceptWithAuth(acceptHeaderValidationRules, Some(nino)).async {
     implicit request =>
-      implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, None)
+      implicit val hc = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
       errorWrapper(service.getPersonalDetails(nino).map(as => Ok(Json.toJson(as))))
   }
 
   final def getPreferences(journeyId: Option[String] = None) = accessControl.validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
-      implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, None)
+      implicit val hc = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
       errorWrapper(
         service.getPreferences().map {
           case Some(response) => Ok(Json.toJson(response))
@@ -86,7 +86,7 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
   final def paperlessSettingsOptIn(journeyId: Option[String] = None) = accessControl.validateAccept(acceptHeaderValidationRules).async(BodyParsers.parse.json) {
 
     implicit request =>
-      implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, None)
+      implicit val hc = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
 
       request.body.validate[Paperless].fold(
         errors => {
@@ -105,7 +105,7 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
 
   final def paperlessSettingsOptOut(journeyId: Option[String] = None) = accessControl.validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
-      implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, None)
+      implicit val hc = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
       errorWrapper(service.paperlessSettingsOptOut().map {
         case PreferencesExists => Ok
         case PreferencesCreated => Created

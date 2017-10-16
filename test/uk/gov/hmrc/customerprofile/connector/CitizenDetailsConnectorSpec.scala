@@ -16,18 +16,16 @@
 
 package uk.gov.hmrc.customerprofile.connector
 
+import com.typesafe.config.Config
 import org.scalatest.concurrent.ScalaFutures
-import play.api.libs.json.Json
-import play.api.test.Helpers._
-
 import uk.gov.hmrc.customerprofile.domain.{Person, PersonDetails}
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.play.http.hooks.HttpHook
-import uk.gov.hmrc.play.http.{HeaderCarrier, _}
+import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.hooks.HttpHook
 import uk.gov.hmrc.play.test.UnitSpec
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 class CitizenDetailsConnectorSpec
   extends UnitSpec
@@ -41,7 +39,7 @@ class CitizenDetailsConnectorSpec
       Some("Title"),Some("Honours"), Some("sex"),None, None), None, None)
     val nino = Nino("CS700100A")
 
-    lazy val http500Response = Future.failed(new Upstream5xxResponse("Error", 500, 500))
+    lazy val http500Response = Future.failed(Upstream5xxResponse("Error", 500, 500))
     lazy val http400Response = Future.failed(new BadRequestException("bad request"))
     lazy val http200Response = Future.successful(HttpResponse(200, None))//Some(Json.toJson(person))))
 
@@ -49,9 +47,10 @@ class CitizenDetailsConnectorSpec
 
     val connector = new CitizenDetailsConnector {
       override lazy val citizenDetailsConnectorUrl = "someUrl"
-      override lazy val http: HttpGet = new HttpGet {
+      override lazy val http: CoreGet = new CoreGet with HttpGet {
         override val hooks: Seq[HttpHook] = NoneRequired
-        override protected def doGet(url: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = response
+        override def doGet(url: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = response
+        override def configuration: Option[Config] = None
       }
     }
   }

@@ -19,8 +19,8 @@ package uk.gov.hmrc.customerprofile.services
 import uk.gov.hmrc.api.service.Auditor
 import uk.gov.hmrc.customerprofile.config.MicroserviceAuditConnector
 import uk.gov.hmrc.customerprofile.domain.{DeviceVersion, ValidateAppVersion}
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.{ExecutionContext, Future}
 

@@ -19,19 +19,19 @@ package uk.gov.hmrc.customerprofile.connector
 import play.api.Logger
 import uk.gov.hmrc.customerprofile.config.WSHttp
 import uk.gov.hmrc.domain._
+import uk.gov.hmrc.http.{CoreGet, HeaderCarrier, NotFoundException, Upstream4xxResponse}
 import uk.gov.hmrc.play.config.ServicesConfig
 
-import scala.concurrent.{ExecutionContext,Future}
+import scala.concurrent.{ExecutionContext, Future}
 
 trait CitizenDetailsConnector {
 
   import play.api.http.Status.LOCKED
   import uk.gov.hmrc.customerprofile.domain.PersonDetails
-  import uk.gov.hmrc.play.http.{HeaderCarrier, HttpGet, NotFoundException, Upstream4xxResponse}
 
   def citizenDetailsConnectorUrl: String
 
-  def http: HttpGet
+  def http: CoreGet
 
   def personDetails(nino: Nino)(implicit hc: HeaderCarrier, ec : ExecutionContext): Future[PersonDetails] = {
     http.GET[PersonDetails](s"$citizenDetailsConnectorUrl/citizen-details/$nino/designatory-details") recover {

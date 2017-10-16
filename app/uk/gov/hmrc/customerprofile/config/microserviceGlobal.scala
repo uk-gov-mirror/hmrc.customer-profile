@@ -18,27 +18,23 @@ package uk.gov.hmrc.customerprofile.config
 
 
 import akka.stream.Materializer
-import play.api.{Application, Configuration, Play}
-import uk.gov.hmrc.api.controllers.{ErrorInternalServerError, ErrorUnauthorized, ErrorGenericBadRequest}
-import uk.gov.hmrc.customerprofile.controllers.ErrorNinoInvalid
-import uk.gov.hmrc.play.filters.MicroserviceFilterSupport
-import play.api.Play.current
 import com.typesafe.config.Config
 import net.ceedubs.ficus.Ficus._
+import play.api.Play.current
 import play.api.libs.json.Json
 import play.api.mvc.Results._
 import play.api.mvc.{RequestHeader, Result}
+import play.api.{Application, Configuration, Play}
 import uk.gov.hmrc.api.config.{ServiceLocatorConfig, ServiceLocatorRegistration}
 import uk.gov.hmrc.api.connector.ServiceLocatorConnector
-import uk.gov.hmrc.api.controllers._
-import uk.gov.hmrc.play.audit.filters.AuditFilter
+import uk.gov.hmrc.api.controllers.{ErrorGenericBadRequest, ErrorInternalServerError, ErrorUnauthorized, _}
+import uk.gov.hmrc.customerprofile.controllers.ErrorNinoInvalid
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
-import uk.gov.hmrc.play.http.HeaderCarrier
-import uk.gov.hmrc.play.http.logging.filters.LoggingFilter
 import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
-
+import uk.gov.hmrc.play.microservice.filters.{AuditFilter, LoggingFilter, MicroserviceFilterSupport}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

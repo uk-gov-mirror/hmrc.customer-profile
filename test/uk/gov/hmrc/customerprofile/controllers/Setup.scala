@@ -18,8 +18,10 @@ package uk.gov.hmrc.customerprofile.controllers
 
 import java.util.UUID
 
+import com.typesafe.config.Config
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.FakeRequest
+import play.api.test.Helpers._
 import uk.gov.hmrc.circuitbreaker.CircuitBreakerConfig
 import uk.gov.hmrc.customerprofile.config.ServicesCircuitBreaker
 import uk.gov.hmrc.customerprofile.connector._
@@ -29,24 +31,25 @@ import uk.gov.hmrc.customerprofile.domain._
 import uk.gov.hmrc.customerprofile.services._
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.emailaddress.EmailAddress
+import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.hooks.HttpHook
 import uk.gov.hmrc.play.audit.http.config.AuditingConfig
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.auth.microservice.connectors.ConfidenceLevel
 import uk.gov.hmrc.play.config.{RunMode, ServicesConfig}
-import uk.gov.hmrc.play.http._
-import uk.gov.hmrc.play.http.hooks.HttpHook
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
-import play.api.test.Helpers._
 
 
 class TestCitizenDetailsConnector(httpResponse: Future[HttpResponse]) extends CitizenDetailsConnector {
   override lazy val citizenDetailsConnectorUrl = "someUrl"
-  override lazy val http: HttpGet = new HttpGet {
+  override lazy val http: CoreGet = new CoreGet with HttpGet {
+    override def doGet(url: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = httpResponse
+
     override val hooks: Seq[HttpHook] = NoneRequired
 
-    override protected def doGet(url: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = httpResponse
+    override def configuration: Option[Config] = None
   }
 }
 
@@ -55,7 +58,7 @@ class TestEntityResolverConnector(preferencesStatus: PreferencesStatus, preferen
 
   override protected def circuitBreakerConfig = CircuitBreakerConfig(serviceName = externalServiceName)
 
-  override def http: HttpGet with HttpPost with HttpPut = ???
+  override def http: CoreGet with CorePost with CorePut = ???
 
   override def serviceUrl: String = ???
 
@@ -73,7 +76,7 @@ class TestAuthConnector(nino: Option[Nino], ex:Option[Exception]=None) extends A
 
   override def serviceConfidenceLevel: ConfidenceLevel = ???
 
-  override def http: HttpGet = ???
+  override def http: CoreGet = ???
 
   override def accounts()(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Accounts] = Future(Accounts(nino, None, false, false, "102030394AAA"))
 
@@ -150,7 +153,7 @@ trait Setup {
   lazy val testCompositeAction = new TestAccountAccessControlWithAccept(testAccess)
 
   object MicroserviceAuditConnectorTest extends AuditConnector with RunMode {
-    override def auditingConfig: AuditingConfig = AuditingConfig(None, false, false)
+    override def auditingConfig: AuditingConfig = AuditingConfig(None, enabled = false)
   }
 
   lazy val testCustomerProfileService = new TestCustomerProfileService(cdConnector, authConnector, entityConnector, MicroserviceAuditConnectorTest)
