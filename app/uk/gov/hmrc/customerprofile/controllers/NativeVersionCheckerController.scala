@@ -23,7 +23,7 @@ import uk.gov.hmrc.api.controllers.HeaderValidator
 import uk.gov.hmrc.customerprofile.controllers.action.{AccountAccessControlCheckOff, AccountAccessControlWithHeaderCheck}
 import uk.gov.hmrc.customerprofile.domain.DeviceVersion
 import uk.gov.hmrc.customerprofile.services.{LiveUpgradeRequiredCheckerService, SandboxUpgradeRequiredCheckerService, UpgradeRequiredCheckerService}
-import uk.gov.hmrc.play.http.HeaderCarrier
+import uk.gov.hmrc.play.HeaderCarrierConverter
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
@@ -45,7 +45,7 @@ trait NativeVersionCheckerController extends BaseController with HeaderValidator
   final def validateAppVersion(journeyId: Option[String] = None) = accessControl.validateAccept(acceptHeaderValidationRules).async(BodyParsers.parse.json) {
 
     implicit request =>
-      implicit val hc = HeaderCarrier.fromHeadersAndSession(request.headers, None)
+      implicit val hc = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
 
       request.body.validate[DeviceVersion].fold(
         errors => {
