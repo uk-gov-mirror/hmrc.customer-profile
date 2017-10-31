@@ -7,7 +7,7 @@ object AppDependencies {
   private val microserviceBootstrapVersion = "6.11.0"
   private val domainVersion = "5.0.0"
   private val playHmrcApiVersion = "2.0.0"
-  private val reactiveCircuitBreakerVersion = "3.1.0"
+  private val reactiveCircuitBreakerVersion = "3.2.0"
   private val emailaddressVersion = "2.1.0"
 
   val compile = Seq(
