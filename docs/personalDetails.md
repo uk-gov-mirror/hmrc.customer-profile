@@ -32,9 +32,28 @@ Personal Details
     "middleName" : "Albert",
     "lastName" : "Smith",
     "title" : "Mr",
+    "honours" : "BSC",
     "sex" : "M",
     "dateOfBirth" : 513774181935,
     "nino" : "YH261980B"
+  },
+  "address" : {
+    "line1": "1 Test Street",
+    "line2": "Testington",
+    "line3": "Testville",
+    "line4": "Testshire",
+    "postcode:" : "AA1 1AA",
+    "startDate": 1509556398243,
+    "type": "Residential"
+  },
+  "correspondenceAddress" : {
+    "line1" : "1 Main Street",
+    "line2" : "Central",
+    "line3" : "Anothertown",
+    "line4" : "Anothershire",
+    "postcode" : "BB2 2BB",
+    "startDate": 1341100800000,
+    "type" : "Correspondence"
   }
 }
 ```
