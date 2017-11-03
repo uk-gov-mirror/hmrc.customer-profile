@@ -16,6 +16,7 @@
     "line4": "456",
     "postcode": "98765",
     "startDate": 946684800000,
+    "country": "Test Country",
     "type": "Residential"
   },
   "correspondenceAddress": {
