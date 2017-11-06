@@ -19,9 +19,11 @@ package uk.gov.hmrc.customerprofile
 import java.io.InputStream
 
 import org.scalatest.concurrent.Eventually
+import play.api.libs.json.Json
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.customerprofile.stubs.{AuthStub, CitizenDetailsStub}
 import uk.gov.hmrc.customerprofile.support.BaseISpec
+import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.domain.Nino
 
 import scala.io.Source
@@ -41,6 +43,51 @@ class CustomerProfileISpec extends BaseISpec with Eventually {
         response.status shouldBe 200
       }
       response.json shouldBe getResourceAsJsValue("expected-AA000006C-personal-details.json")
+    }
+
+    "return 500 response status code when citizen-details returns 423 response status code." in {
+      val nino = Nino("AA000006C")
+      CitizenDetailsStub.citizenDetailsErrorResponse(nino, 423)
+      AuthStub.authRecordExists(nino)
+
+      val response = await(wsUrl(s"/profile/personal-details/${nino.value}")
+        .withHeaders("Accept" -> "application/vnd.hmrc.1.0+json")
+        .get())
+
+      withClue(response.body) {
+        response.status shouldBe 500
+      }
+      response.json shouldBe Json.parse("""{"code":"INTERNAL_SERVER_ERROR","message":"Internal server error"}""".stripMargin)
+    }
+
+    "return 500 response status code when citizen-details returns 500 response status code." in {
+      val nino = Nino("AA000006C")
+      CitizenDetailsStub.citizenDetailsErrorResponse(nino, 500)
+      AuthStub.authRecordExists(nino)
+
+      val response = await(wsUrl(s"/profile/personal-details/${nino.value}")
+        .withHeaders("Accept" -> "application/vnd.hmrc.1.0+json")
+        .get())
+
+      withClue(response.body) {
+        response.status shouldBe 500
+      }
+      response.json shouldBe Json.parse("""{"code":"INTERNAL_SERVER_ERROR","message":"Internal server error"}""".stripMargin)
+    }
+
+    "return 404 response status code when citizen-details returns 404 response status code." in {
+      val nino = Nino("AA000006C")
+      CitizenDetailsStub.citizenDetailsErrorResponse(nino, 404)
+      AuthStub.authRecordExists(nino)
+
+      val response = await(wsUrl(s"/profile/personal-details/${nino.value}")
+        .withHeaders("Accept" -> "application/vnd.hmrc.1.0+json")
+        .get())
+
+      withClue(response.body) {
+        response.status shouldBe 404
+      }
+      response.json shouldBe None
     }
   }
 

@@ -27,4 +27,8 @@ object CitizenDetailsStub {
         .withStatus(200)
         .withBody(detailsJson)))
 
+  def citizenDetailsErrorResponse(nino: Nino, responseStatusCode: Int): Unit =
+    stubFor(get(urlEqualTo(s"/citizen-details/${nino.value}/designatory-details"))
+      .willReturn(aResponse()
+        .withStatus(responseStatusCode)))
 }
