@@ -45,9 +45,9 @@ class CustomerProfileISpec extends BaseISpec with Eventually {
       response.json shouldBe getResourceAsJsValue("expected-AA000006C-personal-details.json")
     }
 
-    "return 500 response status code when citizen-details returns 423 response status code." in {
+    "return a 423 response status code when the NINO is locked due to Manual Correspondence Indicator flag being set in NPS" in {
       val nino = Nino("AA000006C")
-      CitizenDetailsStub.citizenDetailsErrorResponse(nino, 423)
+      CitizenDetailsStub.npsDataIsLockedDueToMciFlag(nino)
       AuthStub.authRecordExists(nino)
 
       val response = await(wsUrl(s"/profile/personal-details/${nino.value}")
@@ -55,14 +55,14 @@ class CustomerProfileISpec extends BaseISpec with Eventually {
         .get())
 
       withClue(response.body) {
-        response.status shouldBe 500
+        response.status shouldBe 423
       }
-      response.json shouldBe Json.parse("""{"code":"INTERNAL_SERVER_ERROR","message":"Internal server error"}""".stripMargin)
+      response.json shouldBe Json.parse("""{"code":"MANUAL_CORRESPONDENCE_IND","message":"Data cannot be disclosed to the user because MCI flag is set in NPS"}""")
     }
 
     "return 500 response status code when citizen-details returns 500 response status code." in {
       val nino = Nino("AA000006C")
-      CitizenDetailsStub.citizenDetailsErrorResponse(nino, 500)
+      CitizenDetailsStub.designatoryDetailsWillReturnErrorResponse(nino, 500)
       AuthStub.authRecordExists(nino)
 
       val response = await(wsUrl(s"/profile/personal-details/${nino.value}")
@@ -72,12 +72,12 @@ class CustomerProfileISpec extends BaseISpec with Eventually {
       withClue(response.body) {
         response.status shouldBe 500
       }
-      response.json shouldBe Json.parse("""{"code":"INTERNAL_SERVER_ERROR","message":"Internal server error"}""".stripMargin)
+      response.json shouldBe Json.parse("""{"code":"INTERNAL_SERVER_ERROR","message":"Internal server error"}""")
     }
 
     "return 404 response status code when citizen-details returns 404 response status code." in {
       val nino = Nino("AA000006C")
-      CitizenDetailsStub.citizenDetailsErrorResponse(nino, 404)
+      CitizenDetailsStub.designatoryDetailsWillReturnErrorResponse(nino, 404)
       AuthStub.authRecordExists(nino)
 
       val response = await(wsUrl(s"/profile/personal-details/${nino.value}")
@@ -87,7 +87,7 @@ class CustomerProfileISpec extends BaseISpec with Eventually {
       withClue(response.body) {
         response.status shouldBe 404
       }
-      response.json shouldBe None
+      response.json shouldBe Json.parse("""{"code":"NOT_FOUND","message":"Resource was not found"}""")
     }
   }
 
