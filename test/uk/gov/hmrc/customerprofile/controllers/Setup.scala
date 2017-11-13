@@ -126,7 +126,7 @@ trait Setup {
   val nino = Nino("CS700100A")
   val testAccount = Accounts(Some(nino), None, false, false,"102030394AAA")
   val person = PersonDetails("etag", Person(Some("Nuala"), Some("Theo"), Some("O'Shea"),
-    Some("LM"), Some("Mr"), None, Some("Male"), None, None), None, None)
+    Some("LM"), Some("Mr"), None, Some("Male"), None, None), None)
 
   val acceptHeader = "Accept" -> "application/vnd.hmrc.1.0+json"
   def fakeRequest(body:JsValue) = FakeRequest(POST, "url").withBody(body)

@@ -18,14 +18,5 @@
     "startDate": 946684800000,
     "country": "Test Country",
     "type": "Residential"
-  },
-  "correspondenceAddress": {
-    "line1": "1 Main Street",
-    "line2": "Central",
-    "line3": "Anothertown",
-    "line4": "Anothershire",
-    "postcode": "AA1 1AA",
-    "startDate": 1341100800000,
-    "type": "Correspondence"
   }
 }

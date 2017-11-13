@@ -19,11 +19,9 @@ package uk.gov.hmrc.customerprofile
 import java.io.InputStream
 
 import org.scalatest.concurrent.Eventually
-import play.api.libs.json.Json
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.customerprofile.stubs.{AuthStub, CitizenDetailsStub}
 import uk.gov.hmrc.customerprofile.support.BaseISpec
-import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.domain.Nino
 
 import scala.io.Source

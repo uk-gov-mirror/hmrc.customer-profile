@@ -64,6 +64,5 @@ object PersonDetails {
 case class PersonDetails(
                           etag: String,
                           person: Person,
-                          address: Option[Address],
-                          correspondenceAddress: Option[Address]
+                          address: Option[Address]
                         )

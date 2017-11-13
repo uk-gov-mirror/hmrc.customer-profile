@@ -36,7 +36,7 @@ class CitizenDetailsConnectorSpec
     implicit lazy val hc = HeaderCarrier()
 
     val person = PersonDetails("etag", Person(Some("Firstname"), Some("Lastname"),Some("Middle"),Some("Intial"),
-      Some("Title"),Some("Honours"), Some("sex"),None, None), None, None)
+      Some("Title"),Some("Honours"), Some("sex"),None, None), None)
     val nino = Nino("CS700100A")
 
     lazy val http500Response = Future.failed(Upstream5xxResponse("Error", 500, 500))

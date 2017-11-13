@@ -75,8 +75,7 @@ object DomainGenerator {
   val etag = "etag12345"
   val person = Person(Some("John"), Some("Albert"), Some("Smith"), None, Some("Mr"), None, Some("M"), Some(DateTimeUtils.now.minusYears(30)), Some(nino))
   val address = None
-  val correspondenceAddress = None
-  val personalDetails = PersonDetails(etag, person, address, correspondenceAddress)
+  val personalDetails = PersonDetails(etag, person, address)
   lazy val personalDetailsAsJson = Json.toJson(personalDetails)
 
 }

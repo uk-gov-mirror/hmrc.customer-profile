@@ -86,7 +86,7 @@ object SandboxCustomerProfileService extends CustomerProfileService with FileRes
   private val nino = Nino("CS700100A")
 
   private val personDetailsSandbox = PersonDetails("etag", Person(Some("Nuala"), Some("Theo"), Some("O'Shea"),
-    Some("LM"), Some("Mr"), None, Some("Male"), None, None), None, None)
+    Some("LM"), Some("Mr"), None, Some("Male"), None, None), None)
 
   private val accounts = Accounts(Some(nino), None, false, false, UUID.randomUUID().toString)
 

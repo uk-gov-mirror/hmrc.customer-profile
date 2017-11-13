@@ -46,16 +46,6 @@ Personal Details
     "country:" : "Test Country",
     "startDate": 1509556398243,
     "type": "Residential"
-  },
-  "correspondenceAddress" : {
-    "line1" : "1 Main Street",
-    "line2" : "Central",
-    "line3" : "Anothertown",
-    "line4" : "Anothershire",
-    "postcode" : "BB2 2BB",
-    "country:" : "Test Country",
-    "startDate": 1341100800000,
-    "type" : "Correspondence"
   }
 }
 ```
