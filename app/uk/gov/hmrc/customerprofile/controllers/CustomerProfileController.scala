@@ -17,7 +17,7 @@
 package uk.gov.hmrc.customerprofile.controllers
 
 import play.api.libs.json._
-import play.api.mvc.BodyParsers
+import play.api.mvc.{BodyParsers, Result}
 import play.api.{Logger, mvc}
 import uk.gov.hmrc.api.controllers._
 import uk.gov.hmrc.customerprofile.connector._
@@ -25,7 +25,7 @@ import uk.gov.hmrc.customerprofile.controllers.action.{AccountAccessControlCheck
 import uk.gov.hmrc.customerprofile.domain.Paperless
 import uk.gov.hmrc.customerprofile.services.{CustomerProfileService, LiveCustomerProfileService, SandboxCustomerProfileService}
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.http.{HeaderCarrier, NotFoundException}
+import uk.gov.hmrc.http.{HeaderCarrier, NotFoundException, Upstream4xxResponse}
 import uk.gov.hmrc.play.HeaderCarrierConverter
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import uk.gov.hmrc.play.microservice.controller.BaseController
@@ -38,11 +38,14 @@ trait ErrorHandling {
 
   def log(message:String) = Logger.info(s"$app $message")
 
+  def result(errorResponse: ErrorResponse): Result =
+    Status(errorResponse.httpStatusCode)(Json.toJson(errorResponse))
+
   def errorWrapper(func: => Future[mvc.Result])(implicit hc: HeaderCarrier) = {
     func.recover {
       case ex: NotFoundException =>
         log("Resource not found!")
-        Status(ErrorNotFound.httpStatusCode)(Json.toJson(ErrorNotFound))
+        result(ErrorNotFound)
 
       case ex: NinoNotFoundOnAccount =>
         log("User has no NINO. Unauthorized!")
@@ -69,7 +72,14 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
   final def getPersonalDetails(nino: Nino, journeyId: Option[String] = None) = accessControl.validateAcceptWithAuth(acceptHeaderValidationRules, Some(nino)).async {
     implicit request =>
       implicit val hc = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
-      errorWrapper(service.getPersonalDetails(nino).map(as => Ok(Json.toJson(as))))
+      errorWrapper(
+        service.getPersonalDetails(nino)
+          .map(as => Ok(Json.toJson(as)))
+          .recover {
+            case Upstream4xxResponse(_, LOCKED, _, _) =>
+              result(ErrorManualCorrespondenceIndicator)
+          }
+      )
   }
 
   final def getPreferences(journeyId: Option[String] = None) = accessControl.validateAccept(acceptHeaderValidationRules).async {
