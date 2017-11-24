@@ -49,6 +49,7 @@ case class Address(
                     line2: Option[String],
                     line3: Option[String],
                     line4: Option[String],
+                    line5: Option[String],
                     postcode: Option[String],
                     country: Option[String],
                     startDate: Option[DateTime],
