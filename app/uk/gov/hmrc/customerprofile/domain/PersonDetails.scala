@@ -49,13 +49,12 @@ case class Address(
                     line2: Option[String],
                     line3: Option[String],
                     line4: Option[String],
+                    line5: Option[String],
                     postcode: Option[String],
                     country: Option[String],
                     startDate: Option[DateTime],
                     `type`: Option[String]
-                  ) {
-  lazy val lines = List(line1, line2, line3, line4).flatten
-}
+                  )
 
 
 object PersonDetails {
