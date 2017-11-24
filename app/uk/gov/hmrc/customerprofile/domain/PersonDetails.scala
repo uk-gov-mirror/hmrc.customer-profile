@@ -54,9 +54,7 @@ case class Address(
                     country: Option[String],
                     startDate: Option[DateTime],
                     `type`: Option[String]
-                  ) {
-  lazy val lines = List(line1, line2, line3, line4).flatten
-}
+                  )
 
 
 object PersonDetails {
