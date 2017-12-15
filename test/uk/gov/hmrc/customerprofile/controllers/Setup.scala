@@ -19,6 +19,8 @@ package uk.gov.hmrc.customerprofile.controllers
 import java.util.UUID
 
 import com.typesafe.config.Config
+import org.slf4j.Logger
+import play.api.LoggerLike
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -127,6 +129,8 @@ trait Setup {
   val testAccount = Accounts(Some(nino), None, false, false,"102030394AAA")
   val person = PersonDetails("etag", Person(Some("Nuala"), Some("Theo"), Some("O'Shea"),
     Some("LM"), Some("Mr"), None, Some("Male"), None, None), None)
+  val personWithMissingData = PersonDetails("etag", Person(firstName = Some(""), Some("Theo"), lastName = None,
+    Some("LM"), Some("Mr"), None, Some("Male"), dateOfBirth = None, nino = None), None)
 
   val acceptHeader = "Accept" -> "application/vnd.hmrc.1.0+json"
   def fakeRequest(body:JsValue) = FakeRequest(POST, "url").withBody(body)
@@ -143,9 +147,11 @@ trait Setup {
   lazy val jsonUnknownDeviceOSRequest = fakeRequest(Json.parse("""{"os":"unicorn","version":"1.2.3"}""")).withHeaders(acceptHeader)
 
   lazy val http200ResponseCid = Future.successful(HttpResponse(200, Some(Json.toJson(person))))
+  lazy val missingDataHttp200ResponseCid = Future.successful(HttpResponse(200, Some(Json.toJson(personWithMissingData))))
 
   lazy val authConnector = new TestAuthConnector(Some(nino))
   lazy val cdConnector = new TestCitizenDetailsConnector(http200ResponseCid)
+  lazy val missingDataConnector = new TestCitizenDetailsConnector(missingDataHttp200ResponseCid)
 
   lazy val defaultPreference = Some(Preference(true, Some(EmailPreference(EmailAddress("someone@something.com"), EmailPreference.Status.Pending))))
   lazy val entityConnector = new TestEntityResolverConnector(PreferencesExists, defaultPreference)
@@ -157,6 +163,7 @@ trait Setup {
   }
 
   lazy val testCustomerProfileService = new TestCustomerProfileService(cdConnector, authConnector, entityConnector, MicroserviceAuditConnectorTest)
+  lazy val missingDataCustomerProfileService = new TestCustomerProfileService(missingDataConnector, authConnector, entityConnector, MicroserviceAuditConnectorTest)
 
   lazy val testSandboxCustomerProfileService = SandboxCustomerProfileService
   lazy val sandboxCompositeAction = AccountAccessControlCheckOff
@@ -199,6 +206,18 @@ trait Success extends Setup {
     val app = "Success Customer Profile"
     override val service: CustomerProfileService = testCustomerProfileService
     override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
+  }
+}
+
+trait MissingDataSuccess extends Setup {
+  val stubbedLogger = new LoggerLikeStub()
+
+  val controller = new CustomerProfileController {
+    val app = "Success Customer Profile"
+    override val service: CustomerProfileService = missingDataCustomerProfileService
+    override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
+
+    override def getLogger = stubbedLogger
   }
 }
 
@@ -333,4 +352,14 @@ trait SandboxNativeVersionChecker extends Setup {
     override val upgradeRequiredCheckerService = SandboxUpgradeRequiredCheckerService
     override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
   }
+}
+
+class LoggerLikeStub extends LoggerLike {
+  import scala.collection.mutable.Buffer
+
+  val logMessages: Buffer[String] = Buffer()
+
+  override val logger: Logger = null
+
+  override def warn(msg: => String) = logMessages += msg
 }

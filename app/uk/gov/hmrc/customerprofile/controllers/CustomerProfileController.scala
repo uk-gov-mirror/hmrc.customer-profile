@@ -18,7 +18,7 @@ package uk.gov.hmrc.customerprofile.controllers
 
 import play.api.libs.json._
 import play.api.mvc.{BodyParsers, Result}
-import play.api.{Logger, mvc}
+import play.api.{Logger, LoggerLike, mvc}
 import uk.gov.hmrc.api.controllers._
 import uk.gov.hmrc.customerprofile.connector._
 import uk.gov.hmrc.customerprofile.controllers.action.{AccountAccessControlCheckOff, AccountAccessControlWithHeaderCheck}
@@ -69,18 +69,66 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
       errorWrapper(service.getAccounts().map(as => Ok(Json.toJson(as))))
   }
 
+  def getLogger: LoggerLike = Logger
+
   final def getPersonalDetails(nino: Nino, journeyId: Option[String] = None) = accessControl.validateAcceptWithAuth(acceptHeaderValidationRules, Some(nino)).async {
     implicit request =>
       implicit val hc = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
       errorWrapper(
         service.getPersonalDetails(nino)
-          .map(as => Ok(Json.toJson(as)))
-          .recover {
+          .map(personalDetails => {
+            def isMissingOrEmpty(field: Option[String]): Boolean = {
+              field match {
+                case Some(value) => value.trim.isEmpty
+                case None => true
+              }
+            }
+
+            //nino constructor enforces a regex so cant be empty string
+            if (personalDetails.person.nino.isEmpty) {
+              getLogger.warn(s"nino missing on personal details for : $nino")
+            }
+
+            if (isMissingOrEmpty(personalDetails.person.firstName)) {
+              getLogger.warn(s"firstName missing on personal details for : $nino")
+            }
+
+            if (isMissingOrEmpty(personalDetails.person.lastName)) {
+              getLogger.warn(s"lastName missing on personal details for : $nino")
+            }
+
+            //date must be constructed with some value
+            if (personalDetails.person.dateOfBirth.isEmpty) {
+              getLogger.warn(s"dateOfBirth missing on personal details for : $nino")
+            }
+
+            if (personalDetails.address.isEmpty) {
+              getLogger.warn(s"address missing on personal details for : $nino")
+            } else{
+              val address = personalDetails.address.get
+
+              if (isMissingOrEmpty(address.line1)) {
+                getLogger.warn(s"address line 1 missing on personal details for : $nino")
+              }
+
+              if (isMissingOrEmpty(address.line2)) {
+                getLogger.warn(s"address line 2 missing on personal details for : $nino")
+              }
+
+              if (isMissingOrEmpty(address.postcode)) {
+                getLogger.warn(s"postcode 1 missing on personal details for : $nino")
+              }
+            }
+
+            Ok(Json.toJson(personalDetails))
+          }
+         ).recover {
             case Upstream4xxResponse(_, LOCKED, _, _) =>
               result(ErrorManualCorrespondenceIndicator)
           }
       )
   }
+
 
   final def getPreferences(journeyId: Option[String] = None) = accessControl.validateAccept(acceptHeaderValidationRules).async {
     implicit request =>
