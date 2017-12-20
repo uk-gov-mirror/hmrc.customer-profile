@@ -19,6 +19,7 @@ package uk.gov.hmrc.customerprofile.controllers
 import java.util.UUID
 
 import com.typesafe.config.Config
+import org.joda.time.DateTime.parse
 import org.slf4j.Logger
 import play.api.LoggerLike
 import play.api.libs.json.{JsValue, Json}
@@ -127,8 +128,13 @@ trait Setup {
 
   val nino = Nino("CS700100A")
   val testAccount = Accounts(Some(nino), None, false, false,"102030394AAA")
-  val person = PersonDetails("etag", Person(Some("Nuala"), Some("Theo"), Some("O'Shea"),
-    Some("LM"), Some("Mr"), None, Some("Male"), None, None), None)
+
+  val person =
+    PersonDetails(
+      "etag",
+      Person(Some("Jennifer"), None, Some("Thorsteinson"), None, Some("Ms"), None, Some("Female"), Some(parse("1999-01-31")), Some(nino)),
+      Some(Address(Some("999 Big Street"), Some("Worthing"), Some("West Sussex"), None, None, Some("BN99 8IG"), None, None, None )))
+
   val personWithMissingData = PersonDetails("etag", Person(firstName = Some(""), Some("Theo"), lastName = None,
     Some("LM"), Some("Mr"), None, Some("Male"), dateOfBirth = None, nino = None), None)
 
