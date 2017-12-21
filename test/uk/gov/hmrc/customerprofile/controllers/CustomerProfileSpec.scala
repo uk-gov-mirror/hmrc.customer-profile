@@ -137,21 +137,6 @@ class TestCustomerProfileGetPersonalDetailsSpec extends UnitSpec with ScalaFutur
 
       status(result) shouldBe 406
     }
-
-    "log warnings if data is missing form the PersonalDetails" in new MissingDataSuccess {
-      val result: Result = await(controller.getPersonalDetails(nino)(emptyRequestWithHeader))
-
-      status(result) shouldBe 200
-      contentAsJson(result) shouldBe Json.toJson(personWithMissingData)
-
-      stubbedLogger.logMessages.size shouldBe 5
-      stubbedLogger.logMessages.toSet shouldBe Set(
-        s"nino missing on personal details for : $nino",
-        s"firstName missing on personal details for : $nino",
-        s"lastName missing on personal details for : $nino",
-        s"dateOfBirth missing on personal details for : $nino",
-        s"address missing on personal details for : $nino" )
-    }
   }
 
   "getPersonalDetails sandbox " should {
