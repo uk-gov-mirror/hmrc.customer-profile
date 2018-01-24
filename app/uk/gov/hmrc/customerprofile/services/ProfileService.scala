@@ -27,7 +27,7 @@ import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status
 import uk.gov.hmrc.customerprofile.domain._
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.emailaddress.EmailAddress
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{HeaderCarrier}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -44,6 +44,8 @@ trait CustomerProfileService {
   def paperlessSettingsOptOut()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus]
 
   def getPreferences()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Option[Preference]]
+
+  def setPreferencesPendingEmail(changeEmail: ChangeEmail)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[EmailUpdateStatus]
 }
 
 
@@ -54,6 +56,8 @@ trait LiveCustomerProfileService extends CustomerProfileService with Auditor {
   def citizenDetailsConnector: CitizenDetailsConnector
 
   def entityResolver: EntityResolverConnector
+
+  def preferencesConnector: PreferencesConnector
 
   def getAccounts()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Accounts] =
     withAudit("getAccounts", Map.empty) {
@@ -78,6 +82,15 @@ trait LiveCustomerProfileService extends CustomerProfileService with Auditor {
   def getPreferences()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Option[Preference]] =
     withAudit("getAccounts", Map.empty) {
       entityResolver.getPreferences()
+    }
+
+  def setPreferencesPendingEmail(changeEmail: ChangeEmail)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[EmailUpdateStatus] =
+    withAudit("updatePendingEmailPreference", Map("email" → changeEmail.email)) {
+      for{
+        account   ← getAccounts()
+        entity    ← entityResolver.getEntityIdByNino(account.nino.getOrElse(throw new NinoNotFoundOnAccount("")))
+        response  ← preferencesConnector.updatePendingEmail(changeEmail, entity._id)
+      } yield response
     }
 
 }
@@ -114,6 +127,10 @@ object SandboxCustomerProfileService extends CustomerProfileService with FileRes
   def getPreferences()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Option[Preference]] = {
     Future(Some(Preference(true, Some(EmailPreference(email, Status.Verified)))))
   }
+
+  def setPreferencesPendingEmail(changeEmail: ChangeEmail)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[EmailUpdateStatus] = {
+    Future(EmailUpdateOk)
+  }
 }
 
 object LiveCustomerProfileService extends LiveCustomerProfileService {
@@ -124,4 +141,6 @@ object LiveCustomerProfileService extends LiveCustomerProfileService {
   val entityResolver: EntityResolverConnector = EntityResolverConnector
 
   val auditConnector: AuditConnector = MicroserviceAuditConnector
+
+  val preferencesConnector: PreferencesConnector = PreferencesConnector
 }

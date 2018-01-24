@@ -39,7 +39,8 @@ class BaseISpec  extends WordSpec with Matchers with OptionValues with WsScalaTe
         "microservice.services.auth.port" -> wireMockPort,
         "microservice.services.citizen-details.port" -> wireMockPort,
         "microservice.services.entity-resolver.port" -> wireMockPort,
-        "microservice.services.service-locator.port" -> wireMockPort
+        "microservice.services.service-locator.port" -> wireMockPort,
+        "microservice.services.preferences.port" -> wireMockPort
       )
 
   protected implicit lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]

@@ -20,7 +20,8 @@ import java.io.InputStream
 
 import org.scalatest.concurrent.Eventually
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.customerprofile.stubs.{AuthStub, CitizenDetailsStub}
+import uk.gov.hmrc.customerprofile.domain.ChangeEmail
+import uk.gov.hmrc.customerprofile.stubs.{AuthStub, CitizenDetailsStub, EntityResolverStub, PreferencesStub}
 import uk.gov.hmrc.customerprofile.support.BaseISpec
 import uk.gov.hmrc.domain.Nino
 
@@ -86,6 +87,82 @@ class CustomerProfileISpec extends BaseISpec with Eventually {
         response.status shouldBe 404
       }
       response.json shouldBe Json.parse("""{"code":"NOT_FOUND","message":"Resource was not found"}""")
+    }
+  }
+
+  "PUT /profile/preferences/pending-email" should {
+    "return a 200 response when a pending email preference is successfully added" in {
+      val nino = Nino("AA000006C")
+      val entityId = "1098561938451038465138465"
+      val changeEmail = Json.toJson[ChangeEmail](ChangeEmail(email = "new-email@new-email.new.email"))
+      EntityResolverStub.respondWithEntityDetailsByNino(nino.value, entityId)
+      AuthStub.authRecordExists(nino)
+      PreferencesStub.successfulPendingEmailUpdate(entityId)
+
+      val response = await(wsUrl("/profile/preferences/pending-email")
+        .withHeaders("Accept" -> "application/vnd.hmrc.1.0+json")
+        .put(changeEmail))
+
+      withClue(response.body) {
+        response.status shouldBe 200
+      }
+    }
+
+    "return a Conflict response when preferences has no existing verified or pending email" in {
+      val nino = Nino("AA000006C")
+      val entityId = "1098561938451038465138465"
+      val changeEmail = Json.toJson[ChangeEmail](ChangeEmail(email = "new-email@new-email.new.email"))
+      val expectedResponse = Json.parse("""{"code":"CONFLICT","message":"No existing verified or pending data"}""")
+      EntityResolverStub.respondWithEntityDetailsByNino(nino.value, entityId)
+      AuthStub.authRecordExists(nino)
+      PreferencesStub.conflictPendingEmailUpdate(entityId)
+
+      val response = await(wsUrl("/profile/preferences/pending-email")
+        .withHeaders("Accept" -> "application/vnd.hmrc.1.0+json")
+        .put(changeEmail))
+
+      withClue(response.body) {
+        response.status shouldBe 409
+        response.json shouldBe expectedResponse
+      }
+    }
+
+    "return a Not Found response when unable to find a preference to update for an entity" in {
+      val nino = Nino("AA000006C")
+      val entityId = "1098561938451038465138465"
+      val changeEmail = Json.toJson[ChangeEmail](ChangeEmail(email = "new-email@new-email.new.email"))
+      val expectedResponse = Json.parse("""{"code":"NOT_FOUND","message":"Resource was not found"}""")
+      EntityResolverStub.respondWithEntityDetailsByNino(nino.value, entityId)
+      AuthStub.authRecordExists(nino)
+      PreferencesStub.notFoundPendingEmailUpdate(entityId)
+
+      val response = await(wsUrl("/profile/preferences/pending-email")
+        .withHeaders("Accept" -> "application/vnd.hmrc.1.0+json")
+        .put(changeEmail))
+
+      withClue(response.body) {
+        response.status shouldBe 404
+        response.json shouldBe expectedResponse
+      }
+    }
+
+    "return a Internal Server Error response when unable update pending email preference for an entity" in {
+      val nino = Nino("AA000006C")
+      val entityId = "1098561938451038465138465"
+      val changeEmail = Json.toJson[ChangeEmail](ChangeEmail(email = "new-email@new-email.new.email"))
+      val expectedResponse = Json.parse("""{"code":"PREFERENCE_SETTINGS_ERROR","message":"Failed to set preferences"}""")
+      EntityResolverStub.respondWithEntityDetailsByNino(nino.value, entityId)
+      AuthStub.authRecordExists(nino)
+      PreferencesStub.errorPendingEmailUpdate(entityId)
+
+      val response = await(wsUrl("/profile/preferences/pending-email")
+        .withHeaders("Accept" -> "application/vnd.hmrc.1.0+json")
+        .put(changeEmail))
+
+      withClue(response.body) {
+        response.status shouldBe 500
+        response.json shouldBe expectedResponse
+      }
     }
   }
 

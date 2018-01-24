@@ -23,6 +23,7 @@ API
 | ```/profile/preferences``` | GET | Returns the user's preferences. [More...](docs/preferences.md)|
 | ```/profile/preferences/paperless-settings/opt-in``` | POST | Sets or updates the user's paperless opt-in preference settings. [More...](docs/paperlessSettingsOptIn.md)|
 | ```/profile/preferences/paperless-settings/opt-out``` | POST | Opts the user out of paperless. [More...](docs/paperlessSettingsOptOut.md)|
+| ```/profile/preferences/pending-email``` | PUT | Updates user preferences with a pending email for paperless. [More...](docs/preferencesPendingEmail.md)|
 | ```/profile/native-app/version-check``` | POST | Confirms that the user's native app installation is valid and should not be prompted to upgrade. [More...](docs/versionCheck.md)|
 
 # Sandbox
