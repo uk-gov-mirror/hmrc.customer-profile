@@ -19,12 +19,14 @@ package uk.gov.hmrc.customerprofile.controllers
 import java.util.UUID
 
 import com.typesafe.config.Config
+import org.apache.http.HttpHeaders
 import org.joda.time.DateTime.parse
 import org.slf4j.Logger
 import play.api.LoggerLike
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import play.mvc.Http.MimeTypes
 import uk.gov.hmrc.circuitbreaker.CircuitBreakerConfig
 import uk.gov.hmrc.customerprofile.config.ServicesCircuitBreaker
 import uk.gov.hmrc.customerprofile.connector._
@@ -43,6 +45,7 @@ import uk.gov.hmrc.play.config.{RunMode, ServicesConfig}
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 
 class TestCitizenDetailsConnector(httpResponse: Future[HttpResponse]) extends CitizenDetailsConnector {
@@ -56,7 +59,7 @@ class TestCitizenDetailsConnector(httpResponse: Future[HttpResponse]) extends Ci
   }
 }
 
-class TestEntityResolverConnector(preferencesStatus: PreferencesStatus, preference:Option[Preference]) extends EntityResolverConnector with ServicesConfig with ServicesCircuitBreaker with play.api.http.Status {
+class TestEntityResolverConnector(preferencesStatus: PreferencesStatus, preference:Option[Preference], entity: Option[Entity] = None) extends EntityResolverConnector with ServicesConfig with ServicesCircuitBreaker with play.api.http.Status {
   this: ServicesCircuitBreaker =>
 
   override protected def circuitBreakerConfig = CircuitBreakerConfig(serviceName = externalServiceName)
@@ -72,6 +75,8 @@ class TestEntityResolverConnector(preferencesStatus: PreferencesStatus, preferen
   override def getPreferences()(implicit headerCarrier: HeaderCarrier, ex : ExecutionContext): Future[Option[Preference]] = {
     Future.successful(preference)
   }
+
+  override def getEntityIdByNino(nino: Nino)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Entity] = Future(entity.get)
 }
 
 class TestAuthConnector(nino: Option[Nino], ex:Option[Exception]=None) extends AuthConnector {
@@ -91,16 +96,32 @@ class TestAuthConnector(nino: Option[Nino], ex:Option[Exception]=None) extends A
   }
 }
 
+class TestPreferencesConnector(httpResponse: HttpResponse) extends PreferencesConnector with ServicesConfig with ServicesCircuitBreaker {
+  override def serviceUrl: String = "http://preferences.service"
+
+  override def http: HttpPut = new HttpPut {
+    override def doPut[A](url: String, body: A)(implicit rds: Writes[A], hc: HeaderCarrier): Future[HttpResponse] = Future(httpResponse)
+
+    override def configuration: Option[Config] = None
+
+    override val hooks: Seq[HttpHook] = Seq.empty
+  }
+
+  override protected val externalServiceName: String = "preferences"
+}
+
 class TestCustomerProfileService(testCDConnector: CitizenDetailsConnector,
                                  testAuthConnector: TestAuthConnector,
                                  testEntityResolver: EntityResolverConnector,
-                                 testAuditConnector: AuditConnector) extends LiveCustomerProfileService {
+                                 testAuditConnector: AuditConnector,
+                                 testPreferencesConnector: PreferencesConnector) extends LiveCustomerProfileService {
 
   override lazy val appName = "TestCustomerProfileService"
   val citizenDetailsConnector = testCDConnector
   val authConnector = testAuthConnector
   val entityResolver = testEntityResolver
   val auditConnector: AuditConnector = testAuditConnector
+  val preferencesConnector: PreferencesConnector = testPreferencesConnector
 }
 
 class TestAccessCheck(testAuthConnector: TestAuthConnector) extends AccountAccessControl {
@@ -124,7 +145,12 @@ trait Setup {
   val weakCredStrength = Json.parse("""{"code":"WEAK_CRED_STRENGTH","message":"Credential Strength on account does not allow access"}""")
   val paperlessRequestNoAccept = FakeRequest().withBody(paperlessJsonBody).withHeaders("Content-Type" -> "application/json")
   val paperlessRequest = FakeRequest().withBody(paperlessJsonBody)
-    .withHeaders("Content-Type" -> "application/json", "Accept" -> "application/vnd.hmrc.1.0+json")
+    .withHeaders(play.api.http.HeaderNames.CONTENT_TYPE → MimeTypes.JSON, play.api.http.HeaderNames.ACCEPT → "application/vnd.hmrc.1.0+json")
+  val changeEmail = Json.obj("email" → "email@new-email.email")
+  val changeEmailRequest = FakeRequest().withBody(changeEmail)
+    .withHeaders(play.api.http.HeaderNames.CONTENT_TYPE → MimeTypes.JSON, play.api.http.HeaderNames.ACCEPT → "application/vnd.hmrc.1.0+json")
+  val changeEmailRequestNoAccept = FakeRequest().withBody(changeEmail)
+    .withHeaders(play.api.http.HeaderNames.CONTENT_TYPE → MimeTypes.JSON)
 
   val nino = Nino("CS700100A")
   val testAccount = Accounts(Some(nino), None, false, false,"102030394AAA")
@@ -160,7 +186,12 @@ trait Setup {
   lazy val missingDataConnector = new TestCitizenDetailsConnector(missingDataHttp200ResponseCid)
 
   lazy val defaultPreference = Some(Preference(true, Some(EmailPreference(EmailAddress("someone@something.com"), EmailPreference.Status.Pending))))
-  lazy val entityConnector = new TestEntityResolverConnector(PreferencesExists, defaultPreference)
+  lazy val defaultEntity = Some(Entity(_id = "3333333333333333333"))
+  lazy val entityConnector = new TestEntityResolverConnector(PreferencesExists, defaultPreference, defaultEntity)
+  lazy val prefererencesConnector = new TestPreferencesConnector(HttpResponse(OK))
+  lazy val conflictPrefererencesConnector = new TestPreferencesConnector(HttpResponse(CONFLICT))
+  lazy val notFoundPrefererencesConnector = new TestPreferencesConnector(HttpResponse(NOT_FOUND))
+  lazy val errorPrefererencesConnector = new TestPreferencesConnector(HttpResponse(INTERNAL_SERVER_ERROR))
   lazy val testAccess = new TestAccessCheck(authConnector)
   lazy val testCompositeAction = new TestAccountAccessControlWithAccept(testAccess)
 
@@ -168,8 +199,11 @@ trait Setup {
     override def auditingConfig: AuditingConfig = AuditingConfig(None, enabled = false)
   }
 
-  lazy val testCustomerProfileService = new TestCustomerProfileService(cdConnector, authConnector, entityConnector, MicroserviceAuditConnectorTest)
-  lazy val missingDataCustomerProfileService = new TestCustomerProfileService(missingDataConnector, authConnector, entityConnector, MicroserviceAuditConnectorTest)
+  lazy val testCustomerProfileService = new TestCustomerProfileService(cdConnector, authConnector, entityConnector, MicroserviceAuditConnectorTest, prefererencesConnector)
+  lazy val missingDataCustomerProfileService = new TestCustomerProfileService(missingDataConnector, authConnector, entityConnector, MicroserviceAuditConnectorTest, prefererencesConnector)
+  lazy val conflictPreferenceCustomerProfileService = new TestCustomerProfileService(cdConnector, authConnector, entityConnector, MicroserviceAuditConnectorTest, conflictPrefererencesConnector)
+  lazy val notFoundPreferenceCustomerProfileService = new TestCustomerProfileService(cdConnector, authConnector, entityConnector, MicroserviceAuditConnectorTest, notFoundPrefererencesConnector)
+  lazy val errorPreferenceCustomerProfileService = new TestCustomerProfileService(cdConnector, authConnector, entityConnector, MicroserviceAuditConnectorTest, errorPrefererencesConnector)
 
   lazy val testSandboxCustomerProfileService = SandboxCustomerProfileService
   lazy val sandboxCompositeAction = AccountAccessControlCheckOff
@@ -242,8 +276,18 @@ trait AccessCheck extends Setup {
 trait PreferenceNotFound extends Setup {
   val controller = new CustomerProfileController {
     val app = "Preference Not Found"
-    val entityConnectorLocal = new TestEntityResolverConnector(PreferencesExists, None)
-    lazy val testCustomerProfileServiceLocal = new TestCustomerProfileService(cdConnector, authConnector, entityConnectorLocal, MicroserviceAuditConnectorTest)
+    val entityConnectorLocal = new TestEntityResolverConnector(PreferencesExists, None, defaultEntity)
+    lazy val testCustomerProfileServiceLocal = new TestCustomerProfileService(cdConnector, authConnector, entityConnectorLocal, MicroserviceAuditConnectorTest, notFoundPrefererencesConnector)
+    override val service: CustomerProfileService = testCustomerProfileServiceLocal
+    override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
+  }
+}
+
+trait PreferenceConflict extends Setup {
+  val controller = new CustomerProfileController {
+    val app = "Preference conflict"
+    val entityConnectorLocal = new TestEntityResolverConnector(PreferencesExists, None, defaultEntity)
+    lazy val testCustomerProfileServiceLocal = new TestCustomerProfileService(cdConnector, authConnector, entityConnectorLocal, MicroserviceAuditConnectorTest, conflictPrefererencesConnector)
     override val service: CustomerProfileService = testCustomerProfileServiceLocal
     override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
   }
@@ -320,7 +364,7 @@ trait SandboxSuccess extends Setup {
 trait SandboxPaperlessCreated extends SandboxSuccess {
   override lazy val entityConnector = new TestEntityResolverConnector(PreferencesCreated, defaultPreference)
 
-  override lazy val testCustomerProfileService = new TestCustomerProfileService(cdConnector, authConnector, entityConnector, MicroserviceAuditConnectorTest)
+  override lazy val testCustomerProfileService = new TestCustomerProfileService(cdConnector, authConnector, entityConnector, MicroserviceAuditConnectorTest, prefererencesConnector)
 
   override val controller = new CustomerProfileController {
     val app = "SandboxPaperlessCreated Customer Profile"
@@ -331,7 +375,7 @@ trait SandboxPaperlessCreated extends SandboxSuccess {
 
 trait SandboxPaperlessFailed extends SandboxPaperlessCreated {
   override lazy val entityConnector = new TestEntityResolverConnector(PreferencesFailure, defaultPreference)
-  override lazy val testCustomerProfileService = new TestCustomerProfileService(cdConnector, authConnector, entityConnector, MicroserviceAuditConnectorTest)
+  override lazy val testCustomerProfileService = new TestCustomerProfileService(cdConnector, authConnector, entityConnector, MicroserviceAuditConnectorTest, prefererencesConnector)
 
   override val controller = new CustomerProfileController {
     val app = "SandboxPaperlessFailed Customer Profile"

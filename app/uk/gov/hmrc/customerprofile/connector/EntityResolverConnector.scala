@@ -20,6 +20,7 @@ import play.api.Logger
 import play.api.http.Status
 import uk.gov.hmrc.customerprofile.config.{ServicesCircuitBreaker, WSHttp}
 import uk.gov.hmrc.customerprofile.domain.{Paperless, PaperlessOptOut, Preference, TermsAccepted}
+import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.config.ServicesConfig
 
@@ -79,6 +80,12 @@ trait EntityResolverConnector extends Status {
         Logger.warn("Failed to apply request to opt-out of paperless settings")
         PreferencesFailure
     }
+
+  def getEntityIdByNino(nino: Nino)(implicit hc: HeaderCarrier, ex : ExecutionContext): Future[Entity] = {
+    withCircuitBreaker {
+      http.GET[Entity](url(s"/entity-resolver/paye/${nino.nino}"))
+    }
+  }
 }
 
 object EntityResolverConnector extends EntityResolverConnector with ServicesConfig with ServicesCircuitBreaker {

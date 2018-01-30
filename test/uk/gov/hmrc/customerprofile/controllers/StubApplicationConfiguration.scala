@@ -19,16 +19,17 @@ package uk.gov.hmrc.customerprofile.controllers
 trait StubApplicationConfiguration {
 
   val config = Map[String, Any](
-    "auditing.enabled" -> false,
-    "microservice.services.datastream.host" -> "host",
-    "microservice.services.datastream.port" -> "1234",
-    "microservice.services.datastream.enabled" -> false,
-    "microservice.services.service-locator.enabled" -> false,
-    "microservice.services.service-locator.host" -> "host",
-    "microservice.services.service-locator.port" -> "2345",
-    "appName" -> "customer-profile",
-    "microservice.services.auth.host" -> "host",
-    "microservice.services.auth.port" -> "3456"
-
+    "auditing.enabled" → false,
+    "microservice.services.datastream.host" → "host",
+    "microservice.services.datastream.port" → "1234",
+    "microservice.services.datastream.enabled" → false,
+    "microservice.services.service-locator.enabled" → false,
+    "microservice.services.service-locator.host" → "host",
+    "microservice.services.service-locator.port" → "2345",
+    "appName" → "customer-profile",
+    "microservice.services.auth.host" → "host",
+    "microservice.services.auth.port" → "3456",
+    "microservice.services.preferences.host" → "host",
+    "micorservice.services.preferences.port" → "3030"
   )
 }
