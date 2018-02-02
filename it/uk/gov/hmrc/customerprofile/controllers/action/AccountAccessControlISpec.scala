@@ -25,6 +25,7 @@ import uk.gov.hmrc.customerprofile.stubs.AuthStub._
 import uk.gov.hmrc.customerprofile.support.BaseISpec
 import uk.gov.hmrc.domain.{Nino, SaUtr}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class AccountAccessControlISpec extends BaseISpec with Eventually  {
@@ -83,13 +84,8 @@ class AccountAccessControlISpec extends BaseISpec with Eventually  {
     "error with unauthorised when account has low CL" in {
       authRecordExists(nino, L50)
 
-      try {
+      intercept[AccountWithLowCL] {
         await(AccountAccessControl.grantAccess(Some(nino)))
-      } catch {
-        case e: AccountWithLowCL =>
-          e.message shouldBe "The user does not have sufficient CL permissions to access this service"
-        case t: Throwable =>
-          fail(s"Unexpected error failure ${t.getClass}")
       }
     }
 
@@ -101,26 +97,16 @@ class AccountAccessControlISpec extends BaseISpec with Eventually  {
     "fail to return authority when no NINO exists" in {
       authRecordExistsWithoutNino
 
-      try {
+      intercept[NinoNotFoundOnAccount] {
         await(AccountAccessControl.grantAccess(Some(nino)))
-      } catch {
-        case e: NinoNotFoundOnAccount =>
-          e.message shouldBe "The user must have a National Insurance Number"
-        case t: Throwable =>
-          fail("Unexpected error failure with exception " + t)
       }
     }
 
     "fail to return authority when auth NINO does not match request NINO" in {
       authRecordExists(nino, L200)
 
-      try {
+      intercept[FailToMatchTaxIdOnAuth] {
         await(AccountAccessControl.grantAccess(Some(Nino("CS333700A"))))
-      } catch {
-        case e: FailToMatchTaxIdOnAuth =>
-          e.message shouldBe "The nino in the URL failed to match auth!"
-        case t: Throwable =>
-          fail("Unexpected error failure with exception " + t)
       }
     }
   }
