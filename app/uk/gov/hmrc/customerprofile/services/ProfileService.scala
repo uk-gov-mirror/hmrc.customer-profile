@@ -23,15 +23,15 @@ import uk.gov.hmrc.api.sandbox.FileResource
 import uk.gov.hmrc.api.service.Auditor
 import uk.gov.hmrc.customerprofile.config.MicroserviceAuditConnector
 import uk.gov.hmrc.customerprofile.connector._
+import uk.gov.hmrc.customerprofile.controllers.action.{AccountAccessControl, NinoNotFoundOnAccount}
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status
 import uk.gov.hmrc.customerprofile.domain._
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.emailaddress.EmailAddress
-import uk.gov.hmrc.http.{HeaderCarrier}
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import scala.concurrent.{ExecutionContext, Future}
-
 
 trait CustomerProfileService {
 
@@ -50,8 +50,7 @@ trait CustomerProfileService {
 
 
 trait LiveCustomerProfileService extends CustomerProfileService with Auditor {
-
-  def authConnector: AuthConnector
+  val accountAccessControl: AccountAccessControl
 
   def citizenDetailsConnector: CitizenDetailsConnector
 
@@ -61,7 +60,7 @@ trait LiveCustomerProfileService extends CustomerProfileService with Auditor {
 
   def getAccounts()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Accounts] =
     withAudit("getAccounts", Map.empty) {
-      authConnector.accounts()
+      accountAccessControl.accounts
     }
 
   def getPersonalDetails(nino: Nino)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PersonDetails] =
@@ -134,8 +133,6 @@ object SandboxCustomerProfileService extends CustomerProfileService with FileRes
 }
 
 object LiveCustomerProfileService extends LiveCustomerProfileService {
-  val authConnector: AuthConnector = AuthConnector
-
   val citizenDetailsConnector: CitizenDetailsConnector = CitizenDetailsConnector
 
   val entityResolver: EntityResolverConnector = EntityResolverConnector
@@ -143,4 +140,6 @@ object LiveCustomerProfileService extends LiveCustomerProfileService {
   val auditConnector: AuditConnector = MicroserviceAuditConnector
 
   val preferencesConnector: PreferencesConnector = PreferencesConnector
+
+  override val accountAccessControl: AccountAccessControl = AccountAccessControl
 }

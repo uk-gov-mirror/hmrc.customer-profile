@@ -53,13 +53,6 @@ class TestCustomerProfileGetAccountSpec extends UnitSpec with ScalaFutures with 
       contentAsJson(result) shouldBe Json.toJson(Accounts(Some(nino), None, true, false, "102030394AAA"))
     }
 
-    "return 200 result with json status detailing weak cred strength on authority" in new AuthWithWeakCreds {
-      val result = await(controller.getAccounts()(emptyRequestWithHeader))
-
-      status(result) shouldBe 200
-      contentAsJson(result) shouldBe Json.toJson(Accounts(Some(nino), None, false, true, "102030394AAA"))
-    }
-
     "return status code 406 when the headers are invalid" in new Success {
       val result = await(controller.getAccounts()(emptyRequest))
 
@@ -128,10 +121,6 @@ class TestCustomerProfileGetPersonalDetailsSpec extends UnitSpec with ScalaFutur
       testLowCL(await(controller.getPersonalDetails(nino)(emptyRequestWithHeader)))
     }
 
-    "return 401 result with json status detailing weak credStrength on authority" in new AuthWithWeakCreds {
-      testWeakCredStrength(await(controller.getPersonalDetails(nino)(emptyRequestWithHeader)))
-    }
-
     "return status code 406 when the headers are invalid" in new Success {
       val result = await(controller.getPersonalDetails(nino)(emptyRequest))
 
@@ -198,10 +187,6 @@ class TestCustomerProfilePreferencesSpec extends UnitSpec with ScalaFutures with
       testLowCL(await(controller.getPreferences()(emptyRequestWithHeader)))
     }
 
-    "return 401 result with json status detailing weak credStrength on authority" in new AuthWithWeakCreds {
-      testWeakCredStrength(await(controller.getPreferences()(emptyRequestWithHeader)))
-    }
-
     "return status code 406 when the headers are invalid" in new Success {
       val result = await(controller.getPreferences()(emptyRequest))
 
@@ -264,10 +249,6 @@ class TestCustomerProfilePaperlessSettingsSpec extends UnitSpec with ScalaFuture
       testLowCL(await(controller.paperlessSettingsOptIn()(paperlessRequest)))
     }
 
-    "return 401 result with json status detailing weak credStrength on authority" in new AuthWithWeakCreds {
-      testWeakCredStrength(await(controller.paperlessSettingsOptIn()(paperlessRequest)))
-    }
-
     "fail to update paperless settings and 500 response code" in new SandboxPaperlessFailed {
       val result = await(controller.paperlessSettingsOptIn()(paperlessRequest))
 
@@ -324,10 +305,6 @@ class TestCustomerProfileSetPendingEmailPreferenceSpec extends UnitSpec with Sca
 
     "return 401 result with json status detailing low CL on authority" in new AuthWithLowCL {
       testLowCL(await(controller.setPreferencesPendingEmail()(changeEmailRequest)))
-    }
-
-    "return 401 result with json status detailing weak credStrength on authority" in new AuthWithWeakCreds {
-      testWeakCredStrength(await(controller.setPreferencesPendingEmail()(changeEmailRequest)))
     }
 
     "return status code 406 when the headers are invalid" in new Success {
