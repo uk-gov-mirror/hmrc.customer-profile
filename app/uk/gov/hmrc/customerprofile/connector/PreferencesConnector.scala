@@ -27,11 +27,6 @@ import uk.gov.hmrc.play.config.ServicesConfig
 
 import scala.concurrent.{ExecutionContext, Future}
 
-sealed trait EmailUpdateStatus
-case object EmailUpdateOk extends EmailUpdateStatus
-case object EmailUpdateFailed extends EmailUpdateStatus
-case object EmailNotExist extends EmailUpdateStatus
-case object NoPreferenceExists extends EmailUpdateStatus
 
 case class Entity(_id: String)
 
@@ -46,7 +41,7 @@ trait PreferencesConnector {
   def http : HttpPut
   def url(path: String) : String = s"$serviceUrl$path"
 
-  def updatePendingEmail(changeEmail: ChangeEmail, entityId: String)(implicit hc: HeaderCarrier, ex : ExecutionContext): Future[EmailUpdateStatus] = {
+  def updatePendingEmail(changeEmail: ChangeEmail, entityId: String)(implicit hc: HeaderCarrier, ex : ExecutionContext): Future[PreferencesStatus] = {
     http.PUT(url(s"/preferences/${entityId}/pending-email"), changeEmail).map(_ ⇒ EmailUpdateOk).recoverWith {
       case e: NotFoundException ⇒ log(e.message, entityId); Future(NoPreferenceExists)
       case e: Upstream4xxResponse ⇒ {

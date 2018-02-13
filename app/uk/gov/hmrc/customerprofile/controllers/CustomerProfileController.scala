@@ -22,7 +22,7 @@ import play.api.{Logger, LoggerLike, mvc}
 import uk.gov.hmrc.api.controllers._
 import uk.gov.hmrc.customerprofile.connector._
 import uk.gov.hmrc.customerprofile.controllers.action.{AccountAccessControlCheckOff, AccountAccessControlWithHeaderCheck}
-import uk.gov.hmrc.customerprofile.domain.{ChangeEmail, Paperless}
+import uk.gov.hmrc.customerprofile.domain.Paperless
 import uk.gov.hmrc.customerprofile.services.{CustomerProfileService, LiveCustomerProfileService, SandboxCustomerProfileService}
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{HeaderCarrier, NotFoundException, Upstream4xxResponse}
@@ -96,20 +96,20 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
   }
 
   final def paperlessSettingsOptIn(journeyId: Option[String] = None) = accessControl.validateAccept(acceptHeaderValidationRules).async(BodyParsers.parse.json) {
-
-    implicit request =>
+    implicit request ⇒
       implicit val hc = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
-
       request.body.validate[Paperless].fold(
-        errors => {
+        errors ⇒ {
           Logger.warn("Received error with service getPaperlessSettings: " + errors)
           Future.successful(BadRequest(Json.toJson(ErrorGenericBadRequest(errors))))
         },
         settings => {
           errorWrapper(service.paperlessSettings(settings).map {
-            case PreferencesExists => Ok
-            case PreferencesCreated => Created
-            case _ => InternalServerError(Json.toJson(PreferencesSettingsError))
+            case PreferencesExists | EmailUpdateOk ⇒ Ok
+            case PreferencesCreated ⇒ Created
+            case EmailNotExist ⇒ Conflict(Json.toJson(ErrorPreferenceConflict))
+            case NoPreferenceExists ⇒ NotFound(Json.toJson(ErrorNotFound))
+            case _ ⇒ InternalServerError(Json.toJson(PreferencesSettingsError))
           })
         }
       )
@@ -126,25 +126,6 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
       })
   }
 
-  final def setPreferencesPendingEmail(journeyId: Option[String] = None) = accessControl.validateAccept(acceptHeaderValidationRules).async(BodyParsers.parse.json) {
-    implicit request ⇒ {
-      implicit val hc = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
-      request.body.validate[ChangeEmail].fold(
-        errors => {
-          Logger.warn("Received error with service setPreferencesPendingEmail: " + errors)
-          Future.successful(BadRequest(Json.toJson(ErrorGenericBadRequest(errors))))
-        },
-        change => {
-          errorWrapper(service.setPreferencesPendingEmail(change).map {
-            case EmailUpdateOk ⇒ Ok
-            case EmailNotExist ⇒ Conflict(Json.toJson(ErrorPreferenceConflict))
-            case NoPreferenceExists ⇒ NotFound(Json.toJson(ErrorNotFound))
-            case _ ⇒ InternalServerError(Json.toJson(PreferencesSettingsError))
-          })
-        }
-      )
-    }
-  }
 }
 
 object SandboxCustomerProfileController extends CustomerProfileController {

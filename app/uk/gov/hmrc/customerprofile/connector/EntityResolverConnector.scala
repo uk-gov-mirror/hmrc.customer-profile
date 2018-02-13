@@ -26,7 +26,6 @@ import uk.gov.hmrc.play.config.ServicesConfig
 
 import scala.concurrent.{ExecutionContext, Future}
 
-
 sealed trait PreferencesStatus
 
 case object PreferencesExists extends PreferencesStatus
@@ -36,6 +35,15 @@ case object PreferencesCreated extends PreferencesStatus
 case object PreferencesDoesNotExist extends PreferencesStatus
 
 case object PreferencesFailure extends PreferencesStatus
+
+case object EmailUpdateOk extends PreferencesStatus
+
+case object EmailUpdateFailed extends PreferencesStatus
+
+case object EmailNotExist extends PreferencesStatus
+
+case object NoPreferenceExists extends PreferencesStatus
+
 
 trait EntityResolverConnector extends Status {
   this: ServicesCircuitBreaker =>
