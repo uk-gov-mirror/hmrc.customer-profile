@@ -21,7 +21,7 @@ import play.api.mvc.{BodyParsers, Result}
 import play.api.{Logger, LoggerLike, mvc}
 import uk.gov.hmrc.api.controllers._
 import uk.gov.hmrc.customerprofile.connector._
-import uk.gov.hmrc.customerprofile.controllers.action.{AccountAccessControlCheckOff, AccountAccessControlWithHeaderCheck}
+import uk.gov.hmrc.customerprofile.controllers.action.{AccountAccessControlCheckOff, AccountAccessControlWithHeaderCheck, NinoNotFoundOnAccount}
 import uk.gov.hmrc.customerprofile.domain.Paperless
 import uk.gov.hmrc.customerprofile.services.{CustomerProfileService, LiveCustomerProfileService, SandboxCustomerProfileService}
 import uk.gov.hmrc.domain.Nino

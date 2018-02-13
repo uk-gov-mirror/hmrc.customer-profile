@@ -23,6 +23,7 @@ import uk.gov.hmrc.api.sandbox.FileResource
 import uk.gov.hmrc.api.service.Auditor
 import uk.gov.hmrc.customerprofile.config.MicroserviceAuditConnector
 import uk.gov.hmrc.customerprofile.connector._
+import uk.gov.hmrc.customerprofile.controllers.action.{AccountAccessControl, NinoNotFoundOnAccount}
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status
 import uk.gov.hmrc.customerprofile.domain._
 import uk.gov.hmrc.domain.Nino
@@ -47,8 +48,7 @@ trait CustomerProfileService {
 
 
 trait LiveCustomerProfileService extends CustomerProfileService with Auditor {
-
-  def authConnector: AuthConnector
+  val accountAccessControl: AccountAccessControl
 
   def citizenDetailsConnector: CitizenDetailsConnector
 
@@ -58,7 +58,7 @@ trait LiveCustomerProfileService extends CustomerProfileService with Auditor {
 
   def getAccounts()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Accounts] =
     withAudit("getAccounts", Map.empty) {
-      authConnector.accounts()
+      accountAccessControl.accounts
     }
 
   def getPersonalDetails(nino: Nino)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PersonDetails] =
@@ -135,8 +135,6 @@ object SandboxCustomerProfileService extends CustomerProfileService with FileRes
 }
 
 object LiveCustomerProfileService extends LiveCustomerProfileService {
-  val authConnector: AuthConnector = AuthConnector
-
   val citizenDetailsConnector: CitizenDetailsConnector = CitizenDetailsConnector
 
   val entityResolver: EntityResolverConnector = EntityResolverConnector
@@ -144,4 +142,6 @@ object LiveCustomerProfileService extends LiveCustomerProfileService {
   val auditConnector: AuditConnector = MicroserviceAuditConnector
 
   val preferencesConnector: PreferencesConnector = PreferencesConnector
+
+  override val accountAccessControl: AccountAccessControl = AccountAccessControl
 }
