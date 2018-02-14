@@ -43,6 +43,9 @@ Paperless Settings
 
   * **Code:** 406 NOT ACCEPTABLE <br />
     **Content:** `{"code":"ACCEPT_HEADER_INVALID","message":"The accept header is missing or invalid"}`
+    
+  * **Code:** 409 CONFLICT <br />
+    **Content:** `{"code":"CONFLICT","message":"No existing verified or pending data"}`
 
   * **Code:** 500 INTERNAL_SERVER_ERROR <br />
 

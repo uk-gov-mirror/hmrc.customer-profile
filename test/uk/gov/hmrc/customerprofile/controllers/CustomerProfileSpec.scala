@@ -223,22 +223,35 @@ class TestCustomerProfilePaperlessSettingsSpec extends UnitSpec with ScalaFuture
 
   "paperlessSettings live" should {
 
-    "update paperless settings and 200 response code" in new Success {
+    "opt-in paperless settings returns 201 response code when opting in" in new PaperlessCreated {
       val result = await(controller.paperlessSettingsOptIn()(paperlessRequest))
+      status(result) shouldBe 201
+    }
 
+    "opt-in paperless settings with journeyId returns 201 response code when opting in" in new PaperlessCreated {
+      val result = await(controller.paperlessSettingsOptIn()(paperlessRequest))
+      status(result) shouldBe 201
+    }
+
+    "opt-in paperless settings return 200 response when already opted in and preferences are successfully updated" in new Success {
+      val result = await(controller.paperlessSettingsOptIn()(paperlessRequest))
       status(result) shouldBe 200
     }
 
-    "update paperless settings and 200 response code with JourneyId" in new Success {
+    "opt-in paperless settings with journeyId return 200 response when already opted in and preferences are successfully updated" in new Success {
       val result = await(controller.paperlessSettingsOptIn(Some(journeyId))(paperlessRequest))
 
       status(result) shouldBe 200
     }
 
-    "update paperless settings and 201 response code" in new SandboxPaperlessCreated {
+    "return status code 404 when there are no preferences found to update" in new PreferenceNotFound {
       val result = await(controller.paperlessSettingsOptIn()(paperlessRequest))
+      status(result) shouldBe 404
+    }
 
-      status(result) shouldBe 201
+    "return status code 409 when preference has no existing verified or pending email" in new PreferenceConflict {
+      val result = await(controller.paperlessSettingsOptIn()(paperlessRequest))
+      status(result) shouldBe 409
     }
 
     "return unauthorized when authority record does not contain a NINO" in new AuthWithoutNino {
@@ -284,62 +297,3 @@ class TestCustomerProfilePaperlessSettingsSpec extends UnitSpec with ScalaFuture
   }
 
 }
-
-class TestCustomerProfileSetPendingEmailPreferenceSpec extends UnitSpec with ScalaFutures with StubApplicationConfiguration {
-
-  "set pending-email live" should {
-
-    "setting pending email returns a 200 response code" in new Success {
-      val result = await(controller.setPreferencesPendingEmail()(changeEmailRequest))
-      status(result) shouldBe 200
-    }
-
-    "setting pending email with journeyId returns a 200 response cod" in new Success {
-      val result = await(controller.setPreferencesPendingEmail(Some(journeyId))(changeEmailRequest))
-      status(result) shouldBe 200
-    }
-
-    "return unauthorized when authority record does not contain a NINO" in new AuthWithoutNino {
-      testNoNINO(await(controller.setPreferencesPendingEmail()(changeEmailRequest)))
-    }
-
-    "return 401 result with json status detailing low CL on authority" in new AuthWithLowCL {
-      testLowCL(await(controller.setPreferencesPendingEmail()(changeEmailRequest)))
-    }
-
-    "return status code 406 when the headers are invalid" in new Success {
-      val result = await(controller.setPreferencesPendingEmail()(changeEmailRequestNoAccept))
-      status(result) shouldBe 406
-    }
-
-    "return status code 404 when there are no preferences found to update" in new PreferenceNotFound {
-      val result = await(controller.setPreferencesPendingEmail()(changeEmailRequest))
-      status(result) shouldBe 404
-    }
-
-    "return status code 409 when preference has no existing verified or pending email" in new PreferenceConflict {
-      val result = await(controller.setPreferencesPendingEmail()(changeEmailRequest))
-      status(result) shouldBe 409
-    }
-  }
-
-  "paperlessSettings sandbox " should {
-
-    "update paperless settings and 200 response code" in new SandboxSuccess {
-      val result = await(controller.setPreferencesPendingEmail()(changeEmailRequest))
-      status(result) shouldBe 200
-    }
-
-    "update paperless settings and 200 response code with journeyId" in new SandboxSuccess {
-      val result = await(controller.setPreferencesPendingEmail(Some(journeyId))(changeEmailRequest))
-      status(result) shouldBe 200
-    }
-
-    "return status code 406 when the headers are invalid" in new SandboxSuccess {
-      val result = await(controller.setPreferencesPendingEmail()(changeEmailRequestNoAccept))
-      status(result) shouldBe 406
-    }
-  }
-
-}
-

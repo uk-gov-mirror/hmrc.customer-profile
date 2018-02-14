@@ -177,10 +177,10 @@ trait Setup {
   lazy val defaultPreference = Some(Preference(true, Some(EmailPreference(EmailAddress("someone@something.com"), Pending))))
   lazy val defaultEntity = Some(Entity(_id = "3333333333333333333"))
   lazy val entityConnector = new TestEntityResolverConnector(PreferencesExists, defaultPreference, defaultEntity)
-  lazy val prefererencesConnector = new TestPreferencesConnector(HttpResponse(OK))
-  lazy val conflictPrefererencesConnector = new TestPreferencesConnector(HttpResponse(CONFLICT))
-  lazy val notFoundPrefererencesConnector = new TestPreferencesConnector(HttpResponse(NOT_FOUND))
-  lazy val errorPrefererencesConnector = new TestPreferencesConnector(HttpResponse(INTERNAL_SERVER_ERROR))
+  lazy val preferencesConnector = new TestPreferencesConnector(HttpResponse(OK))
+  lazy val conflictPreferencesConnector = new TestPreferencesConnector(HttpResponse(CONFLICT))
+  lazy val notFoundPreferencesConnector = new TestPreferencesConnector(HttpResponse(NOT_FOUND))
+  lazy val errorPreferencesConnector = new TestPreferencesConnector(HttpResponse(INTERNAL_SERVER_ERROR))
   lazy val testAccess = new TestAccountAccessControl(Some(nino))
   lazy val testCompositeAction = new TestAccountAccessControlWithAccept(testAccess)
 
@@ -189,20 +189,21 @@ trait Setup {
   }
 
   lazy val testCustomerProfileService = new TestCustomerProfileService(
-    cdConnector, testAccess, entityConnector, MicroserviceAuditConnectorTest, prefererencesConnector)
+    cdConnector, testAccess, entityConnector, MicroserviceAuditConnectorTest, preferencesConnector)
   lazy val missingDataCustomerProfileService = new TestCustomerProfileService(
-    missingDataConnector, testAccess, entityConnector, MicroserviceAuditConnectorTest, prefererencesConnector)
+    missingDataConnector, testAccess, entityConnector, MicroserviceAuditConnectorTest, preferencesConnector)
   lazy val conflictPreferenceCustomerProfileService = new TestCustomerProfileService(
-    cdConnector, testAccess, entityConnector, MicroserviceAuditConnectorTest, conflictPrefererencesConnector)
+    cdConnector, testAccess, entityConnector, MicroserviceAuditConnectorTest, conflictPreferencesConnector)
   lazy val notFoundPreferenceCustomerProfileService = new TestCustomerProfileService(
-    cdConnector, testAccess, entityConnector, MicroserviceAuditConnectorTest, notFoundPrefererencesConnector)
+    cdConnector, testAccess, entityConnector, MicroserviceAuditConnectorTest, notFoundPreferencesConnector)
   lazy val errorPreferenceCustomerProfileService = new TestCustomerProfileService(
-    cdConnector, testAccess, entityConnector, MicroserviceAuditConnectorTest, errorPrefererencesConnector)
+    cdConnector, testAccess, entityConnector, MicroserviceAuditConnectorTest, errorPreferencesConnector)
 
   lazy val testSandboxCustomerProfileService = SandboxCustomerProfileService
   lazy val sandboxCompositeAction = AccountAccessControlCheckOff
 
   def upgradeService(status:Boolean) = new TestUpgradeRequiredCheckerService(status)
+  def testPreferencesConnector(status: Int) = new TestPreferencesConnector(HttpResponse(status))
 
   class TestUpgradeRequiredCheckerService(state:Boolean) extends UpgradeRequiredCheckerService {
     override def upgradeRequired(deviceVersion: DeviceVersion)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Boolean] = Future.successful(state)
@@ -243,6 +244,15 @@ trait Success extends Setup {
   }
 }
 
+trait PaperlessCreated extends Setup {
+  val controller = new CustomerProfileController {
+    val app = "Success Customer Profile"
+    override val service: CustomerProfileService = new TestCustomerProfileService(cdConnector, testAccess,
+      new TestEntityResolverConnector(PreferencesCreated, Some(Preference(false)), defaultEntity), MicroserviceAuditConnectorTest, preferencesConnector)
+    override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
+  }
+}
+
 trait MissingDataSuccess extends Setup {
   val stubbedLogger = new LoggerLikeStub()
 
@@ -271,7 +281,7 @@ trait PreferenceNotFound extends Setup {
     val app = "Preference Not Found"
     val entityConnectorLocal = new TestEntityResolverConnector(PreferencesExists, None, defaultEntity)
     lazy val testCustomerProfileServiceLocal = new TestCustomerProfileService(
-      cdConnector, testAccess, entityConnectorLocal, MicroserviceAuditConnectorTest, notFoundPrefererencesConnector)
+      cdConnector, testAccess, entityConnectorLocal, MicroserviceAuditConnectorTest, notFoundPreferencesConnector)
     override val service: CustomerProfileService = testCustomerProfileServiceLocal
     override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
   }
@@ -280,9 +290,9 @@ trait PreferenceNotFound extends Setup {
 trait PreferenceConflict extends Setup {
   val controller = new CustomerProfileController {
     val app = "Preference conflict"
-    val entityConnectorLocal = new TestEntityResolverConnector(PreferencesExists, None, defaultEntity)
+    val entityConnectorLocal = new TestEntityResolverConnector(PreferencesExists, defaultPreference, defaultEntity)
     lazy val testCustomerProfileServiceLocal = new TestCustomerProfileService(
-      cdConnector, testAccess, entityConnectorLocal, MicroserviceAuditConnectorTest, conflictPrefererencesConnector)
+      cdConnector, testAccess, entityConnectorLocal, MicroserviceAuditConnectorTest, conflictPreferencesConnector)
     override val service: CustomerProfileService = testCustomerProfileServiceLocal
     override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
   }
@@ -338,7 +348,7 @@ trait SandboxPaperlessCreated extends SandboxSuccess {
   override lazy val entityConnector = new TestEntityResolverConnector(PreferencesCreated, defaultPreference)
 
   override lazy val testCustomerProfileService = new TestCustomerProfileService(
-    cdConnector, testAccess, entityConnector, MicroserviceAuditConnectorTest, prefererencesConnector)
+    cdConnector, testAccess, entityConnector, MicroserviceAuditConnectorTest, preferencesConnector)
 
   override val controller = new CustomerProfileController {
     val app = "SandboxPaperlessCreated Customer Profile"
@@ -350,7 +360,7 @@ trait SandboxPaperlessCreated extends SandboxSuccess {
 trait SandboxPaperlessFailed extends SandboxPaperlessCreated {
   override lazy val entityConnector = new TestEntityResolverConnector(PreferencesFailure, defaultPreference)
   override lazy val testCustomerProfileService = new TestCustomerProfileService(
-    cdConnector, testAccess, entityConnector, MicroserviceAuditConnectorTest, prefererencesConnector)
+    cdConnector, testAccess, entityConnector, MicroserviceAuditConnectorTest, preferencesConnector)
 
   override val controller = new CustomerProfileController {
     val app = "SandboxPaperlessFailed Customer Profile"

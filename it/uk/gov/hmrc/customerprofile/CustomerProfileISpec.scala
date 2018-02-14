@@ -19,15 +19,15 @@ package uk.gov.hmrc.customerprofile
 import java.io.InputStream
 
 import org.scalatest.concurrent.Eventually
-import play.api.libs.json.JsValue
-import play.api.libs.json.Json.{parse, toJson}
-import uk.gov.hmrc.customerprofile.domain.ChangeEmail
+import play.api.libs.json.{JsValue, Json}
+import uk.gov.hmrc.customerprofile.domain.{ChangeEmail, Paperless, TermsAccepted}
 import uk.gov.hmrc.customerprofile.stubs.AuthStub._
 import uk.gov.hmrc.customerprofile.stubs.CitizenDetailsStub.{designatoryDetailsForNinoAre, designatoryDetailsWillReturnErrorResponse, npsDataIsLockedDueToMciFlag}
-import uk.gov.hmrc.customerprofile.stubs.EntityResolverStub.respondWithEntityDetailsByNino
+import uk.gov.hmrc.customerprofile.stubs.EntityResolverStub._
 import uk.gov.hmrc.customerprofile.stubs.PreferencesStub.{conflictPendingEmailUpdate, errorPendingEmailUpdate, notFoundPendingEmailUpdate, successfulPendingEmailUpdate}
 import uk.gov.hmrc.customerprofile.support.BaseISpec
 import uk.gov.hmrc.domain.Nino
+import uk.gov.hmrc.emailaddress.EmailAddress
 
 import scala.io.Source.fromInputStream
 
@@ -60,7 +60,7 @@ class CustomerProfileISpec extends BaseISpec with Eventually {
       withClue(response.body) {
         response.status shouldBe 423
       }
-      response.json shouldBe parse("""{"code":"MANUAL_CORRESPONDENCE_IND","message":"Data cannot be disclosed to the user because MCI flag is set in NPS"}""")
+      response.json shouldBe Json.parse("""{"code":"MANUAL_CORRESPONDENCE_IND","message":"Data cannot be disclosed to the user because MCI flag is set in NPS"}""")
     }
 
     "return 500 response status code when citizen-details returns 500 response status code." in {
@@ -75,7 +75,7 @@ class CustomerProfileISpec extends BaseISpec with Eventually {
       withClue(response.body) {
         response.status shouldBe 500
       }
-      response.json shouldBe parse("""{"code":"INTERNAL_SERVER_ERROR","message":"Internal server error"}""")
+      response.json shouldBe Json.parse("""{"code":"INTERNAL_SERVER_ERROR","message":"Internal server error"}""")
     }
 
     "return 404 response status code when citizen-details returns 404 response status code." in {
@@ -90,23 +90,43 @@ class CustomerProfileISpec extends BaseISpec with Eventually {
       withClue(response.body) {
         response.status shouldBe 404
       }
-      response.json shouldBe parse("""{"code":"NOT_FOUND","message":"Resource was not found"}""")
+      response.json shouldBe Json.parse("""{"code":"NOT_FOUND","message":"Resource was not found"}""")
     }
   }
 
-  "PUT /profile/preferences/pending-email" should {
-    "return a 200 response when a pending email preference is successfully added" in {
+  "PUT /profile/paperless-settings/opt-in" should {
+    "return a 200 response when successfully opting into paperless settings" in {
       val nino = Nino("AA000006C")
       val entityId = "1098561938451038465138465"
-      val changeEmail = toJson[ChangeEmail](ChangeEmail(email = "new-email@new-email.new.email"))
+      val paperless = Json.toJson(Paperless(generic = TermsAccepted(true), email = EmailAddress("new-email@new-email.new.email")))
       respondWithEntityDetailsByNino(nino.value, entityId)
+      respondPreferencesNoPaperlessSet()
+      authRecordExists(nino)
+      successPaperlessSettingsOptIn
+      accountsFound(nino)
+
+      val response = await(wsUrl("/profile/preferences/paperless-settings/opt-in")
+        .withHeaders("Accept" -> "application/vnd.hmrc.1.0+json")
+        .post(paperless))
+
+      withClue(response.body) {
+        response.status shouldBe 200
+      }
+    }
+
+    "return a 200 response when a pending email preference is successfully updated" in {
+      val nino = Nino("AA000006C")
+      val entityId = "1098561938451038465138465"
+      val paperless = Json.toJson(Paperless(generic = TermsAccepted(true), email = EmailAddress("new-email@new-email.new.email")))
+      respondWithEntityDetailsByNino(nino.value, entityId)
+      respondPreferencesWithPaperlessOptedIn()
       authRecordExists(nino)
       successfulPendingEmailUpdate(entityId)
       accountsFound(nino)
 
-      val response = await(wsUrl("/profile/preferences/pending-email")
+      val response = await(wsUrl("/profile/preferences/paperless-settings/opt-in")
         .withHeaders("Accept" -> "application/vnd.hmrc.1.0+json")
-        .put(changeEmail))
+        .post(paperless))
 
       withClue(response.body) {
         response.status shouldBe 200
@@ -116,16 +136,17 @@ class CustomerProfileISpec extends BaseISpec with Eventually {
     "return a Conflict response when preferences has no existing verified or pending email" in {
       val nino = Nino("AA000006C")
       val entityId = "1098561938451038465138465"
-      val changeEmail = toJson[ChangeEmail](ChangeEmail(email = "new-email@new-email.new.email"))
-      val expectedResponse = parse("""{"code":"CONFLICT","message":"No existing verified or pending data"}""")
+      val paperless = Json.toJson(Paperless(generic = TermsAccepted(true), email = EmailAddress("new-email@new-email.new.email")))
+      val expectedResponse = Json.parse("""{"code":"CONFLICT","message":"No existing verified or pending data"}""")
       respondWithEntityDetailsByNino(nino.value, entityId)
       authRecordExists(nino)
+      respondPreferencesWithBouncedEmail()
       conflictPendingEmailUpdate(entityId)
       accountsFound(nino)
 
-      val response = await(wsUrl("/profile/preferences/pending-email")
+      val response = await(wsUrl("/profile/preferences/paperless-settings/opt-in")
         .withHeaders("Accept" -> "application/vnd.hmrc.1.0+json")
-        .put(changeEmail))
+        .post(paperless))
 
       withClue(response.body) {
         response.status shouldBe 409
@@ -136,15 +157,15 @@ class CustomerProfileISpec extends BaseISpec with Eventually {
     "return a Not Found response when unable to find a preference to update for an entity" in {
       val nino = Nino("AA000006C")
       val entityId = "1098561938451038465138465"
-      val changeEmail = toJson[ChangeEmail](ChangeEmail(email = "new-email@new-email.new.email"))
-      val expectedResponse = parse("""{"code":"NOT_FOUND","message":"Resource was not found"}""")
+      val paperless = Json.toJson(Paperless(generic = TermsAccepted(true), email = EmailAddress("new-email@new-email.new.email")))
+      val expectedResponse = Json.parse("""{"code":"NOT_FOUND","message":"Resource was not found"}""")
       respondWithEntityDetailsByNino(nino.value, entityId)
       authRecordExists(nino)
-      notFoundPendingEmailUpdate(entityId)
+      respondNoPreferences()
 
-      val response = await(wsUrl("/profile/preferences/pending-email")
+      val response = await(wsUrl("/profile/preferences/paperless-settings/opt-in")
         .withHeaders("Accept" -> "application/vnd.hmrc.1.0+json")
-        .put(changeEmail))
+        .post(paperless))
 
       withClue(response.body) {
         response.status shouldBe 404
@@ -155,16 +176,17 @@ class CustomerProfileISpec extends BaseISpec with Eventually {
     "return a Internal Server Error response when unable update pending email preference for an entity" in {
       val nino = Nino("AA000006C")
       val entityId = "1098561938451038465138465"
-      val changeEmail = toJson[ChangeEmail](ChangeEmail(email = "new-email@new-email.new.email"))
-      val expectedResponse = parse("""{"code":"PREFERENCE_SETTINGS_ERROR","message":"Failed to set preferences"}""")
+      val paperless = Json.toJson(Paperless(generic = TermsAccepted(true), email = EmailAddress("new-email@new-email.new.email")))
+      val expectedResponse = Json.parse("""{"code":"PREFERENCE_SETTINGS_ERROR","message":"Failed to set preferences"}""")
       respondWithEntityDetailsByNino(nino.value, entityId)
       authRecordExists(nino)
+      respondPreferencesWithPaperlessOptedIn()
       errorPendingEmailUpdate(entityId)
       accountsFound(nino)
 
-      val response = await(wsUrl("/profile/preferences/pending-email")
+      val response = await(wsUrl("/profile/preferences/paperless-settings/opt-in")
         .withHeaders("Accept" -> "application/vnd.hmrc.1.0+json")
-        .put(changeEmail))
+        .post(paperless))
 
       withClue(response.body) {
         response.status shouldBe 500
@@ -183,7 +205,7 @@ class CustomerProfileISpec extends BaseISpec with Eventually {
 
   private def resourceAsJsValue(resourcePath: String): Option[JsValue] =
     withResourceStream(resourcePath) { is =>
-      parse(is)
+      Json.parse(is)
     }
 
   private def getResourceAsJsValue(resourcePath: String): JsValue =

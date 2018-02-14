@@ -44,8 +44,6 @@ trait CustomerProfileService {
   def paperlessSettingsOptOut()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus]
 
   def getPreferences()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Option[Preference]]
-
-  def setPreferencesPendingEmail(changeEmail: ChangeEmail)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[EmailUpdateStatus]
 }
 
 
@@ -70,7 +68,15 @@ trait LiveCustomerProfileService extends CustomerProfileService with Auditor {
 
   def paperlessSettings(settings: Paperless)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] =
     withAudit("paperlessSettings", Map("accepted" -> settings.generic.accepted.toString)) {
-      entityResolver.paperlessSettings(settings)
+      val noPreferenceExists: Future[PreferencesStatus] = Future.successful(NoPreferenceExists)
+      for {
+        preferences ← entityResolver.getPreferences()
+        status ← preferences.fold(noPreferenceExists) {
+          preference ⇒
+            if (preference.digital) setPreferencesPendingEmail(ChangeEmail(settings.email.value))
+            else entityResolver.paperlessSettings(settings)
+        }
+      } yield status
     }
 
   def paperlessSettingsOptOut()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] =
@@ -83,7 +89,7 @@ trait LiveCustomerProfileService extends CustomerProfileService with Auditor {
       entityResolver.getPreferences()
     }
 
-  def setPreferencesPendingEmail(changeEmail: ChangeEmail)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[EmailUpdateStatus] =
+  private def setPreferencesPendingEmail(changeEmail: ChangeEmail)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] =
     withAudit("updatePendingEmailPreference", Map("email" → changeEmail.email)) {
       for{
         account   ← getAccounts()
@@ -125,10 +131,6 @@ object SandboxCustomerProfileService extends CustomerProfileService with FileRes
 
   def getPreferences()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Option[Preference]] = {
     Future(Some(Preference(true, Some(EmailPreference(email, Status.Verified)))))
-  }
-
-  def setPreferencesPendingEmail(changeEmail: ChangeEmail)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[EmailUpdateStatus] = {
-    Future(EmailUpdateOk)
   }
 }
 

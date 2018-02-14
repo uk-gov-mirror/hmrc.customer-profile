@@ -4,6 +4,10 @@ import com.github.tomakehurst.wiremock.client.WireMock._
 
 object PreferencesStub {
 
+  def preferencesFound() = {
+
+  }
+
   def successfulPendingEmailUpdate(entityId: String) =
     stubFor(put(urlEqualToPreferencesPendingEmail(entityId))
       .willReturn(aResponse()
@@ -25,6 +29,10 @@ object PreferencesStub {
         .withStatus(500)))
 
   private def urlEqualToPreferencesPendingEmail(entityId: String) = {
+    urlEqualTo(s"/preferences/$entityId/pending-email")
+  }
+
+  private def urlEqualToPreferences(entityId: String) = {
     urlEqualTo(s"/preferences/$entityId/pending-email")
   }
 
