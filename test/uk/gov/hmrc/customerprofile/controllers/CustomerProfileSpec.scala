@@ -244,11 +244,6 @@ class TestCustomerProfilePaperlessSettingsSpec extends UnitSpec with ScalaFuture
       status(result) shouldBe 200
     }
 
-    "return status code 404 when there are no preferences found to update" in new PreferenceNotFound {
-      val result = await(controller.paperlessSettingsOptIn()(paperlessRequest))
-      status(result) shouldBe 404
-    }
-
     "return status code 409 when preference has no existing verified or pending email" in new PreferenceConflict {
       val result = await(controller.paperlessSettingsOptIn()(paperlessRequest))
       status(result) shouldBe 409

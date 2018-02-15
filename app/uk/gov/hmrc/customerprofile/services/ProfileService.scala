@@ -68,10 +68,9 @@ trait LiveCustomerProfileService extends CustomerProfileService with Auditor {
 
   def paperlessSettings(settings: Paperless)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] =
     withAudit("paperlessSettings", Map("accepted" -> settings.generic.accepted.toString)) {
-      val noPreferenceExists: Future[PreferencesStatus] = Future.successful(NoPreferenceExists)
       for {
         preferences ← entityResolver.getPreferences()
-        status ← preferences.fold(noPreferenceExists) {
+        status ← preferences.fold(entityResolver.paperlessSettings(settings)) {
           preference ⇒
             if (preference.digital) setPreferencesPendingEmail(ChangeEmail(settings.email.value))
             else entityResolver.paperlessSettings(settings)
