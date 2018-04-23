@@ -18,10 +18,11 @@ package uk.gov.hmrc.customerprofile.services
 
 import java.util.UUID
 
+import com.google.inject.{Inject, Singleton}
 import org.joda.time.DateTime.parse
+import play.api.Configuration
 import uk.gov.hmrc.api.sandbox.FileResource
 import uk.gov.hmrc.api.service.Auditor
-import uk.gov.hmrc.customerprofile.config.MicroserviceAuditConnector
 import uk.gov.hmrc.customerprofile.connector._
 import uk.gov.hmrc.customerprofile.controllers.action.{AccountAccessControl, NinoNotFoundOnAccount}
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status
@@ -46,16 +47,13 @@ trait CustomerProfileService {
   def getPreferences()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Option[Preference]]
 }
 
-
-trait LiveCustomerProfileService extends CustomerProfileService with Auditor {
-  val accountAccessControl: AccountAccessControl
-
-  def citizenDetailsConnector: CitizenDetailsConnector
-
-  def entityResolver: EntityResolverConnector
-
-  def preferencesConnector: PreferencesConnector
-
+@Singleton
+class LiveCustomerProfileService @Inject()(citizenDetailsConnector: CitizenDetailsConnector,
+                                           preferencesConnector: PreferencesConnector,
+                                           entityResolver: EntityResolverConnector,
+                                           val accountAccessControl: AccountAccessControl,
+                                           val appNameConfiguration: Configuration,
+                                           val auditConnector: AuditConnector) extends CustomerProfileService with Auditor {
   def getAccounts()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Accounts] =
     withAudit("getAccounts", Map.empty) {
       accountAccessControl.accounts
@@ -90,16 +88,17 @@ trait LiveCustomerProfileService extends CustomerProfileService with Auditor {
 
   private def setPreferencesPendingEmail(changeEmail: ChangeEmail)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] =
     withAudit("updatePendingEmailPreference", Map("email" → changeEmail.email)) {
-      for{
-        account   ← getAccounts()
-        entity    ← entityResolver.getEntityIdByNino(account.nino.getOrElse(throw new NinoNotFoundOnAccount("")))
-        response  ← preferencesConnector.updatePendingEmail(changeEmail, entity._id)
+      for {
+        account ← getAccounts()
+        entity ← entityResolver.getEntityIdByNino(account.nino.getOrElse(throw new NinoNotFoundOnAccount("")))
+        response ← preferencesConnector.updatePendingEmail(changeEmail, entity._id)
       } yield response
     }
 
 }
 
-object SandboxCustomerProfileService extends CustomerProfileService with FileResource {
+@Singleton
+class SandboxCustomerProfileService @Inject()() extends CustomerProfileService with FileResource {
 
   private val nino = Nino("CS700100A")
 
@@ -107,9 +106,9 @@ object SandboxCustomerProfileService extends CustomerProfileService with FileRes
     PersonDetails(
       "etag",
       Person(Some("Jennifer"), None, Some("Thorsteinson"), None, Some("Ms"), None, Some("Female"), Some(parse("1999-01-31")), Some(nino)),
-      Some(Address(Some("999 Big Street"), Some("Worthing"), Some("West Sussex"), None, None, Some("BN99 8IG"), None, None, None )))
+      Some(Address(Some("999 Big Street"), Some("Worthing"), Some("West Sussex"), None, None, Some("BN99 8IG"), None, None, None)))
 
-  private val accounts = Accounts(Some(nino), None, false, false, UUID.randomUUID().toString)
+  private val accounts = Accounts(Some(nino), None, routeToIV = false, routeToTwoFactor = false, UUID.randomUUID().toString)
 
   private val email = EmailAddress("name@email.co.uk")
 
@@ -129,18 +128,6 @@ object SandboxCustomerProfileService extends CustomerProfileService with FileRes
 
 
   def getPreferences()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Option[Preference]] = {
-    Future(Some(Preference(true, Some(EmailPreference(email, Status.Verified)))))
+    Future(Some(Preference(digital = true, Some(EmailPreference(email, Status.Verified)))))
   }
-}
-
-object LiveCustomerProfileService extends LiveCustomerProfileService {
-  val citizenDetailsConnector: CitizenDetailsConnector = CitizenDetailsConnector
-
-  val entityResolver: EntityResolverConnector = EntityResolverConnector
-
-  val auditConnector: AuditConnector = MicroserviceAuditConnector
-
-  val preferencesConnector: PreferencesConnector = PreferencesConnector
-
-  override val accountAccessControl: AccountAccessControl = AccountAccessControl
 }

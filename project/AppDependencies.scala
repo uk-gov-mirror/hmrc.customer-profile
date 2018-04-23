@@ -4,16 +4,16 @@ object AppDependencies {
   import play.core.PlayVersion
   import play.sbt.PlayImport._
 
-  private val microserviceBootstrapVersion = "6.13.0"
-  private val authClientVersion = "2.4.0"
-  private val domainVersion = "5.0.0"
+  private val bootstrap25Version = "1.5.0"
+  private val authClientVersion = "2.6.0"
+  private val domainVersion = "5.1.0"
   private val playHmrcApiVersion = "2.1.0"
   private val reactiveCircuitBreakerVersion = "3.2.0"
   private val emailaddressVersion = "2.2.0"
 
   val compile = Seq(
     ws,
-    "uk.gov.hmrc" %% "microservice-bootstrap" % microserviceBootstrapVersion,
+    "uk.gov.hmrc" %% "bootstrap-play-25" % bootstrap25Version,
     "uk.gov.hmrc" %% "auth-client" % authClientVersion,
     "uk.gov.hmrc" %% "play-hmrc-api" % playHmrcApiVersion,
     "uk.gov.hmrc" %% "domain" % domainVersion,

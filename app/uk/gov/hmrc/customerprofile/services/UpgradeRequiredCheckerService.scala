@@ -16,8 +16,9 @@
 
 package uk.gov.hmrc.customerprofile.services
 
+import com.google.inject.{Inject, Singleton}
+import play.api.Configuration
 import uk.gov.hmrc.api.service.Auditor
-import uk.gov.hmrc.customerprofile.config.MicroserviceAuditConnector
 import uk.gov.hmrc.customerprofile.domain.{DeviceVersion, ValidateAppVersion}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -28,7 +29,9 @@ trait UpgradeRequiredCheckerService {
   def upgradeRequired(deviceVersion: DeviceVersion)(implicit hc: HeaderCarrier, ex: ExecutionContext) : Future[Boolean]
 }
 
-trait LiveUpgradeRequiredCheckerService extends UpgradeRequiredCheckerService with Auditor {
+@Singleton
+class LiveUpgradeRequiredCheckerService @Inject()(val auditConnector: AuditConnector,
+                                                  val appNameConfiguration: Configuration) extends UpgradeRequiredCheckerService with Auditor {
 
   override def upgradeRequired(deviceVersion: DeviceVersion)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Boolean] =
     withAudit("upgradeRequired", Map("os" -> deviceVersion.os.toString)) {
@@ -36,11 +39,8 @@ trait LiveUpgradeRequiredCheckerService extends UpgradeRequiredCheckerService wi
     }
 }
 
-object LiveUpgradeRequiredCheckerService extends LiveUpgradeRequiredCheckerService{
-  val auditConnector: AuditConnector = MicroserviceAuditConnector
-}
-
-object SandboxUpgradeRequiredCheckerService extends UpgradeRequiredCheckerService {
+@Singleton
+class SandboxUpgradeRequiredCheckerService @Inject()() extends UpgradeRequiredCheckerService {
   override def upgradeRequired(deviceVersion: DeviceVersion)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Boolean] =
     Future.successful(false)
 }

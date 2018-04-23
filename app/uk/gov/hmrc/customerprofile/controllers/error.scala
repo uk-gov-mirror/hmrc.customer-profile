@@ -30,3 +30,5 @@ case object ErrorUnauthorizedWeakCredStrength extends ErrorResponse(UNAUTHORIZED
 case object ErrorManualCorrespondenceIndicator extends ErrorResponse(LOCKED, "MANUAL_CORRESPONDENCE_IND", "Data cannot be disclosed to the user because MCI flag is set in NPS")
 
 case object ErrorPreferenceConflict extends ErrorResponse(CONFLICT, "CONFLICT", "No existing verified or pending data")
+
+case object ForbiddenAccess extends ErrorResponse(FORBIDDEN, "UNAUTHORIZED", "Access denied!")

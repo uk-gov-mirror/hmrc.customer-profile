@@ -16,27 +16,44 @@
 
 package uk.gov.hmrc.customerprofile.config
 
+import com.google.inject.{Inject, Singleton}
+import play.api.Mode.Mode
+import play.api.{Configuration, Environment, Logger}
+import uk.gov.hmrc.api.config.ServiceLocatorConfig
+import uk.gov.hmrc.api.connector.ServiceLocatorConnector
 import uk.gov.hmrc.auth.core.PlayAuthConnector
-import uk.gov.hmrc.http.hooks.{HttpHook, HttpHooks}
-import uk.gov.hmrc.http.{HttpDelete, HttpGet, HttpPost, HttpPut}
-import uk.gov.hmrc.play.audit.http.config.AuditingConfig
-import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.config.{AppName, ServicesConfig}
+import uk.gov.hmrc.http._
+import uk.gov.hmrc.play.bootstrap.config.AppName
+import uk.gov.hmrc.play.config.{RunMode, ServicesConfig}
 import uk.gov.hmrc.play.http.ws._
-import uk.gov.hmrc.play.microservice.config.LoadAuditingConfig
 
-object MicroserviceAuditConnector extends AuditConnector {
-  lazy val auditingConfig: AuditingConfig = LoadAuditingConfig(s"auditing")
+@Singleton
+class WSHttp @Inject()(override val runModeConfiguration: Configuration, environment: Environment) extends HttpGet with HttpPost with WSGet with WSPost with RunMode {
+  override val hooks = NoneRequired
+
+  override protected def mode = environment.mode
 }
 
-trait Hooks extends HttpHooks {
-  override val hooks: Seq[HttpHook] = NoneRequired
-}
-
-trait WSHttp extends HttpGet with WSGet with HttpPut with WSPut with HttpPost with WSPost with HttpDelete with WSDelete with Hooks with AppName
-object WSHttp extends WSHttp
-
-object MicroserviceAuthConnector extends PlayAuthConnector with ServicesConfig{
+@Singleton
+class MicroserviceAuthConnector @Inject()(override val runModeConfiguration: Configuration, environment: Environment, wsHttp: WSHttp) extends PlayAuthConnector with ServicesConfig {
   override lazy val serviceUrl = baseUrl("auth")
-  override def http = WSHttp
+
+  override def http = wsHttp
+
+  override protected def mode = environment.mode
+}
+
+@Singleton
+class ApiServiceLocatorConnector @Inject()(override val runModeConfiguration: Configuration, environment: Environment, wsHttp: WSHttp)
+  extends ServiceLocatorConnector with ServiceLocatorConfig with AppName {
+  override val appUrl: String = runModeConfiguration.getString("appUrl").getOrElse(throw new RuntimeException("appUrl is not configured"))
+  override val serviceUrl: String = serviceLocatorUrl
+  override val handlerOK: () ⇒ Unit = () ⇒ Logger.info("Service is registered on the service locator")
+  override val handlerError: Throwable ⇒ Unit = e ⇒ Logger.error("Service could not register on the service locator", e)
+  override val metadata: Option[Map[String, String]] = Some(Map("third-party-api" → "true"))
+  override val http: CorePost = wsHttp
+
+  override def configuration: Configuration = runModeConfiguration
+
+  override protected def mode: Mode = environment.mode
 }

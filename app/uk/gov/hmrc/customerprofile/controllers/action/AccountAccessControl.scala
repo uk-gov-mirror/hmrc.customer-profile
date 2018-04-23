@@ -47,7 +47,7 @@ trait AccountAccessControl extends Results with AuthorisedFunctions{
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  val authConnector: AuthConnector = MicroserviceAuthConnector
+  val authConnector: AuthConnector
 
   def serviceConfidenceLevel: ConfidenceLevel = ???
 
