@@ -20,8 +20,7 @@ import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UsingCircuitBreaker}
 import uk.gov.hmrc.http.{BadRequestException, NotFoundException, Upstream4xxResponse, Upstream5xxResponse}
 import uk.gov.hmrc.play.config.ServicesConfig
 
-trait ServicesCircuitBreaker extends UsingCircuitBreaker {
-  this: ServicesConfig =>
+trait ServicesCircuitBreaker extends UsingCircuitBreaker with ServicesConfig {
 
   protected val externalServiceName: String
 
@@ -33,10 +32,10 @@ trait ServicesCircuitBreaker extends UsingCircuitBreaker {
   )
 
   override protected def breakOnException(t: Throwable): Boolean = t match {
-    case t: BadRequestException => false
-    case t: NotFoundException =>   false
-    case t: Upstream4xxResponse => false
+    case _: BadRequestException => false
+    case _: NotFoundException => false
+    case _: Upstream4xxResponse => false
     case _: Upstream5xxResponse => true
-    case _                      => true
+    case _ => true
   }
 }

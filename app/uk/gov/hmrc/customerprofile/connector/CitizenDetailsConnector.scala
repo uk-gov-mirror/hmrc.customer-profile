@@ -16,24 +16,22 @@
 
 package uk.gov.hmrc.customerprofile.connector
 
+import com.google.inject.name.Named
+import com.google.inject.{Inject, Singleton}
 import play.api.Logger
-import uk.gov.hmrc.customerprofile.config.WSHttp
 import uk.gov.hmrc.domain._
 import uk.gov.hmrc.http.{CoreGet, HeaderCarrier, NotFoundException, Upstream4xxResponse}
-import uk.gov.hmrc.play.config.ServicesConfig
 
 import scala.concurrent.{ExecutionContext, Future}
 
-trait CitizenDetailsConnector {
+@Singleton
+class CitizenDetailsConnector @Inject()(@Named("citizen-details") citizenDetailsConnectorUrl: String,
+                                        http: CoreGet) {
 
   import play.api.http.Status.LOCKED
   import uk.gov.hmrc.customerprofile.domain.PersonDetails
 
-  def citizenDetailsConnectorUrl: String
-
-  def http: CoreGet
-
-  def personDetails(nino: Nino)(implicit hc: HeaderCarrier, ec : ExecutionContext): Future[PersonDetails] = {
+  def personDetails(nino: Nino)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[PersonDetails] = {
     http.GET[PersonDetails](s"$citizenDetailsConnectorUrl/citizen-details/$nino/designatory-details") recover {
       case e: Upstream4xxResponse if e.upstreamResponseCode == LOCKED =>
         Logger.info("Person details are hidden")
@@ -43,12 +41,4 @@ trait CitizenDetailsConnector {
         throw e
     }
   }
-}
-
-object CitizenDetailsConnector extends CitizenDetailsConnector with ServicesConfig {
-
-  override lazy val citizenDetailsConnectorUrl = baseUrl("citizen-details")
-
-  override lazy val http = WSHttp
-
 }

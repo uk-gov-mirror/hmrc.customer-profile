@@ -16,8 +16,9 @@
 
 package uk.gov.hmrc.customerprofile.controllers
 
+import com.google.inject.Inject
 import play.api.libs.json._
-import play.api.mvc.{BodyParsers, Result}
+import play.api.mvc.{Action, AnyContent, BodyParsers, Result}
 import play.api.{Logger, LoggerLike, mvc}
 import uk.gov.hmrc.api.controllers._
 import uk.gov.hmrc.customerprofile.connector._
@@ -27,27 +28,27 @@ import uk.gov.hmrc.customerprofile.services.{CustomerProfileService, LiveCustome
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{HeaderCarrier, NotFoundException, Upstream4xxResponse}
 import uk.gov.hmrc.play.HeaderCarrierConverter
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 import scala.concurrent.Future
 
 trait ErrorHandling {
   self: BaseController =>
-  val app:String
+  val app: String
 
-  def log(message:String) = Logger.info(s"$app $message")
+  def log(message: String): Unit = Logger.info(s"$app $message")
 
   def result(errorResponse: ErrorResponse): Result =
     Status(errorResponse.httpStatusCode)(Json.toJson(errorResponse))
 
-  def errorWrapper(func: => Future[mvc.Result])(implicit hc: HeaderCarrier) = {
+  def errorWrapper(func: => Future[mvc.Result])(implicit hc: HeaderCarrier): Future[Result] = {
     func.recover {
-      case ex: NotFoundException =>
+      case _: NotFoundException =>
         log("Resource not found!")
         result(ErrorNotFound)
 
-      case ex: NinoNotFoundOnAccount =>
+      case _: NinoNotFoundOnAccount =>
         log("User has no NINO. Unauthorized!")
         Unauthorized(Json.toJson(ErrorUnauthorizedNoNino))
 
@@ -63,79 +64,84 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
   val service: CustomerProfileService
   val accessControl: AccountAccessControlWithHeaderCheck
 
-  final def getAccounts(journeyId: Option[String] = None) = AccountAccessControlCheckOff.validateAccept(acceptHeaderValidationRules).async {
-    implicit request =>
-      implicit val hc = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
-      errorWrapper(service.getAccounts().map(as => Ok(Json.toJson(as))))
-  }
+  final def getAccounts(journeyId: Option[String] = None): Action[AnyContent] =
+    accessControl.validateAcceptWithoutAuth(acceptHeaderValidationRules).async {
+      implicit request =>
+        implicit val hc = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
+        errorWrapper(service.getAccounts().map(as => Ok(Json.toJson(as))))
+    }
 
   def getLogger: LoggerLike = Logger
 
-  final def getPersonalDetails(nino: Nino, journeyId: Option[String] = None) = accessControl.validateAcceptWithAuth(acceptHeaderValidationRules, Some(nino)).async {
-    implicit request =>
-      implicit val hc = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
-      errorWrapper(
-        service.getPersonalDetails(nino)
-          .map(as => Ok(Json.toJson(as)))
-          .recover {
-            case Upstream4xxResponse(_, LOCKED, _, _) =>
-              result(ErrorManualCorrespondenceIndicator)
+  final def getPersonalDetails(nino: Nino, journeyId: Option[String] = None): Action[AnyContent] =
+    accessControl.validateAcceptWithAuth(acceptHeaderValidationRules, Some(nino)).async {
+      implicit request =>
+        implicit val hc = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
+        errorWrapper(
+          service.getPersonalDetails(nino)
+            .map(as => Ok(Json.toJson(as)))
+            .recover {
+              case Upstream4xxResponse(_, LOCKED, _, _) =>
+                result(ErrorManualCorrespondenceIndicator)
+            }
+        )
+    }
+
+  final def getPreferences(journeyId: Option[String] = None): Action[AnyContent] =
+    accessControl.validateAccept(acceptHeaderValidationRules).async {
+      implicit request =>
+        implicit val hc = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
+        errorWrapper(
+          service.getPreferences().map {
+            case Some(response) => Ok(Json.toJson(response))
+            case _ => NotFound
           }
-      )
-  }
+        )
+    }
 
-  final def getPreferences(journeyId: Option[String] = None) = accessControl.validateAccept(acceptHeaderValidationRules).async {
-    implicit request =>
-      implicit val hc = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
-      errorWrapper(
-        service.getPreferences().map {
-          case Some(response) => Ok(Json.toJson(response))
-          case _ => NotFound
-        }
-      )
-  }
+  final def paperlessSettingsOptIn(journeyId: Option[String] = None): Action[JsValue] =
+    accessControl.validateAccept(acceptHeaderValidationRules).async(BodyParsers.parse.json) {
+      implicit request ⇒
+        implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
+        request.body.validate[Paperless].fold(
+          errors ⇒ {
+            Logger.warn("Received error with service getPaperlessSettings: " + errors)
+            Future.successful(BadRequest(Json.toJson(ErrorGenericBadRequest(errors))))
+          },
+          settings => {
+            errorWrapper(service.paperlessSettings(settings).map {
+              case PreferencesExists | EmailUpdateOk ⇒ Ok
+              case PreferencesCreated ⇒ Created
+              case EmailNotExist ⇒ Conflict(Json.toJson(ErrorPreferenceConflict))
+              case NoPreferenceExists ⇒ NotFound(Json.toJson(ErrorNotFound))
+              case _ ⇒ InternalServerError(Json.toJson(PreferencesSettingsError))
+            })
+          }
+        )
+    }
 
-  final def paperlessSettingsOptIn(journeyId: Option[String] = None) = accessControl.validateAccept(acceptHeaderValidationRules).async(BodyParsers.parse.json) {
-    implicit request ⇒
-      implicit val hc = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
-      request.body.validate[Paperless].fold(
-        errors ⇒ {
-          Logger.warn("Received error with service getPaperlessSettings: " + errors)
-          Future.successful(BadRequest(Json.toJson(ErrorGenericBadRequest(errors))))
-        },
-        settings => {
-          errorWrapper(service.paperlessSettings(settings).map {
-            case PreferencesExists | EmailUpdateOk ⇒ Ok
-            case PreferencesCreated ⇒ Created
-            case EmailNotExist ⇒ Conflict(Json.toJson(ErrorPreferenceConflict))
-            case NoPreferenceExists ⇒ NotFound(Json.toJson(ErrorNotFound))
-            case _ ⇒ InternalServerError(Json.toJson(PreferencesSettingsError))
-          })
-        }
-      )
-  }
-
-  final def paperlessSettingsOptOut(journeyId: Option[String] = None) = accessControl.validateAccept(acceptHeaderValidationRules).async {
-    implicit request =>
-      implicit val hc = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
-      errorWrapper(service.paperlessSettingsOptOut().map {
-        case PreferencesExists => Ok
-        case PreferencesCreated => Created
-        case PreferencesDoesNotExist => NotFound
-        case PreferencesFailure => InternalServerError(Json.toJson(PreferencesSettingsError))
-      })
-  }
+  final def paperlessSettingsOptOut(journeyId: Option[String] = None): Action[AnyContent] =
+    accessControl.validateAccept(acceptHeaderValidationRules).async {
+      implicit request =>
+        implicit val hc = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
+        errorWrapper(service.paperlessSettingsOptOut().map {
+          case PreferencesExists => Ok
+          case PreferencesCreated => Created
+          case PreferencesDoesNotExist => NotFound
+          case PreferencesFailure => InternalServerError(Json.toJson(PreferencesSettingsError))
+        })
+    }
 
 }
 
-object SandboxCustomerProfileController extends CustomerProfileController {
+class SandboxCustomerProfileController @Inject()(override val service: SandboxCustomerProfileService,
+                                                 override val accessControl: AccountAccessControlCheckOff)
+  extends CustomerProfileController {
   val app = "Sandbox-Customer-Profile"
-  override val service = SandboxCustomerProfileService
-  override val accessControl = AccountAccessControlCheckOff
 }
 
-object LiveCustomerProfileController extends CustomerProfileController {
+class LiveCustomerProfileController @Inject()(override val service: LiveCustomerProfileService,
+                                              override val accessControl: AccountAccessControlWithHeaderCheck)
+  extends CustomerProfileController {
   val app = "Live-Customer-Profile"
-  override val service = LiveCustomerProfileService
-  override val accessControl = AccountAccessControlWithHeaderCheck
 }

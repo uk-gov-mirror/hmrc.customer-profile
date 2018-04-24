@@ -1,14 +1,14 @@
 # microservice specific routes
 
-GET         /profile/accounts                                      uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.getAccounts(journeyId: Option[String])
+GET         /profile/accounts                                      @uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.getAccounts(journeyId: Option[String])
 
-GET         /profile/personal-details/:nino                        uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.getPersonalDetails(nino : uk.gov.hmrc.domain.Nino, journeyId: Option[String])
+GET         /profile/personal-details/:nino                        @uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.getPersonalDetails(nino : uk.gov.hmrc.domain.Nino, journeyId: Option[String])
 
-GET         /profile/preferences                                   uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.getPreferences(journeyId: Option[String])
+GET         /profile/preferences                                   @uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.getPreferences(journeyId: Option[String])
 
-POST        /profile/preferences/paperless-settings/opt-in         uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.paperlessSettingsOptIn(journeyId: Option[String])
+POST        /profile/preferences/paperless-settings/opt-in         @uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.paperlessSettingsOptIn(journeyId: Option[String])
 
-POST        /profile/preferences/paperless-settings/opt-out        uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.paperlessSettingsOptOut(journeyId: Option[String])
+POST        /profile/preferences/paperless-settings/opt-out        @uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.paperlessSettingsOptOut(journeyId: Option[String])
 
-POST        /profile/native-app/version-check                      uk.gov.hmrc.customerprofile.controllers.LiveNativeVersionCheckerController.validateAppVersion(journeyId: Option[String])
+POST        /profile/native-app/version-check                      @uk.gov.hmrc.customerprofile.controllers.LiveNativeVersionCheckerController.validateAppVersion(journeyId: Option[String])
 
