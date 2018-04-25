@@ -21,7 +21,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 class ApprovedAppVersionsSpec extends UnitSpec {
 
-  val specConfig = ConfigFactory.parseString(
+  val specConfig: Config = ConfigFactory.parseString(
     """approvedAppVersions {
       |  ios = "[0.0.1,)"
       |  android = "[0.0.1,)"

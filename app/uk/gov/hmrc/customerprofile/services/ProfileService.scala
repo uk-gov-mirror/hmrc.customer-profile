@@ -69,7 +69,7 @@ class LiveCustomerProfileService @Inject()(citizenDetailsConnector: CitizenDetai
       for {
         preferences ← entityResolver.getPreferences()
         status ← preferences.fold(entityResolver.paperlessSettings(settings)) {
-          preference ⇒
+          preference =>
             if (preference.digital) setPreferencesPendingEmail(ChangeEmail(settings.email.value))
             else entityResolver.paperlessSettings(settings)
         }

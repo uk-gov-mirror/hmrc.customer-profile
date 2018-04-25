@@ -20,15 +20,17 @@ import java.util.UUID.randomUUID
 
 import com.typesafe.config.Config
 import org.joda.time.DateTime.parse
+import org.scalatest.mockito.MockitoSugar
 import org.slf4j.Logger
 import play.api.http.Status
-import play.api.libs.json.{JsValue, Json, Writes}
+import play.api.libs.json.{JsObject, JsValue, Json, Writes}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import play.api.{LoggerLike, http}
+import play.api.{Configuration, Environment, LoggerLike, http}
 import play.mvc.Http.MimeTypes
+import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.circuitbreaker.CircuitBreakerConfig
-import uk.gov.hmrc.customerprofile.config.ServicesCircuitBreaker
+import uk.gov.hmrc.customerprofile.config.{ServicesCircuitBreaker, WSHttpImpl}
 import uk.gov.hmrc.customerprofile.connector._
 import uk.gov.hmrc.customerprofile.controllers.action._
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status.Pending
@@ -40,47 +42,49 @@ import uk.gov.hmrc.emailaddress.EmailAddress
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.hooks.HttpHook
 import uk.gov.hmrc.play.audit.http.config.AuditingConfig
-import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.config.{RunMode, ServicesConfig}
 import uk.gov.hmrc.play.test.UnitSpec
 
+import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
+//class TestCitizenDetailsConnector(httpResponse: Future[HttpResponse]) extends CitizenDetailsConnector {
+//  override lazy val citizenDetailsConnectorUrl = "someUrl"
+//  override lazy val http: CoreGet = new CoreGet with HttpGet {
+//    override def doGet(url: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = httpResponse
+//
+//    override val hooks: Seq[HttpHook] = NoneRequired
+//
+//    override def configuration: Option[Config] = None
+//  }
+//}
 
-class TestCitizenDetailsConnector(httpResponse: Future[HttpResponse]) extends CitizenDetailsConnector {
-  override lazy val citizenDetailsConnectorUrl = "someUrl"
-  override lazy val http: CoreGet = new CoreGet with HttpGet {
-    override def doGet(url: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = httpResponse
-
-    override val hooks: Seq[HttpHook] = NoneRequired
-
-    override def configuration: Option[Config] = None
-  }
-}
-
-class TestEntityResolverConnector(preferencesStatus: PreferencesStatus, preference:Option[Preference], entity: Option[Entity] = None)
-  extends EntityResolverConnector with ServicesConfig with ServicesCircuitBreaker with Status {
+class TestEntityResolverConnector(preferencesStatus: PreferencesStatus, preference: Option[Preference], entity: Option[Entity] = None,
+                                  serviceUrl: String, http: CoreGet with CorePost, runModeConfiguration: Configuration, environment: Environment)
+  extends EntityResolverConnector(serviceUrl, http, runModeConfiguration, environment) with ServicesConfig with ServicesCircuitBreaker with Status {
   this: ServicesCircuitBreaker =>
 
   override protected def circuitBreakerConfig = CircuitBreakerConfig(serviceName = externalServiceName)
-
-  override def http: CoreGet with CorePost with CorePut = ???
-
-  override def serviceUrl: String = ???
 
   override def paperlessSettings(paperless: Paperless)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] = {
     Future.successful(preferencesStatus)
   }
 
-  override def getPreferences()(implicit headerCarrier: HeaderCarrier, ex : ExecutionContext): Future[Option[Preference]] = {
+  override def getPreferences()(implicit headerCarrier: HeaderCarrier, ex: ExecutionContext): Future[Option[Preference]] = {
     Future.successful(preference)
   }
 
   override def getEntityIdByNino(nino: Nino)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Entity] = Future(entity.get)
 }
 
-class TestAccountAccessControl(nino: Option[Nino], ex:Option[Exception]=None) extends AccountAccessControl {
+class TestAccountAccessControl(nino: Option[Nino],
+                               ex: Option[Exception] = None,
+                               authConnector: AuthConnector,
+                               http: CoreGet,
+                               authUrl: String,
+                               serviceConfidenceLevel: Int) extends AccountAccessControl(authConnector, http, authUrl, serviceConfidenceLevel) {
   override def grantAccess(taxId: Option[Nino])(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = {
     ex match {
       case None => Future(Unit)
@@ -88,126 +92,145 @@ class TestAccountAccessControl(nino: Option[Nino], ex:Option[Exception]=None) ex
     }
   }
 
-  override def accounts(implicit hc: HeaderCarrier) = Future(Accounts(nino, None, false, false, "102030394AAA"))
+  override def accounts(implicit hc: HeaderCarrier) = Future(Accounts(nino, None, routeToIV = false, routeToTwoFactor = false, "102030394AAA"))
 }
 
-class TestPreferencesConnector(httpResponse: HttpResponse) extends PreferencesConnector with ServicesConfig with ServicesCircuitBreaker {
-  override def serviceUrl: String = "http://preferences.service"
+//class TestPreferencesConnector(httpResponse: HttpResponse) extends PreferencesConnector with ServicesConfig with ServicesCircuitBreaker {
+//  override def serviceUrl: String = "http://preferences.service"
+//
+//  override def http: HttpPut = new HttpPut {
+//    override def doPut[A](url: String, body: A)(implicit rds: Writes[A], hc: HeaderCarrier): Future[HttpResponse] = Future(httpResponse)
+//
+//    override def configuration: Option[Config] = None
+//
+//    override val hooks: Seq[HttpHook] = Seq.empty
+//  }
+//
+//  override protected val externalServiceName: String = "preferences"
+//}
 
-  override def http: HttpPut = new HttpPut {
-    override def doPut[A](url: String, body: A)(implicit rds: Writes[A], hc: HeaderCarrier): Future[HttpResponse] = Future(httpResponse)
+//class TestCustomerProfileService(testCDConnector: CitizenDetailsConnector,
+//                                 testAccountAccessControl: TestAccountAccessControl,
+//                                 testEntityResolver: EntityResolverConnector,
+//                                 testAuditConnector: AuditConnector,
+//                                 testPreferencesConnector: PreferencesConnector) extends LiveCustomerProfileService {
+//
+//  override lazy val appName = "TestCustomerProfileService"
+//  val citizenDetailsConnector: CitizenDetailsConnector = testCDConnector
+//  override val accountAccessControl = testAccountAccessControl
+//  val entityResolver = testEntityResolver
+//  override val auditConnector: AuditConnector = testAuditConnector
+//  val preferencesConnector: PreferencesConnector = testPreferencesConnector
+//}
 
-    override def configuration: Option[Config] = None
+//class TestAccountAccessControlWithAccept(testAccessCheck: AccountAccessControl) extends AccountAccessControlWithHeaderCheck {
+//  override val accessControl: AccountAccessControl = testAccessCheck
+//}
 
-    override val hooks: Seq[HttpHook] = Seq.empty
-  }
+trait Setup extends MockitoSugar {
+  implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  override protected val externalServiceName: String = "preferences"
-}
-
-class TestCustomerProfileService(testCDConnector: CitizenDetailsConnector,
-                                 testAccountAccessControl: TestAccountAccessControl,
-                                 testEntityResolver: EntityResolverConnector,
-                                 testAuditConnector: AuditConnector,
-                                 testPreferencesConnector: PreferencesConnector) extends LiveCustomerProfileService {
-
-  override lazy val appName = "TestCustomerProfileService"
-  val citizenDetailsConnector = testCDConnector
-  val accountAccessControl = testAccountAccessControl
-  val entityResolver = testEntityResolver
-  val auditConnector: AuditConnector = testAuditConnector
-  val preferencesConnector: PreferencesConnector = testPreferencesConnector
-}
-
-class TestAccountAccessControlWithAccept(testAccessCheck: AccountAccessControl) extends AccountAccessControlWithHeaderCheck {
-  override val accessControl: AccountAccessControl = testAccessCheck
-}
-
-trait Setup {
-  implicit val hc = HeaderCarrier()
-
-  val journeyId = randomUUID().toString
+  val journeyId: String = randomUUID().toString
   val emptyRequest = FakeRequest()
   val emptyRequestWithHeader = FakeRequest().withHeaders("Accept" -> "application/vnd.hmrc.1.0+json")
 
-  val paperlessJsonBody = Json.toJson(Paperless(TermsAccepted(true), EmailAddress("a@b.com")))
-  val noNinoOnAccount = Json.parse("""{"code":"UNAUTHORIZED","message":"NINO does not exist on account"}""")
-  val lowCL = Json.parse("""{"code":"LOW_CONFIDENCE_LEVEL","message":"Confidence Level on account does not allow access"}""")
-  val weakCredStrength = Json.parse("""{"code":"WEAK_CRED_STRENGTH","message":"Credential Strength on account does not allow access"}""")
-  val paperlessRequestNoAccept = FakeRequest().withBody(paperlessJsonBody).withHeaders("Content-Type" -> "application/json")
-  val paperlessRequest = FakeRequest().withBody(paperlessJsonBody)
+  val paperlessJsonBody: JsValue = Json.toJson(Paperless(TermsAccepted(true), EmailAddress("a@b.com")))
+  val noNinoOnAccount: JsValue = Json.parse("""{"code":"UNAUTHORIZED","message":"NINO does not exist on account"}""")
+  val lowCL: JsValue = Json.parse("""{"code":"LOW_CONFIDENCE_LEVEL","message":"Confidence Level on account does not allow access"}""")
+  val weakCredStrength: JsValue = Json.parse("""{"code":"WEAK_CRED_STRENGTH","message":"Credential Strength on account does not allow access"}""")
+  val paperlessRequestNoAccept: FakeRequest[JsValue] = FakeRequest().withBody(paperlessJsonBody).withHeaders("Content-Type" -> "application/json")
+  val paperlessRequest: FakeRequest[JsValue] = FakeRequest().withBody(paperlessJsonBody)
     .withHeaders(http.HeaderNames.CONTENT_TYPE → MimeTypes.JSON, http.HeaderNames.ACCEPT → "application/vnd.hmrc.1.0+json")
-  val changeEmail = Json.obj("email" → "email@new-email.email")
-  val changeEmailRequest = FakeRequest().withBody(changeEmail)
+  val changeEmail: JsObject = Json.obj("email" → "email@new-email.email")
+  val changeEmailRequest: FakeRequest[JsObject] = FakeRequest().withBody(changeEmail)
     .withHeaders(http.HeaderNames.CONTENT_TYPE → MimeTypes.JSON, http.HeaderNames.ACCEPT → "application/vnd.hmrc.1.0+json")
-  val changeEmailRequestNoAccept = FakeRequest().withBody(changeEmail).withHeaders(http.HeaderNames.CONTENT_TYPE → MimeTypes.JSON)
+  val changeEmailRequestNoAccept: FakeRequest[JsObject] = FakeRequest().withBody(changeEmail).withHeaders(http.HeaderNames.CONTENT_TYPE → MimeTypes.JSON)
 
   val nino = Nino("CS700100A")
-  val testAccount = Accounts(Some(nino), None, false, false,"102030394AAA")
+  val testAccount = Accounts(Some(nino), None, routeToIV = false, routeToTwoFactor = false, "102030394AAA")
 
   val person =
     PersonDetails(
       "etag",
       Person(Some("Jennifer"), None, Some("Thorsteinson"), None, Some("Ms"), None, Some("Female"), Some(parse("1999-01-31")), Some(nino)),
-      Some(Address(Some("999 Big Street"), Some("Worthing"), Some("West Sussex"), None, None, Some("BN99 8IG"), None, None, None )))
+      Some(Address(Some("999 Big Street"), Some("Worthing"), Some("West Sussex"), None, None, Some("BN99 8IG"), None, None, None)))
 
   val personWithMissingData = PersonDetails("etag", Person(firstName = Some(""), Some("Theo"), lastName = None,
     Some("LM"), Some("Mr"), None, Some("Male"), dateOfBirth = None, nino = None), None)
 
-  val acceptHeader = "Accept" -> "application/vnd.hmrc.1.0+json"
-  def fakeRequest(body:JsValue) = FakeRequest(POST, "url").withBody(body)
+  val acceptHeader: (String, String) = "Accept" -> "application/vnd.hmrc.1.0+json"
+
+  def fakeRequest(body: JsValue): FakeRequest[JsValue] = FakeRequest(POST, "url").withBody(body)
     .withHeaders("Content-Type" -> "application/json")
 
-  val upgradeFalse = Json.parse("""{"upgrade":false}""")
-  val upgradeTrue = Json.parse("""{"upgrade":true}""")
-  val unknownOS = Json.parse("""{"obj.os":[{"msg":["unknown os"],"args":[]}]}""")
+  val upgradeFalse: JsValue = Json.parse("""{"upgrade":false}""")
+  val upgradeTrue: JsValue = Json.parse("""{"upgrade":true}""")
+  val unknownOS: JsValue = Json.parse("""{"obj.os":[{"msg":["unknown os"],"args":[]}]}""")
 
-  val preferenceSuccess = Json.parse("""{"digital":true,"email":{"email":"name@email.co.uk","status":"verified"}}""")
+  val preferenceSuccess: JsValue = Json.parse("""{"digital":true,"email":{"email":"name@email.co.uk","status":"verified"}}""")
 
   val deviceVersion = DeviceVersion(Android, "1.0.1")
-  lazy val jsonDeviceVersionRequest = fakeRequest(Json.toJson(deviceVersion)).withHeaders(acceptHeader)
-  lazy val jsonUnknownDeviceOSRequest = fakeRequest(Json.parse("""{"os":"unicorn","version":"1.2.3"}""")).withHeaders(acceptHeader)
+  lazy val jsonDeviceVersionRequest: FakeRequest[JsValue] = fakeRequest(Json.toJson(deviceVersion)).withHeaders(acceptHeader)
+  lazy val jsonUnknownDeviceOSRequest: FakeRequest[JsValue] = fakeRequest(Json.parse("""{"os":"unicorn","version":"1.2.3"}""")).withHeaders(acceptHeader)
 
   lazy val http200ResponseCid = Future.successful(HttpResponse(200, Some(Json.toJson(person))))
   lazy val missingDataHttp200ResponseCid = Future.successful(HttpResponse(200, Some(Json.toJson(personWithMissingData))))
 
-  lazy val cdConnector = new TestCitizenDetailsConnector(http200ResponseCid)
-  lazy val missingDataConnector = new TestCitizenDetailsConnector(missingDataHttp200ResponseCid)
+  //  lazy val cdConnector = new TestCitizenDetailsConnector(http200ResponseCid)
+  //  lazy val missingDataConnector = new TestCitizenDetailsConnector(missingDataHttp200ResponseCid)
 
-  lazy val defaultPreference = Some(Preference(true, Some(EmailPreference(EmailAddress("someone@something.com"), Pending))))
+  lazy val defaultPreference = Some(Preference(digital = true, Some(EmailPreference(EmailAddress("someone@something.com"), Pending))))
   lazy val defaultEntity = Some(Entity(_id = "3333333333333333333"))
-  lazy val entityConnector = new TestEntityResolverConnector(PreferencesExists, defaultPreference, defaultEntity)
-  lazy val preferencesConnector = new TestPreferencesConnector(HttpResponse(OK))
-  lazy val conflictPreferencesConnector = new TestPreferencesConnector(HttpResponse(CONFLICT))
-  lazy val notFoundPreferencesConnector = new TestPreferencesConnector(HttpResponse(NOT_FOUND))
-  lazy val errorPreferencesConnector = new TestPreferencesConnector(HttpResponse(INTERNAL_SERVER_ERROR))
-  lazy val testAccess = new TestAccountAccessControl(Some(nino))
-  lazy val testCompositeAction = new TestAccountAccessControlWithAccept(testAccess)
+  //  lazy val entityConnector = new TestEntityResolverConnector(PreferencesExists, defaultPreference, defaultEntity)
 
-  object MicroserviceAuditConnectorTest extends AuditConnector with RunMode {
-    override def auditingConfig: AuditingConfig = AuditingConfig(None, enabled = false)
-  }
+  //  lazy val preferencesConnector = new PreferencesConnector(mock[WSHttpImpl], "http://preferences.service",
+  //    "preferences", mock[Configuration], mock[Environment])
 
-  lazy val testCustomerProfileService = new TestCustomerProfileService(
-    cdConnector, testAccess, entityConnector, MicroserviceAuditConnectorTest, preferencesConnector)
-  lazy val missingDataCustomerProfileService = new TestCustomerProfileService(
-    missingDataConnector, testAccess, entityConnector, MicroserviceAuditConnectorTest, preferencesConnector)
-  lazy val conflictPreferenceCustomerProfileService = new TestCustomerProfileService(
-    cdConnector, testAccess, entityConnector, MicroserviceAuditConnectorTest, conflictPreferencesConnector)
-  lazy val notFoundPreferenceCustomerProfileService = new TestCustomerProfileService(
-    cdConnector, testAccess, entityConnector, MicroserviceAuditConnectorTest, notFoundPreferencesConnector)
-  lazy val errorPreferenceCustomerProfileService = new TestCustomerProfileService(
-    cdConnector, testAccess, entityConnector, MicroserviceAuditConnectorTest, errorPreferencesConnector)
+  //  lazy val testCustomerProfileService = new LiveCustomerProfileService(
+  //    cdConnector, preferencesConnector, entityConnector, testAccess, mock[Configuration], mockAuditConnector)
+  //  lazy val missingDataCustomerProfileService = new LiveCustomerProfileService(
+  //    missingDataConnector, preferencesConnector, entityConnector, testAccess, mock[Configuration], mockAuditConnector)
+  //  lazy val conflictPreferenceCustomerProfileService = new LiveCustomerProfileService(
+  //    cdConnector, preferencesConnector, entityConnector, testAccess, mock[Configuration], mockAuditConnector)
+  //  lazy val notFoundPreferenceCustomerProfileService = new LiveCustomerProfileService(
+  //    cdConnector, preferencesConnector, entityConnector, testAccess, mock[Configuration], mockAuditConnector)
+  //  lazy val errorPreferenceCustomerProfileService = new LiveCustomerProfileService(
+  //    cdConnector, preferencesConnector, entityConnector, testAccess, mock[Configuration], mockAuditConnector)
 
-  lazy val testSandboxCustomerProfileService = SandboxCustomerProfileService
-  lazy val sandboxCompositeAction = AccountAccessControlCheckOff
+  def upgradeService(status: Boolean) = new TestUpgradeRequiredCheckerService(status)
 
-  def upgradeService(status:Boolean) = new TestUpgradeRequiredCheckerService(status)
-  def testPreferencesConnector(status: Int) = new TestPreferencesConnector(HttpResponse(status))
-
-  class TestUpgradeRequiredCheckerService(state:Boolean) extends UpgradeRequiredCheckerService {
+  class TestUpgradeRequiredCheckerService(state: Boolean) extends UpgradeRequiredCheckerService {
     override def upgradeRequired(deviceVersion: DeviceVersion)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Boolean] = Future.successful(state)
   }
+
+  val mockAuthConnector: AuthConnector = mock[AuthConnector]
+  val mockAuditConnector: AuditConnector = mock[AuditConnector]
+  val mockCitizenDetailsConnector: CitizenDetailsConnector = mock[CitizenDetailsConnector]
+  val mockPreferencesConnector: PreferencesConnector = mock[PreferencesConnector]
+  val mockLiveCustomerProfileService: LiveCustomerProfileService = mock[LiveCustomerProfileService]
+  val mockEntityResolverConnector: EntityResolverConnector = mock[EntityResolverConnector]
+  val mockHttp: WSHttpImpl = mock[WSHttpImpl]
+  val mockConfiguration: Configuration = mock[Configuration]
+  val mockEnvironment: Environment = mock[Environment]
+
+  lazy val testAccess = new TestAccountAccessControl(Some(nino), None, mockAuthConnector,
+    mockHttp, "someUrl", 200)
+
+  lazy val testSandboxCustomerProfileService: SandboxCustomerProfileService = new SandboxCustomerProfileService()
+  lazy val sandboxCompositeAction: AccountAccessControlCheckOff = new AccountAccessControlCheckOff(testAccess)
+
+  lazy val testCustomerProfileService = new LiveCustomerProfileService(mockCitizenDetailsConnector, mockPreferencesConnector,
+    mockEntityResolverConnector, testAccess, mockConfiguration, mockAuditConnector) {
+    var saveDetails: Map[String, String] = Map.empty
+
+    override def audit(service: String, details: Map[String, String])(implicit hc: HeaderCarrier, ec: ExecutionContext) = {
+      saveDetails = details
+      Future.successful(AuditResult.Success)
+    }
+  }
+
+  lazy val mockAccountAccessControlWithHeaderCheck: AccountAccessControlWithHeaderCheck = new AccountAccessControlWithHeaderCheck(testAccess)
+  lazy val testCustomerProfileController = new LiveCustomerProfileController(mockLiveCustomerProfileService, mockAccountAccessControlWithHeaderCheck)
 
 }
 
@@ -237,6 +260,8 @@ trait AuthorityTest extends UnitSpec {
 }
 
 trait Success extends Setup {
+  lazy val testCompositeAction = new AccountAccessControlWithHeaderCheck(testAccess)
+
   val controller = new CustomerProfileController {
     val app = "Success Customer Profile"
     override val service: CustomerProfileService = testCustomerProfileService
@@ -245,29 +270,65 @@ trait Success extends Setup {
 }
 
 trait PaperlessCreated extends Setup {
+  lazy val testCompositeAction = new AccountAccessControlWithHeaderCheck(testAccess)
+  lazy val testEntityResolverConnector = new TestEntityResolverConnector(PreferencesCreated, Some(Preference(digital = false)), defaultEntity,
+  "someUrl", mockHttp, mockConfiguration, mockEnvironment)
+
+  override lazy val testCustomerProfileService = new LiveCustomerProfileService(mockCitizenDetailsConnector, mockPreferencesConnector,
+    testEntityResolverConnector, testAccess, mockConfiguration, mockAuditConnector) {
+    var saveDetails: Map[String, String] = Map.empty
+
+    override def audit(service: String, details: Map[String, String])(implicit hc: HeaderCarrier, ec: ExecutionContext) = {
+      saveDetails = details
+      Future.successful(AuditResult.Success)
+    }
+  }
+
   val controller = new CustomerProfileController {
-    val app = "Success Customer Profile"
-    override val service: CustomerProfileService = new TestCustomerProfileService(cdConnector, testAccess,
-      new TestEntityResolverConnector(PreferencesCreated, Some(Preference(false)), defaultEntity), MicroserviceAuditConnectorTest, preferencesConnector)
+    val app = "Success Paperless Created"
+    override val service: CustomerProfileService = testCustomerProfileService
     override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
   }
 }
 
-trait MissingDataSuccess extends Setup {
-  val stubbedLogger = new LoggerLikeStub()
+trait PaperlessAlreadyOptedIn extends Setup {
+  lazy val testCompositeAction = new AccountAccessControlWithHeaderCheck(testAccess)
+  lazy val testEntityResolverConnector = new TestEntityResolverConnector(PreferencesExists, Some(Preference(digital = false)), defaultEntity,
+    "someUrl", mockHttp, mockConfiguration, mockEnvironment)
+
+  override lazy val testCustomerProfileService = new LiveCustomerProfileService(mockCitizenDetailsConnector, mockPreferencesConnector,
+    testEntityResolverConnector, testAccess, mockConfiguration, mockAuditConnector) {
+    var saveDetails: Map[String, String] = Map.empty
+
+    override def audit(service: String, details: Map[String, String])(implicit hc: HeaderCarrier, ec: ExecutionContext) = {
+      saveDetails = details
+      Future.successful(AuditResult.Success)
+    }
+  }
 
   val controller = new CustomerProfileController {
-    val app = "Success Customer Profile"
-    override val service: CustomerProfileService = missingDataCustomerProfileService
+    val app = "Success Paperless Already Opted In"
+    override val service: CustomerProfileService = testCustomerProfileService
     override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
-
-    override def getLogger = stubbedLogger
   }
 }
+
+//trait MissingDataSuccess extends Setup {
+//  val stubbedLogger = new LoggerLikeStub()
+//
+//  val controller = new CustomerProfileController {
+//    val app = "Success Customer Profile"
+//    override val service: CustomerProfileService = missingDataCustomerProfileService
+//    override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
+//
+//    override def getLogger: LoggerLikeStub = stubbedLogger
+//  }
+//}
 
 trait AccessCheck extends Setup {
-  override lazy val testAccess = new TestAccountAccessControl(None,Some(new FailToMatchTaxIdOnAuth("controlled explosion")))
-  override lazy val testCompositeAction = new TestAccountAccessControlWithAccept(testAccess)
+  override lazy val testAccess = new TestAccountAccessControl(None, Some(new FailToMatchTaxIdOnAuth("controlled explosion")),
+    mockAuthConnector, mockHttp, "someUrl", 200)
+  lazy val testCompositeAction = new AccountAccessControlWithHeaderCheck(testAccess)
 
   val controller = new CustomerProfileController {
     override val app: String = "Access Check"
@@ -276,57 +337,64 @@ trait AccessCheck extends Setup {
   }
 }
 
-trait PreferenceNotFound extends Setup {
-  val controller = new CustomerProfileController {
-    val app = "Preference Not Found"
-    val entityConnectorLocal = new TestEntityResolverConnector(PreferencesExists, None, defaultEntity)
-    lazy val testCustomerProfileServiceLocal = new TestCustomerProfileService(
-      cdConnector, testAccess, entityConnectorLocal, MicroserviceAuditConnectorTest, notFoundPreferencesConnector)
-    override val service: CustomerProfileService = testCustomerProfileServiceLocal
-    override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
-  }
-}
 
 trait PreferenceConflict extends Setup {
+  lazy val testCompositeAction = new AccountAccessControlWithHeaderCheck(testAccess)
+  lazy val testEntityResolverConnector = new TestEntityResolverConnector(EmailNotExist, defaultPreference, defaultEntity,
+    "someUrl", mockHttp, mockConfiguration, mockEnvironment)
+
+  override lazy val testCustomerProfileService = new LiveCustomerProfileService(mockCitizenDetailsConnector, mockPreferencesConnector,
+    testEntityResolverConnector, testAccess, mockConfiguration, mockAuditConnector) {
+    var saveDetails: Map[String, String] = Map.empty
+
+    override def audit(service: String, details: Map[String, String])(implicit hc: HeaderCarrier, ec: ExecutionContext) = {
+      saveDetails = details
+      Future.successful(AuditResult.Success)
+    }
+  }
+
   val controller = new CustomerProfileController {
     val app = "Preference conflict"
-    val entityConnectorLocal = new TestEntityResolverConnector(PreferencesExists, defaultPreference, defaultEntity)
-    lazy val testCustomerProfileServiceLocal = new TestCustomerProfileService(
-      cdConnector, testAccess, entityConnectorLocal, MicroserviceAuditConnectorTest, conflictPreferencesConnector)
-    override val service: CustomerProfileService = testCustomerProfileServiceLocal
+    override val service: CustomerProfileService = testCustomerProfileService
     override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
   }
 }
 
 trait AuthWithoutNino extends Setup with AuthorityTest {
 
-  override lazy val testAccess = new TestAccountAccessControl(None) {
+  override lazy val testAccess = new TestAccountAccessControl(None, None, mockAuthConnector,
+    mockHttp, "someUrl", 200) {
     lazy val exception = new NinoNotFoundOnAccount("The user must have a National Insurance Number")
+
     override def accounts(implicit hc: HeaderCarrier): Future[Accounts] = Future.failed(exception)
-    override def grantAccess(taxId:Option[Nino])(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = Future.failed(exception)
+
+    override def grantAccess(taxId: Option[Nino])(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = Future.failed(exception)
   }
 
-  override lazy val testCompositeAction = new TestAccountAccessControlWithAccept(testAccess)
+  lazy val testCompositeAction = new AccountAccessControlWithHeaderCheck(testAccess)
 
   val controller = new CustomerProfileController {
-    val app = "AuthWithoutNino Customer Profile"
-    override val service: CustomerProfileService = testCustomerProfileService
-    override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
+    override val app = "AuthWithoutNino Customer Profile"
+    override val service = testCustomerProfileService
+    override val accessControl = testCompositeAction
   }
 }
 
 trait AuthWithLowCL extends Setup with AuthorityTest {
-  val routeToIv=true
-  val routeToTwoFactor=false
+  val routeToIv = true
+  val routeToTwoFactor = false
 
-  override lazy val testAccess = new TestAccountAccessControl(None) {
+  override lazy val testAccess = new TestAccountAccessControl(None, None, mockAuthConnector,
+    mockHttp, "someUrl", 200) {
     lazy val exception = new AccountWithLowCL("Forbidden to access since low CL")
+
     override def accounts(implicit hc: HeaderCarrier): Future[Accounts] =
       Future.successful(Accounts(Some(nino), None, routeToIv, routeToTwoFactor, "102030394AAA"))
-    override def grantAccess(taxId:Option[Nino])(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = Future.failed(exception)
+
+    override def grantAccess(taxId: Option[Nino])(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = Future.failed(exception)
   }
 
-  override lazy val testCompositeAction = new TestAccountAccessControlWithAccept(testAccess)
+  lazy val testCompositeAction = new AccountAccessControlWithHeaderCheck(testAccess)
 
   val controller = new CustomerProfileController {
     val app = "AuthWithLowCL Customer Profile"
@@ -335,6 +403,7 @@ trait AuthWithLowCL extends Setup with AuthorityTest {
   }
 
 }
+
 
 trait SandboxSuccess extends Setup {
   val controller = new CustomerProfileController {
@@ -345,10 +414,19 @@ trait SandboxSuccess extends Setup {
 }
 
 trait SandboxPaperlessCreated extends SandboxSuccess {
-  override lazy val entityConnector = new TestEntityResolverConnector(PreferencesCreated, defaultPreference)
+  lazy val entityConnector = new TestEntityResolverConnector(PreferencesCreated, defaultPreference, defaultEntity,
+    "someUrl", mockHttp, mockConfiguration, mockEnvironment)
+  lazy val testCompositeAction = new AccountAccessControlWithHeaderCheck(testAccess)
 
-  override lazy val testCustomerProfileService = new TestCustomerProfileService(
-    cdConnector, testAccess, entityConnector, MicroserviceAuditConnectorTest, preferencesConnector)
+  override lazy val testCustomerProfileService = new LiveCustomerProfileService(mockCitizenDetailsConnector, mockPreferencesConnector,
+    entityConnector, testAccess, mockConfiguration, mockAuditConnector) {
+    var saveDetails: Map[String, String] = Map.empty
+
+    override def audit(service: String, details: Map[String, String])(implicit hc: HeaderCarrier, ec: ExecutionContext) = {
+      saveDetails = details
+      Future.successful(AuditResult.Success)
+    }
+  }
 
   override val controller = new CustomerProfileController {
     val app = "SandboxPaperlessCreated Customer Profile"
@@ -358,9 +436,18 @@ trait SandboxPaperlessCreated extends SandboxSuccess {
 }
 
 trait SandboxPaperlessFailed extends SandboxPaperlessCreated {
-  override lazy val entityConnector = new TestEntityResolverConnector(PreferencesFailure, defaultPreference)
-  override lazy val testCustomerProfileService = new TestCustomerProfileService(
-    cdConnector, testAccess, entityConnector, MicroserviceAuditConnectorTest, preferencesConnector)
+  override lazy val entityConnector = new TestEntityResolverConnector(PreferencesFailure, defaultPreference, defaultEntity,
+    "someUrl", mockHttp, mockConfiguration, mockEnvironment)
+
+  override lazy val testCustomerProfileService = new LiveCustomerProfileService(mockCitizenDetailsConnector, mockPreferencesConnector,
+  entityConnector, testAccess, mockConfiguration, mockAuditConnector) {
+    var saveDetails: Map[String, String] = Map.empty
+
+    override def audit(service: String, details: Map[String, String])(implicit hc: HeaderCarrier, ec: ExecutionContext) = {
+      saveDetails = details
+      Future.successful(AuditResult.Success)
+    }
+  }
 
   override val controller = new CustomerProfileController {
     val app = "SandboxPaperlessFailed Customer Profile"
@@ -369,30 +456,29 @@ trait SandboxPaperlessFailed extends SandboxPaperlessCreated {
   }
 }
 
-trait SuccessNativeVersionChecker extends Setup {
-  lazy val upgrade = false
-
-  val controller = new NativeVersionCheckerController {
-    val app = "Test-Native-Version-Checker"
-    override val upgradeRequiredCheckerService = upgradeService(upgrade)
-    override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
-  }
-}
-
-trait SandboxNativeVersionChecker extends Setup {
-  lazy val upgrade = false
-
-  val controller = new NativeVersionCheckerController {
-    val app = "Test-Native-Version-Checker"
-    override val upgradeRequiredCheckerService = SandboxUpgradeRequiredCheckerService
-    override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
-  }
-}
+//trait SuccessNativeVersionChecker extends Setup {
+//  lazy val upgrade = false
+//
+//  val controller = new NativeVersionCheckerController {
+//    val app = "Test-Native-Version-Checker"
+//    override val upgradeRequiredCheckerService: TestUpgradeRequiredCheckerService = upgradeService(upgrade)
+//    override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
+//  }
+//}
+//
+//trait SandboxNativeVersionChecker extends Setup {
+//  lazy val upgrade = false
+//
+//  val controller = new NativeVersionCheckerController {
+//    val app = "Test-Native-Version-Checker"
+//    override val upgradeRequiredCheckerService = mock[SandboxUpgradeRequiredCheckerService]
+//    override val accessControl: AccountAccessControlWithHeaderCheck = testCompositeAction
+//  }
+//}
 
 class LoggerLikeStub extends LoggerLike {
-  import scala.collection.mutable.Buffer
 
-  val logMessages: Buffer[String] = Buffer()
+  val logMessages: mutable.Buffer[String] = mutable.Buffer()
 
   override val logger: Logger = null
 

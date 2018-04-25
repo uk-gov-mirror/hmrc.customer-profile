@@ -67,8 +67,13 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
   final def getAccounts(journeyId: Option[String] = None): Action[AnyContent] =
     accessControl.validateAcceptWithoutAuth(acceptHeaderValidationRules).async {
       implicit request =>
-        implicit val hc = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
-        errorWrapper(service.getAccounts().map(as => Ok(Json.toJson(as))))
+        implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
+        errorWrapper(
+          service.getAccounts().map(
+            as =>
+              Ok(Json.toJson(as))
+          )
+        )
     }
 
   def getLogger: LoggerLike = Logger
@@ -76,7 +81,7 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
   final def getPersonalDetails(nino: Nino, journeyId: Option[String] = None): Action[AnyContent] =
     accessControl.validateAcceptWithAuth(acceptHeaderValidationRules, Some(nino)).async {
       implicit request =>
-        implicit val hc = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
+        implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
         errorWrapper(
           service.getPersonalDetails(nino)
             .map(as => Ok(Json.toJson(as)))
@@ -90,7 +95,7 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
   final def getPreferences(journeyId: Option[String] = None): Action[AnyContent] =
     accessControl.validateAccept(acceptHeaderValidationRules).async {
       implicit request =>
-        implicit val hc = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
+        implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
         errorWrapper(
           service.getPreferences().map {
             case Some(response) => Ok(Json.toJson(response))
@@ -101,20 +106,20 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
 
   final def paperlessSettingsOptIn(journeyId: Option[String] = None): Action[JsValue] =
     accessControl.validateAccept(acceptHeaderValidationRules).async(BodyParsers.parse.json) {
-      implicit request ⇒
+      implicit request =>
         implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
         request.body.validate[Paperless].fold(
-          errors ⇒ {
+          errors => {
             Logger.warn("Received error with service getPaperlessSettings: " + errors)
             Future.successful(BadRequest(Json.toJson(ErrorGenericBadRequest(errors))))
           },
           settings => {
             errorWrapper(service.paperlessSettings(settings).map {
-              case PreferencesExists | EmailUpdateOk ⇒ Ok
-              case PreferencesCreated ⇒ Created
-              case EmailNotExist ⇒ Conflict(Json.toJson(ErrorPreferenceConflict))
-              case NoPreferenceExists ⇒ NotFound(Json.toJson(ErrorNotFound))
-              case _ ⇒ InternalServerError(Json.toJson(PreferencesSettingsError))
+              case PreferencesExists | EmailUpdateOk => Ok
+              case PreferencesCreated => Created
+              case EmailNotExist => Conflict(Json.toJson(ErrorPreferenceConflict))
+              case NoPreferenceExists => NotFound(Json.toJson(ErrorNotFound))
+              case _ => InternalServerError(Json.toJson(PreferencesSettingsError))
             })
           }
         )
@@ -123,7 +128,7 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
   final def paperlessSettingsOptOut(journeyId: Option[String] = None): Action[AnyContent] =
     accessControl.validateAccept(acceptHeaderValidationRules).async {
       implicit request =>
-        implicit val hc = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
+        implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
         errorWrapper(service.paperlessSettingsOptOut().map {
           case PreferencesExists => Ok
           case PreferencesCreated => Created

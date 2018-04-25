@@ -29,13 +29,14 @@ object AppDependencies {
   private val hmrcTestVersion = "3.0.0"
   private val mockitoVersion = "2.11.0"
   private val scalatestplusPlayVersion = "2.0.1"
-  private val wiremockVersion = "2.3.1"
+  private val wiremockVersion = "2.9.0"
 
   object Test {
     def apply() = new TestDependencies {
       override lazy val test = Seq(
         "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
-        "uk.gov.hmrc" %% "hmrctest" % hmrcTestVersion % scope
+        "uk.gov.hmrc" %% "hmrctest" % hmrcTestVersion % scope,
+        "org.mockito" % "mockito-core" % mockitoVersion % scope
       )
     }.test
   }

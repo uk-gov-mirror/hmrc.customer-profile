@@ -36,7 +36,7 @@ class EntityResolverConnectorSpec extends UnitSpec with ScalaFutures {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  implicit val hc = new HeaderCarrier
+  implicit val hc: HeaderCarrier = new HeaderCarrier
 
   private def defaultGetHandler: (String) => Future[AnyRef with HttpResponse] = {
     _ => Future.successful(HttpResponse(200))
@@ -50,7 +50,7 @@ class EntityResolverConnectorSpec extends UnitSpec with ScalaFutures {
     (a, b) => Future.successful(HttpResponse(200))
   }
 
-  class TestPreferencesConnector extends EntityResolverConnector with ServicesConfig with ServicesCircuitBreaker {
+  class TestPreferencesConnector extends EntityResolverConnector("http://entity-resolver.service/", ???, ???, ???) with ServicesConfig with ServicesCircuitBreaker {
     val serviceUrl = "http://entity-resolver.service/"
 
     override protected def circuitBreakerConfig = CircuitBreakerConfig(externalServiceName, 5, 2000, 2000)
@@ -61,7 +61,7 @@ class EntityResolverConnectorSpec extends UnitSpec with ScalaFutures {
   def entityResolverConnector(returnFromDoGet: String => Future[HttpResponse] = defaultGetHandler,
                               returnFromDoPost: (String, Any) => Future[HttpResponse] = defaultPostHandler,
                               returnFromDoPut: (String, Any) => Future[HttpResponse] = defaultPutHandler) = new TestPreferencesConnector {
-    override val http = new CoreGet with HttpGet with CorePost with HttpPost with AppName {
+    override val http = new CoreGet with HttpGet with CorePost with HttpPost {
       def doGet(url: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = returnFromDoGet(url)
 
       def doPostString(url: String, body: String, headers: Seq[(String, String)])(implicit hc: HeaderCarrier): Future[HttpResponse] = ???
@@ -170,9 +170,7 @@ class EntityResolverConnectorSpec extends UnitSpec with ScalaFutures {
       override val status = 401
       override val expectedPayload = Paperless(TermsAccepted(true), email)
 
-      whenReady(connector.paperlessSettings(Paperless(TermsAccepted(true), email)).failed) {
-        case e => e shouldBe an[Upstream4xxResponse]
-      }
+      whenReady(connector.paperlessSettings(Paperless(TermsAccepted(true), email)).failed)(e => e shouldBe an[Upstream4xxResponse])
     }
   }
 
@@ -202,9 +200,7 @@ class EntityResolverConnectorSpec extends UnitSpec with ScalaFutures {
 
       override def status: Int = 401
 
-      whenReady(connector.paperlessSettings(Paperless(TermsAccepted(true), email)).failed) {
-        case e => e shouldBe an[Upstream4xxResponse]
-      }
+      whenReady(connector.paperlessSettings(Paperless(TermsAccepted(true), email)).failed)(e => e shouldBe an[Upstream4xxResponse])
     }
   }
 

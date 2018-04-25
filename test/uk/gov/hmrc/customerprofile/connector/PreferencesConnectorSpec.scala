@@ -33,11 +33,15 @@ import scala.concurrent.Future
 class PreferencesConnectorSpec extends UnitSpec {
 
   implicit val hc = HeaderCarrier()
-  class TestPreferencesConnector extends PreferencesConnector with ServicesConfig with ServicesCircuitBreaker {
+
+  class TestPreferencesConnector extends PreferencesConnector(???, "http://preferences.service/", "preferences", ???, ???)
+    with ServicesConfig with ServicesCircuitBreaker {
     val serviceUrl = "http://preferences.service/"
-    override protected val externalServiceName: String = "preferences"
+    override val externalServiceName: String = "preferences"
+
     override protected def circuitBreakerConfig = CircuitBreakerConfig(externalServiceName, 5, 2000, 2000)
-    def http : HttpPut = ???
+
+    def http: HttpPut = ???
   }
 
   def preferenceConnector(response: HttpResponse) = new TestPreferencesConnector {
@@ -46,7 +50,9 @@ class PreferencesConnectorSpec extends UnitSpec {
       override def doPut[A](url: String, body: A)(implicit rds: Writes[A], hc: HeaderCarrier): Future[HttpResponse] = {
         Future.successful(response)
       }
+
       override def configuration: Option[Config] = None
+
       override val hooks: Seq[HttpHook] = Seq.empty
     }
   }
