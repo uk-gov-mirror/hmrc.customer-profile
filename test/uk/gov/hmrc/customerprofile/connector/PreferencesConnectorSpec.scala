@@ -17,8 +17,10 @@
 package uk.gov.hmrc.customerprofile.connector
 
 import com.typesafe.config.Config
+import org.scalatest.mockito.MockitoSugar
 import play.api.http.Status._
 import play.api.libs.json.Writes
+import play.api.{Configuration, Environment}
 import uk.gov.hmrc.circuitbreaker.CircuitBreakerConfig
 import uk.gov.hmrc.customerprofile.config.ServicesCircuitBreaker
 import uk.gov.hmrc.customerprofile.domain.ChangeEmail
@@ -30,31 +32,33 @@ import uk.gov.hmrc.play.test.UnitSpec
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class PreferencesConnectorSpec extends UnitSpec {
+class PreferencesConnectorSpec extends UnitSpec with MockitoSugar {
 
   implicit val hc = HeaderCarrier()
 
-  class TestPreferencesConnector extends PreferencesConnector(???, "http://preferences.service/", "preferences", ???, ???)
-    with ServicesConfig with ServicesCircuitBreaker {
+  class TestPreferencesConnector(http: CoreGet with CorePut, configuration: Configuration, environment: Environment)
+    extends PreferencesConnector(http, "http://preferences.service/", "preferences", configuration, environment)
+      with ServicesConfig with ServicesCircuitBreaker {
     val serviceUrl = "http://preferences.service/"
     override val externalServiceName: String = "preferences"
 
     override protected def circuitBreakerConfig = CircuitBreakerConfig(externalServiceName, 5, 2000, 2000)
-
-    def http: HttpPut = ???
   }
 
-  def preferenceConnector(response: HttpResponse) = new TestPreferencesConnector {
-    self: ServicesCircuitBreaker ⇒
-    override def http: HttpPut = new HttpPut {
-      override def doPut[A](url: String, body: A)(implicit rds: Writes[A], hc: HeaderCarrier): Future[HttpResponse] = {
+  def preferenceConnector(response: HttpResponse): TestPreferencesConnector = {
+    def http = new CoreGet with HttpGet with CorePut with HttpPut {
+      def doGet(url: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = ???
+
+      def doPut[A](url: String, body: A)(implicit rds: Writes[A], hc: HeaderCarrier): Future[HttpResponse] = {
         Future.successful(response)
       }
 
-      override def configuration: Option[Config] = None
+      def configuration: Option[Config] = None
 
-      override val hooks: Seq[HttpHook] = Seq.empty
+      val hooks: Seq[HttpHook] = Seq.empty
     }
+
+    new TestPreferencesConnector(http, mock[Configuration], mock[Environment])
   }
 
   "preferences connector" should {

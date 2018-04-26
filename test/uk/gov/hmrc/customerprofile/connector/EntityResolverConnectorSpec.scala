@@ -18,21 +18,23 @@ package uk.gov.hmrc.customerprofile.connector
 
 import com.typesafe.config.Config
 import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.mockito.MockitoSugar
 import play.api.libs.json.{Json, Writes}
+import play.api.{Configuration, Environment}
 import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UnhealthyServiceException}
-import uk.gov.hmrc.customerprofile.config.ServicesCircuitBreaker
+import uk.gov.hmrc.customerprofile.config.{ServicesCircuitBreaker, WSHttpImpl}
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status
 import uk.gov.hmrc.customerprofile.domain.{EmailPreference, Paperless, Preference, TermsAccepted}
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.emailaddress.EmailAddress
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.hooks.HttpHook
-import uk.gov.hmrc.play.config.{AppName, ServicesConfig}
+import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
-class EntityResolverConnectorSpec extends UnitSpec with ScalaFutures {
+class EntityResolverConnectorSpec extends UnitSpec with ScalaFutures with MockitoSugar {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -50,18 +52,21 @@ class EntityResolverConnectorSpec extends UnitSpec with ScalaFutures {
     (a, b) => Future.successful(HttpResponse(200))
   }
 
-  class TestPreferencesConnector extends EntityResolverConnector("http://entity-resolver.service/", ???, ???, ???) with ServicesConfig with ServicesCircuitBreaker {
-    val serviceUrl = "http://entity-resolver.service/"
+  private def http = mock[WSHttpImpl]
+
+  class TestPreferencesConnector(http: CoreGet with CorePost,
+                                 runModeConfiguration: Configuration,
+                                 environment: Environment)
+    extends EntityResolverConnector("http://entity-resolver.service/", http, runModeConfiguration, environment)
+      with ServicesConfig with ServicesCircuitBreaker {
 
     override protected def circuitBreakerConfig = CircuitBreakerConfig(externalServiceName, 5, 2000, 2000)
-
-    def http: CoreGet with CorePost = ???
   }
 
   def entityResolverConnector(returnFromDoGet: String => Future[HttpResponse] = defaultGetHandler,
                               returnFromDoPost: (String, Any) => Future[HttpResponse] = defaultPostHandler,
-                              returnFromDoPut: (String, Any) => Future[HttpResponse] = defaultPutHandler) = new TestPreferencesConnector {
-    override val http = new CoreGet with HttpGet with CorePost with HttpPost {
+                              returnFromDoPut: (String, Any) => Future[HttpResponse] = defaultPutHandler) = {
+    val http = new CoreGet with HttpGet with CorePost with HttpPost {
       def doGet(url: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = returnFromDoGet(url)
 
       def doPostString(url: String, body: String, headers: Seq[(String, String)])(implicit hc: HeaderCarrier): Future[HttpResponse] = ???
@@ -78,9 +83,8 @@ class EntityResolverConnectorSpec extends UnitSpec with ScalaFutures {
 
       override def configuration: Option[Config] = None
     }
+    new TestPreferencesConnector(http, mock[Configuration], mock[Environment])
   }
-
-
 
   "The getPreferences method" should {
     val nino = Nino("CE123457D")
@@ -142,8 +146,11 @@ class EntityResolverConnectorSpec extends UnitSpec with ScalaFutures {
   "The upgradeTermsAndConditions method" should {
     trait PayloadCheck {
       def status: Int = 200
+
       def expectedPayload: Paperless
-      def postedPayload(payload: Paperless) = payload should be (expectedPayload)
+
+      def postedPayload(payload: Paperless) = payload should be(expectedPayload)
+
       val email = EmailAddress("test@test.com")
 
       val connector = entityResolverConnector(returnFromDoPost = checkPayloadAndReturn)
@@ -157,13 +164,13 @@ class EntityResolverConnectorSpec extends UnitSpec with ScalaFutures {
     "send accepted true and return preferences created if terms and conditions are accepted and updated and preferences created" in new PayloadCheck {
       override val expectedPayload = Paperless(TermsAccepted(true), email)
 
-      connector.paperlessSettings(Paperless(TermsAccepted(true), email)).futureValue should be (PreferencesExists)
+      connector.paperlessSettings(Paperless(TermsAccepted(true), email)).futureValue should be(PreferencesExists)
     }
 
     "send accepted false and return preferences created if terms and conditions are not accepted and updated and preferences created" in new PayloadCheck {
       override val expectedPayload = Paperless(TermsAccepted(false), email)
 
-      connector.paperlessSettings(Paperless(TermsAccepted(false), email)).futureValue should be (PreferencesExists)
+      connector.paperlessSettings(Paperless(TermsAccepted(false), email)).futureValue should be(PreferencesExists)
     }
 
     "return failure if any problems" in new PayloadCheck {
@@ -177,8 +184,11 @@ class EntityResolverConnectorSpec extends UnitSpec with ScalaFutures {
   "New user" should {
     trait NewUserPayloadCheck {
       def status: Int = 201
+
       def expectedPayload: Paperless
-      def postedPayload(payload: Paperless) = payload should be (expectedPayload)
+
+      def postedPayload(payload: Paperless) = payload should be(expectedPayload)
+
       val email = EmailAddress("test@test.com")
 
       val connector = entityResolverConnector(returnFromDoPost = checkPayloadAndReturn)
@@ -192,7 +202,7 @@ class EntityResolverConnectorSpec extends UnitSpec with ScalaFutures {
     "send accepted true with email" in new NewUserPayloadCheck {
       override def expectedPayload = Paperless(TermsAccepted(true), email)
 
-      connector.paperlessSettings(Paperless(TermsAccepted(true), email)).futureValue should be (PreferencesCreated)
+      connector.paperlessSettings(Paperless(TermsAccepted(true), email)).futureValue should be(PreferencesCreated)
     }
 
     "try and send accepted true with email where preferences not working" in new NewUserPayloadCheck {

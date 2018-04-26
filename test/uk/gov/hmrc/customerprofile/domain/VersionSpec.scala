@@ -24,7 +24,6 @@ class VersionSpec extends FlatSpec with Matchers {
 
   implicit def toRight(s: String) = Right(s)
 
-
   "Version parsing" should "work for '1'" in {
     Version("1") shouldBe Version(1, 0, 0, None)
   }

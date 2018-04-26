@@ -21,19 +21,16 @@ import org.mockito.Mockito._
 import org.scalatest.concurrent.ScalaFutures
 import play.api.libs.json.Json
 import play.api.mvc.Result
-import play.api.test.FakeApplication
 import play.api.test.Helpers._
 import uk.gov.hmrc.customerprofile.connector.EmailNotExist
 import uk.gov.hmrc.customerprofile.domain._
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
+import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class TestCustomerProfileGetAccountSpec extends UnitSpec with ScalaFutures with WithFakeApplication with StubApplicationConfiguration with Setup {
-
-  override lazy val fakeApplication = FakeApplication(additionalConfiguration = config)
+class TestCustomerProfileGetAccountSpec extends UnitSpec with ScalaFutures with StubApplicationConfiguration with Setup {
 
   "getAccount live controller " should {
 
@@ -297,27 +294,27 @@ class TestCustomerProfilePaperlessSettingsSpec extends UnitSpec with ScalaFuture
 
       status(result) shouldBe 406
     }
-    //  }
-    //
-    //  "paperlessSettings sandbox " should {
-    //
-    //    "update paperless settings and 200 response code" in new SandboxSuccess {
-    //      val result: Result = await(controller.paperlessSettingsOptIn()(paperlessRequest))
-    //
-    //      status(result) shouldBe 200
-    //    }
-    //
-    //    "update paperless settings and 200 response code with journeyId" in new SandboxSuccess {
-    //      val result: Result = await(controller.paperlessSettingsOptIn(Some(journeyId))(paperlessRequest))
-    //
-    //      status(result) shouldBe 200
-    //    }
-    //
-    //    "return status code 406 when the headers are invalid" in new SandboxSuccess {
-    //      val result: Result = await(controller.paperlessSettingsOptIn()(paperlessRequestNoAccept))
-    //
-    //      status(result) shouldBe 406
-    //    }
+  }
+
+  "paperlessSettings sandbox " should {
+
+    "update paperless settings and 200 response code" in new SandboxSuccess {
+      val result: Result = await(controller.paperlessSettingsOptIn()(paperlessRequest))
+
+      status(result) shouldBe 200
+    }
+
+    "update paperless settings and 200 response code with journeyId" in new SandboxSuccess {
+      val result: Result = await(controller.paperlessSettingsOptIn(Some(journeyId))(paperlessRequest))
+
+      status(result) shouldBe 200
+    }
+
+    "return status code 406 when the headers are invalid" in new SandboxSuccess {
+      val result: Result = await(controller.paperlessSettingsOptIn()(paperlessRequestNoAccept))
+
+      status(result) shouldBe 406
+    }
   }
 
 }
