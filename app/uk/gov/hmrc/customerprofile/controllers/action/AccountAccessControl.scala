@@ -18,38 +18,37 @@ package uk.gov.hmrc.customerprofile.controllers.action
 
 import java.util.UUID.randomUUID
 
+import com.google.inject.Inject
+import javax.inject.Named
 import play.api.Logger
-import play.api.Play.{configuration, current}
+import play.api.libs.json.Json
 import play.api.libs.json.Json.toJson
 import play.api.mvc.{ActionBuilder, Request, Result, Results}
 import uk.gov.hmrc.api.controllers._
-import uk.gov.hmrc.auth.core.ConfidenceLevel.L0
 import uk.gov.hmrc.auth.core.retrieve.Retrievals._
 import uk.gov.hmrc.auth.core.retrieve.~
-import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions, ConfidenceLevel}
-import uk.gov.hmrc.customerprofile.config.MicroserviceAuthConnector
+import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
 import uk.gov.hmrc.customerprofile.controllers.ErrorUnauthorizedNoNino
 import uk.gov.hmrc.customerprofile.domain.Accounts
 import uk.gov.hmrc.domain.{Nino, SaUtr}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpException, Upstream4xxResponse}
+import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.HeaderCarrierConverter.fromHeadersAndSession
-import uk.gov.hmrc.play.config.ServicesConfig
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.concurrent.{ExecutionContext, Future}
 
 case object ErrorUnauthorizedMicroService extends ErrorResponse(401, "UNAUTHORIZED", "Unauthorized to access resource")
 
-class FailToMatchTaxIdOnAuth(message:String) extends HttpException(message, 401)
-class NinoNotFoundOnAccount(message:String) extends HttpException(message, 401)
-class AccountWithLowCL(message:String) extends HttpException(message, 401)
+class FailToMatchTaxIdOnAuth(message: String) extends HttpException(message, 401)
 
-trait AccountAccessControl extends Results with AuthorisedFunctions{
+class NinoNotFoundOnAccount(message: String) extends HttpException(message, 401)
 
-  import scala.concurrent.ExecutionContext.Implicits.global
+class AccountWithLowCL(message: String) extends HttpException(message, 401)
 
-  val authConnector: AuthConnector = MicroserviceAuthConnector
-
-  def serviceConfidenceLevel: ConfidenceLevel = ???
+class AccountAccessControl @Inject()(val authConnector: AuthConnector,
+                                     val http: CoreGet,
+                                     @Named("auth") val authUrl: String,
+                                     @Named("controllers.confidenceLevel") val serviceConfidenceLevel: Int) extends Results with AuthorisedFunctions {
 
   val ninoNotFoundOnAccount = new NinoNotFoundOnAccount("The user must have a National Insurance Number")
 
@@ -60,45 +59,45 @@ trait AccountAccessControl extends Results with AuthorisedFunctions{
           Future successful Accounts(
             nino.map(Nino(_)),
             saUtr.map(SaUtr(_)),
-            serviceConfidenceLevel.level > confidenceLevel.level,
+            serviceConfidenceLevel > confidenceLevel.level,
             credentialStrength.orNull != "strong",
-            journeyId = randomUUID().toString )
+            journeyId = randomUUID().toString)
         }
       }
   }
 
-  def invokeAuthBlock[A](request: Request[A], block: (Request[A]) => Future[Result], taxId:Option[Nino]) = {
+  def invokeAuthBlock[A](request: Request[A], block: (Request[A]) => Future[Result], taxId: Option[Nino]): Future[Result] = {
     implicit val hc = fromHeadersAndSession(request.headers, None)
 
     grantAccess(taxId).flatMap { access =>
-        block(request)
+      block(request)
     }.recover {
-      case ex: Upstream4xxResponse =>
+      case _: Upstream4xxResponse =>
         Logger.info("Unauthorized! Failed to grant access since 4xx response!")
         Unauthorized(toJson(ErrorUnauthorizedMicroService))
 
-      case ex: NinoNotFoundOnAccount =>
+      case _: NinoNotFoundOnAccount =>
         Logger.info("Unauthorized! NINO not found on account!")
         Unauthorized(toJson(ErrorUnauthorizedNoNino))
 
-      case ex: FailToMatchTaxIdOnAuth =>
+      case _: FailToMatchTaxIdOnAuth =>
         Logger.info("Unauthorized! Failure to match URL NINO against Auth NINO")
         Status(ErrorUnauthorized.httpStatusCode)(toJson(ErrorUnauthorized))
 
-      case ex: AccountWithLowCL =>
+      case _: AccountWithLowCL =>
         Logger.info("Unauthorized! Account with low CL!")
         Unauthorized(toJson(ErrorUnauthorizedLowCL))
     }
   }
 
-  def grantAccess(taxId:Option[Nino])(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = {
+  def grantAccess(taxId: Option[Nino])(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = {
     authorised()
       .retrieve(nino and confidenceLevel) {
         case Some(foundNino) ~ foundConfidenceLevel ⇒ {
           if (foundNino.isEmpty) throw ninoNotFoundOnAccount
           else if (taxId.nonEmpty && !taxId.get.value.equals(foundNino))
             throw new FailToMatchTaxIdOnAuth("The nino in the URL failed to match auth!")
-          else if (serviceConfidenceLevel.level > foundConfidenceLevel.level)
+          else if (serviceConfidenceLevel > foundConfidenceLevel.level)
             throw new AccountWithLowCL("The user does not have sufficient CL permissions to access this service")
           else Future(Unit)
         }
@@ -107,15 +106,23 @@ trait AccountAccessControl extends Results with AuthorisedFunctions{
         }
       }
   }
+
+  def validateAcceptWithoutAuth(rules: Option[String] => Boolean) = new ActionBuilder[Request] {
+    def invokeBlock[A](request: Request[A], block: (Request[A]) => Future[Result]): Future[Result] = {
+      if (rules(request.headers.get("Accept"))) block(request)
+      else Future.successful(Status(ErrorAcceptHeaderInvalid.httpStatusCode)(Json.toJson(ErrorAcceptHeaderInvalid)))
+    }
+  }
 }
 
-trait AccountAccessControlWithHeaderCheck extends HeaderValidator {
-  val checkAccess=true
-  val accessControl:AccountAccessControl
+class AccountAccessControlWithHeaderCheck @Inject()(val accessControl: AccountAccessControl) extends HeaderValidator {
+  val checkAccess = true
+
+  def validateAcceptWithoutAuth(rules: Option[String] => Boolean) = accessControl.validateAcceptWithoutAuth(rules)
 
   def validateAcceptWithAuth(rules: Option[String] => Boolean, taxId: Option[Nino]) = new ActionBuilder[Request] {
 
-    def invokeBlock[A](request: Request[A], block: (Request[A]) => Future[Result]) = {
+    def invokeBlock[A](request: Request[A], block: (Request[A]) => Future[Result]): Future[Result] = {
       if (rules(request.headers.get("Accept"))) {
         if (checkAccess) accessControl.invokeAuthBlock(request, block, taxId)
         else block(request)
@@ -126,7 +133,7 @@ trait AccountAccessControlWithHeaderCheck extends HeaderValidator {
 
   override def validateAccept(rules: Option[String] => Boolean) = new ActionBuilder[Request] {
 
-    def invokeBlock[A](request: Request[A], block: (Request[A]) => Future[Result]) = {
+    def invokeBlock[A](request: Request[A], block: (Request[A]) => Future[Result]): Future[Result] = {
       if (rules(request.headers.get("Accept"))) {
         if (checkAccess) accessControl.invokeAuthBlock(request, block, None)
         else block(request)
@@ -136,25 +143,13 @@ trait AccountAccessControlWithHeaderCheck extends HeaderValidator {
   }
 }
 
-object AccountAccessControl extends AccountAccessControl with ServicesConfig{
-  private lazy val configureConfidenceLevel: Int = configuration.getInt("controllers.confidenceLevel").getOrElse(
-    throw new RuntimeException("The service has not been configured with a confidence level"))
-  private lazy val confidenceLevel = ConfidenceLevel.fromInt(configureConfidenceLevel).getOrElse(
-    throw new RuntimeException(s"unknown confidence level found: $configureConfidenceLevel"))
+class AccountAccessControlOff @Inject()(@Named("auth") override val authUrl: String,
+                                        override val http: HttpGet,
+                                        override val authConnector: AuthConnector,
+                                        override val serviceConfidenceLevel: Int = 0)
+  extends AccountAccessControl(authConnector, http, authUrl, serviceConfidenceLevel)
 
-  override def serviceConfidenceLevel: ConfidenceLevel = confidenceLevel
-}
-
-object AccountAccessControlWithHeaderCheck extends AccountAccessControlWithHeaderCheck {
-  val accessControl: AccountAccessControl = AccountAccessControl
-}
-
-object AccountAccessControlOff extends AccountAccessControl {
-    override def serviceConfidenceLevel: ConfidenceLevel = L0
-}
-
-object AccountAccessControlCheckOff extends AccountAccessControlWithHeaderCheck {
-  override val checkAccess=false
-
-  val accessControl: AccountAccessControl = AccountAccessControlOff
+class AccountAccessControlCheckOff @Inject()(override val accessControl: AccountAccessControl)
+  extends AccountAccessControlWithHeaderCheck(accessControl) {
+  override val checkAccess = false
 }

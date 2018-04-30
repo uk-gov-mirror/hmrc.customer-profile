@@ -24,7 +24,6 @@ class VersionSpec extends FlatSpec with Matchers {
 
   implicit def toRight(s: String) = Right(s)
 
-
   "Version parsing" should "work for '1'" in {
     Version("1") shouldBe Version(1, 0, 0, None)
   }
@@ -165,20 +164,20 @@ class VersionSpec extends FlatSpec with Matchers {
   }
 
   "Version" should "recognise an early release" in {
-    Version.isSnapshot(Version(2,2,3, Some(Right("SNAPSHOT")))) shouldBe true
-    Version.isSnapshot(Version(2,2,2)) shouldBe false
+    Version.isSnapshot(Version(2, 2, 3, Some(Right("SNAPSHOT")))) shouldBe true
+    Version.isSnapshot(Version(2, 2, 2)) shouldBe false
   }
 
   it should "recognise '*-SNAP1' as a snapshot" in {
-    Version.isSnapshot(Version(2,2,3, Some(Right("M1")))) shouldBe true
+    Version.isSnapshot(Version(2, 2, 3, Some(Right("M1")))) shouldBe true
   }
 
   it should "recognise '*-M1' as a snapshot" in {
-    Version.isSnapshot(Version(2,2,3, Some(Right("M1")))) shouldBe true
+    Version.isSnapshot(Version(2, 2, 3, Some(Right("M1")))) shouldBe true
   }
 
   it should "recognise '*-FINAL' as a release" in {
-    Version.isSnapshot(Version(2,2,3, Some(Right("FINAL")))) shouldBe false
+    Version.isSnapshot(Version(2, 2, 3, Some(Right("FINAL")))) shouldBe false
   }
 
   it should "recognise '2.3.0_0.1.8' as a release" in {

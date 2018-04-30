@@ -16,13 +16,15 @@
 
 package uk.gov.hmrc.customerprofile.connector
 
-import play.api.Logger
+import com.google.inject.{Inject, Singleton}
+import javax.inject.Named
+import play.api.Mode.Mode
 import play.api.http.Status
-import uk.gov.hmrc.customerprofile.config.{ServicesCircuitBreaker, WSHttp}
+import play.api.{Configuration, Environment, Logger}
+import uk.gov.hmrc.customerprofile.config.ServicesCircuitBreaker
 import uk.gov.hmrc.customerprofile.domain.{Paperless, PaperlessOptOut, Preference, TermsAccepted}
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http._
-import uk.gov.hmrc.play.config.ServicesConfig
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -44,28 +46,27 @@ case object EmailNotExist extends PreferencesStatus
 
 case object NoPreferenceExists extends PreferencesStatus
 
-
-trait EntityResolverConnector extends Status {
-  this: ServicesCircuitBreaker =>
+@Singleton
+class EntityResolverConnector @Inject()(@Named("entity-resolver") serviceUrl: String,
+                                        http: CoreGet with CorePost,
+                                        val runModeConfiguration: Configuration, environment: Environment) extends ServicesCircuitBreaker with Status {
 
   import Paperless.formats
 
+  override protected def mode: Mode = environment.mode
+
   val externalServiceName = "entity-resolver"
-
-  def http: CoreGet with CorePost
-
-  def serviceUrl: String
 
   def url(path: String) = s"$serviceUrl$path"
 
-  def getPreferences()(implicit headerCarrier: HeaderCarrier, ex : ExecutionContext): Future[Option[Preference]] =
+  def getPreferences()(implicit headerCarrier: HeaderCarrier, ex: ExecutionContext): Future[Option[Preference]] =
     withCircuitBreaker(http.GET[Option[Preference]](url(s"/preferences")))
       .recover {
         case response: Upstream4xxResponse if response.upstreamResponseCode == GONE => None
-        case e: NotFoundException => None
+        case _: NotFoundException => None
       }
 
-  def paperlessSettings(paperless: Paperless)(implicit hc: HeaderCarrier, ex : ExecutionContext): Future[PreferencesStatus] =
+  def paperlessSettings(paperless: Paperless)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] =
     withCircuitBreaker(http.POST(url(s"/preferences/terms-and-conditions"), paperless)).map(_.status).map {
       case OK => PreferencesExists
       case CREATED => PreferencesCreated
@@ -74,7 +75,7 @@ trait EntityResolverConnector extends Status {
         PreferencesFailure
     }
 
-  def paperlessOptOut()(implicit hc: HeaderCarrier, ex : ExecutionContext): Future[PreferencesStatus] =
+  def paperlessOptOut()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] =
     withCircuitBreaker(http.POST(url(s"/preferences/terms-and-conditions"), PaperlessOptOut(TermsAccepted(false)))).map(_.status).map {
       case OK => PreferencesExists
       case CREATED =>
@@ -89,15 +90,9 @@ trait EntityResolverConnector extends Status {
         PreferencesFailure
     }
 
-  def getEntityIdByNino(nino: Nino)(implicit hc: HeaderCarrier, ex : ExecutionContext): Future[Entity] = {
+  def getEntityIdByNino(nino: Nino)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Entity] = {
     withCircuitBreaker {
       http.GET[Entity](url(s"/entity-resolver/paye/${nino.nino}"))
     }
   }
-}
-
-object EntityResolverConnector extends EntityResolverConnector with ServicesConfig with ServicesCircuitBreaker {
-  override val serviceUrl = baseUrl("entity-resolver")
-
-  override def http = WSHttp
 }

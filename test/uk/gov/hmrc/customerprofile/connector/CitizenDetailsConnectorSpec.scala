@@ -29,38 +29,39 @@ import scala.concurrent.Future
 
 class CitizenDetailsConnectorSpec
   extends UnitSpec
-          with ScalaFutures {
+    with ScalaFutures {
 
   private trait Setup {
 
-    implicit lazy val hc = HeaderCarrier()
+    implicit lazy val hc: HeaderCarrier = HeaderCarrier()
 
-    val person = PersonDetails("etag", Person(Some("Firstname"), Some("Lastname"),Some("Middle"),Some("Intial"),
-      Some("Title"),Some("Honours"), Some("sex"),None, None), None)
+    val person = PersonDetails("etag", Person(Some("Firstname"), Some("Lastname"), Some("Middle"), Some("Intial"),
+      Some("Title"), Some("Honours"), Some("sex"), None, None), None)
     val nino = Nino("CS700100A")
 
     lazy val http500Response = Future.failed(Upstream5xxResponse("Error", 500, 500))
     lazy val http400Response = Future.failed(new BadRequestException("bad request"))
-    lazy val http200Response = Future.successful(HttpResponse(200, None))//Some(Json.toJson(person))))
+    lazy val http200Response = Future.successful(HttpResponse(200, None))
 
     lazy val response: Future[HttpResponse] = http400Response
 
-    val connector = new CitizenDetailsConnector {
-      override lazy val citizenDetailsConnectorUrl = "someUrl"
-      override lazy val http: CoreGet = new CoreGet with HttpGet {
-        override val hooks: Seq[HttpHook] = NoneRequired
-        override def doGet(url: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = response
-        override def configuration: Option[Config] = None
-      }
+    val testHttp = new CoreGet with HttpGet {
+      override val hooks: Seq[HttpHook] = NoneRequired
+
+      override def doGet(url: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = response
+
+      override def configuration: Option[Config] = None
     }
+
+    val connector = new CitizenDetailsConnector("someUrl", testHttp)
   }
 
   "citizenDetailsConnector" should {
 
     "throw BadRequestException when a 400 response is returned" in new Setup {
       override lazy val response = http400Response
-        intercept[BadRequestException] {
-          await(connector.personDetails(nino))
+      intercept[BadRequestException] {
+        await(connector.personDetails(nino))
       }
     }
 

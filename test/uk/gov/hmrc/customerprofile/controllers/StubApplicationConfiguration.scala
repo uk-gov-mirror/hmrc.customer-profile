@@ -18,7 +18,7 @@ package uk.gov.hmrc.customerprofile.controllers
 
 trait StubApplicationConfiguration {
 
-  val config = Map[String, Any](
+  val config: Map[String, Any] = Map[String, Any](
     "auditing.enabled" → false,
     "microservice.services.datastream.host" → "host",
     "microservice.services.datastream.port" → "1234",

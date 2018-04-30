@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.customerprofile.controllers
 
+import com.google.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.json.{JsError, Json}
 import play.api.mvc.BodyParsers
@@ -25,7 +26,7 @@ import uk.gov.hmrc.customerprofile.domain.DeviceVersion
 import uk.gov.hmrc.customerprofile.services.{LiveUpgradeRequiredCheckerService, SandboxUpgradeRequiredCheckerService, UpgradeRequiredCheckerService}
 import uk.gov.hmrc.play.HeaderCarrierConverter
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
-import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
 import scala.concurrent.Future
 
@@ -61,14 +62,16 @@ trait NativeVersionCheckerController extends BaseController with HeaderValidator
   }
 }
 
-object SandboxNativeVersionCheckerController extends NativeVersionCheckerController {
+@Singleton
+class SandboxNativeVersionCheckerController @Inject()(val accessControl: AccountAccessControlCheckOff,
+                                                      val upgradeRequiredCheckerService: SandboxUpgradeRequiredCheckerService)
+  extends NativeVersionCheckerController {
   val app = "Sandbox-Native-Version-Checker"
-  override val accessControl = AccountAccessControlCheckOff
-  override val upgradeRequiredCheckerService: UpgradeRequiredCheckerService = SandboxUpgradeRequiredCheckerService
 }
 
-object LiveNativeVersionCheckerController extends NativeVersionCheckerController {
+@Singleton
+class LiveNativeVersionCheckerController @Inject()(val accessControl: AccountAccessControlCheckOff,
+                                                   val upgradeRequiredCheckerService: LiveUpgradeRequiredCheckerService)
+  extends NativeVersionCheckerController {
   val app = "Live-Native-Version-Checker"
-  override val accessControl = AccountAccessControlCheckOff
-  override val upgradeRequiredCheckerService: UpgradeRequiredCheckerService = LiveUpgradeRequiredCheckerService
 }

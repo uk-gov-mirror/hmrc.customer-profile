@@ -16,16 +16,10 @@
 
 package uk.gov.hmrc.customerprofile.controllers
 
-import uk.gov.hmrc.api.controllers.ErrorResponse
 import play.api.http.Status._
-
-case object ErrorNinoInvalid extends ErrorResponse(BAD_REQUEST, "NINO_INVALID", "The provided NINO is invalid")
+import uk.gov.hmrc.api.controllers.ErrorResponse
 
 case object ErrorUnauthorizedNoNino extends ErrorResponse(UNAUTHORIZED, "UNAUTHORIZED", "NINO does not exist on account")
-
-case object ErrorUnauthorizedMicroService extends ErrorResponse(UNAUTHORIZED, "UNAUTHORIZED", "Unauthorized to access resource")
-
-case object ErrorUnauthorizedWeakCredStrength extends ErrorResponse(UNAUTHORIZED, "WEAK_CRED_STRENGTH", "Credential Strength on account does not allow access")
 
 case object ErrorManualCorrespondenceIndicator extends ErrorResponse(LOCKED, "MANUAL_CORRESPONDENCE_IND", "Data cannot be disclosed to the user because MCI flag is set in NPS")
 

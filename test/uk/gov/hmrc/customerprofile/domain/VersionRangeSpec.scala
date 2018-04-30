@@ -20,7 +20,6 @@ import org.scalatest.{FlatSpec, Matchers}
 
 class VersionRangeSpec extends FlatSpec with Matchers {
 
-
   "A VersionRange" should "read (,1.0] as 'x <= 1.0'" in {
 
     val r = VersionRange("(,1.0.0]")

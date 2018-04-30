@@ -17,9 +17,9 @@
 package uk.gov.hmrc.customerprofile.domain
 
 import play.api.Logger
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status
-import uk.gov.hmrc.domain.SaUtr
+import uk.gov.hmrc.domain.{Nino, SaUtr}
 import uk.gov.hmrc.emailaddress.EmailAddress
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.time.DateTimeUtils
@@ -55,28 +55,28 @@ object DomainGenerator {
 
   import uk.gov.hmrc.domain.Generator
 
-  val nino = new Generator().nextNino
-  val saUtr = new SaUtrGenerator().nextSaUtr
+  val nino: Nino = new Generator().nextNino
+  val saUtr: SaUtr = new SaUtrGenerator().nextSaUtr
 
-  val accountsWithNinoAndSaUtr = Accounts(Some(nino), Some(saUtr), false, false, "102030394AAA")
-  lazy val accountsWithNinoAndSaUtrAsJson = Json.toJson(accountsWithNinoAndSaUtr)
+  val accountsWithNinoAndSaUtr = Accounts(Some(nino), Some(saUtr), routeToIV = false, routeToTwoFactor = false, "102030394AAA")
+  lazy val accountsWithNinoAndSaUtrAsJson: JsValue = Json.toJson(accountsWithNinoAndSaUtr)
 
   val email = EmailAddress("name@email.co.uk")
 
   val paperless = Paperless(TermsAccepted(true), email)
-  lazy val paperlessAsJson = Json.toJson(paperless)
+  lazy val paperlessAsJson: JsValue = Json.toJson(paperless)
 
   val paperlessOptOut = PaperlessOptOut(TermsAccepted(false))
-  lazy val paperlessOptOutAsJson = Json.toJson(paperlessOptOut)
+  lazy val paperlessOptOutAsJson: JsValue = Json.toJson(paperlessOptOut)
 
-  val verifiedEmailPreference = Preference(true, Some(EmailPreference(email, Status.Verified)))
-  lazy val verifiedEmailPreferenceAsJson = Json.toJson(verifiedEmailPreference)
+  val verifiedEmailPreference = Preference(digital = true, Some(EmailPreference(email, Status.Verified)))
+  lazy val verifiedEmailPreferenceAsJson: JsValue = Json.toJson(verifiedEmailPreference)
 
   val etag = "etag12345"
   val person = Person(Some("John"), Some("Albert"), Some("Smith"), None, Some("Mr"), None, Some("M"), Some(DateTimeUtils.now.minusYears(30)), Some(nino))
-  val address = None
+  val address: Option[Address] = None
   val personalDetails = PersonDetails(etag, person, address)
-  lazy val personalDetailsAsJson = Json.toJson(personalDetails)
+  lazy val personalDetailsAsJson: JsValue = Json.toJson(personalDetails)
 
 }
 
@@ -84,7 +84,7 @@ object DomainGenerator {
 sealed class SaUtrGenerator(random: Random = new Random) {
   def this(seed: Int) = this(new scala.util.Random(seed))
 
-  def randomNext = random.nextInt(1000000)
+  def randomNext: Int = random.nextInt(1000000)
 
   def nextSaUtr: SaUtr = SaUtr(randomNext.toString)
 }

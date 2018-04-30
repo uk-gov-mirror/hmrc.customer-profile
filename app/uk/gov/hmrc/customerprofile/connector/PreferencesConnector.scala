@@ -17,13 +17,15 @@
 package uk.gov.hmrc.customerprofile.connector
 
 
-import play.api.Logger
-import play.api.libs.json.Json
+import com.google.inject.{Inject, Singleton}
+import javax.inject.Named
+import play.api.Mode.Mode
+import play.api.libs.json.{Json, OFormat}
+import play.api.{Configuration, Environment, Logger}
 import play.mvc.Http.Status._
-import uk.gov.hmrc.customerprofile.config.{ServicesCircuitBreaker, WSHttp}
+import uk.gov.hmrc.customerprofile.config.ServicesCircuitBreaker
 import uk.gov.hmrc.customerprofile.domain.ChangeEmail
 import uk.gov.hmrc.http._
-import uk.gov.hmrc.play.config.ServicesConfig
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -31,18 +33,21 @@ import scala.concurrent.{ExecutionContext, Future}
 case class Entity(_id: String)
 
 object Entity {
-  implicit val format = Json.format[Entity]
+  implicit val format: OFormat[Entity] = Json.format[Entity]
 }
 
-trait PreferencesConnector {
+@Singleton
+class PreferencesConnector @Inject()(http: CorePut with CoreGet,
+                                     @Named("preferences") serviceUrl: String,
+                                     override val externalServiceName: String,
+                                     val runModeConfiguration: Configuration, environment: Environment) extends ServicesCircuitBreaker {
 
-  self: ServicesCircuitBreaker ⇒
-  def serviceUrl: String
-  def http : HttpPut
-  def url(path: String) : String = s"$serviceUrl$path"
+  override protected def mode: Mode = environment.mode
 
-  def updatePendingEmail(changeEmail: ChangeEmail, entityId: String)(implicit hc: HeaderCarrier, ex : ExecutionContext): Future[PreferencesStatus] = {
-    http.PUT(url(s"/preferences/${entityId}/pending-email"), changeEmail).map(_ ⇒ EmailUpdateOk).recoverWith {
+  def url(path: String): String = s"$serviceUrl$path"
+
+  def updatePendingEmail(changeEmail: ChangeEmail, entityId: String)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] = {
+    http.PUT(url(s"/preferences/$entityId/pending-email"), changeEmail).map(_ => EmailUpdateOk).recoverWith {
       case e: NotFoundException ⇒ log(e.message, entityId); Future(NoPreferenceExists)
       case e: Upstream4xxResponse ⇒ {
         e.upstreamResponseCode match {
@@ -55,13 +60,7 @@ trait PreferencesConnector {
     }
   }
 
-  def log(msg: String, entityId: String) = {
+  def log(msg: String, entityId: String): Unit = {
     Logger.warn(msg + s" for entity $entityId")
   }
-}
-
-object PreferencesConnector extends PreferencesConnector with ServicesConfig with ServicesCircuitBreaker {
-  override def http: HttpPut with CoreGet = WSHttp
-  override protected val externalServiceName: String = "preferences"
-  override def serviceUrl: String = baseUrl(externalServiceName)
 }
