@@ -20,11 +20,11 @@ import java.io.InputStream
 
 import org.scalatest.concurrent.Eventually
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.customerprofile.domain.{ChangeEmail, Paperless, TermsAccepted}
+import uk.gov.hmrc.customerprofile.domain.{Paperless, TermsAccepted}
 import uk.gov.hmrc.customerprofile.stubs.AuthStub._
 import uk.gov.hmrc.customerprofile.stubs.CitizenDetailsStub.{designatoryDetailsForNinoAre, designatoryDetailsWillReturnErrorResponse, npsDataIsLockedDueToMciFlag}
 import uk.gov.hmrc.customerprofile.stubs.EntityResolverStub._
-import uk.gov.hmrc.customerprofile.stubs.PreferencesStub.{conflictPendingEmailUpdate, errorPendingEmailUpdate, notFoundPendingEmailUpdate, successfulPendingEmailUpdate}
+import uk.gov.hmrc.customerprofile.stubs.PreferencesStub.{conflictPendingEmailUpdate, errorPendingEmailUpdate, successfulPendingEmailUpdate}
 import uk.gov.hmrc.customerprofile.support.BaseISpec
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.emailaddress.EmailAddress
@@ -115,7 +115,7 @@ class CustomerProfileISpec extends BaseISpec with Eventually {
       respondWithEntityDetailsByNino(nino.value, entityId)
       respondPreferencesNoPaperlessSet()
       authRecordExists(nino)
-      successPaperlessSettingsOptIn
+      successPaperlessSettingsOptIn()
       accountsFound(nino)
 
       val response = await(wsUrl("/profile/preferences/paperless-settings/opt-in")
@@ -224,9 +224,6 @@ class CustomerProfileISpec extends BaseISpec with Eventually {
     withResourceStream(resourcePath) { is =>
       fromInputStream(is).mkString
     }
-
-  private def getResourceAsString(resourcePath: String): String =
-    resourceAsString(resourcePath).getOrElse(throw new RuntimeException(s"Could not find resource $resourcePath"))
 
   private def resourceAsJsValue(resourcePath: String): Option[JsValue] =
     withResourceStream(resourcePath) { is =>
