@@ -20,11 +20,11 @@ import java.io.InputStream
 
 import org.scalatest.concurrent.Eventually
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.customerprofile.domain.{ChangeEmail, Paperless, TermsAccepted}
+import uk.gov.hmrc.customerprofile.domain.{Paperless, TermsAccepted}
 import uk.gov.hmrc.customerprofile.stubs.AuthStub._
 import uk.gov.hmrc.customerprofile.stubs.CitizenDetailsStub.{designatoryDetailsForNinoAre, designatoryDetailsWillReturnErrorResponse, npsDataIsLockedDueToMciFlag}
 import uk.gov.hmrc.customerprofile.stubs.EntityResolverStub._
-import uk.gov.hmrc.customerprofile.stubs.PreferencesStub.{conflictPendingEmailUpdate, errorPendingEmailUpdate, notFoundPendingEmailUpdate, successfulPendingEmailUpdate}
+import uk.gov.hmrc.customerprofile.stubs.PreferencesStub.{conflictPendingEmailUpdate, errorPendingEmailUpdate, successfulPendingEmailUpdate}
 import uk.gov.hmrc.customerprofile.support.BaseISpec
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.emailaddress.EmailAddress
@@ -46,6 +46,19 @@ class CustomerProfileISpec extends BaseISpec with Eventually {
         response.status shouldBe 200
       }
       response.json shouldBe getResourceAsJsValue("expected-AA000006C-personal-details.json")
+    }
+
+    "override to sandbox when using sandbox user, avoiding auth" in {
+      val nino = Nino("CS700100A")
+
+      val response = await(wsUrl(s"/profile/personal-details/${nino.value}")
+        .withHeaders("Accept" -> "application/vnd.hmrc.1.0+json", "X-MOBILE-USER-ID" -> "208606423740")
+        .get())
+
+      withClue(response.body) {
+        response.status shouldBe 200
+      }
+      response.json shouldBe getResourceAsJsValue("expected-sandbox-personal-details.json")
     }
 
     "return a 423 response status code when the NINO is locked due to Manual Correspondence Indicator flag being set in NPS" in {
@@ -102,11 +115,23 @@ class CustomerProfileISpec extends BaseISpec with Eventually {
       respondWithEntityDetailsByNino(nino.value, entityId)
       respondPreferencesNoPaperlessSet()
       authRecordExists(nino)
-      successPaperlessSettingsOptIn
+      successPaperlessSettingsOptIn()
       accountsFound(nino)
 
       val response = await(wsUrl("/profile/preferences/paperless-settings/opt-in")
         .withHeaders("Accept" -> "application/vnd.hmrc.1.0+json")
+        .post(paperless))
+
+      withClue(response.body) {
+        response.status shouldBe 200
+      }
+    }
+
+    "return a 200 response when overriding to sandbox opting into paperless settings" in {
+      val paperless = Json.toJson(Paperless(generic = TermsAccepted(true), email = EmailAddress("new-email@new-email.new.email")))
+
+      val response = await(wsUrl("/profile/preferences/paperless-settings/opt-in")
+        .withHeaders("Accept" -> "application/vnd.hmrc.1.0+json", "X-MOBILE-USER-ID" -> "208606423740")
         .post(paperless))
 
       withClue(response.body) {
@@ -199,9 +224,6 @@ class CustomerProfileISpec extends BaseISpec with Eventually {
     withResourceStream(resourcePath) { is =>
       fromInputStream(is).mkString
     }
-
-  private def getResourceAsString(resourcePath: String): String =
-    resourceAsString(resourcePath).getOrElse(throw new RuntimeException(s"Could not find resource $resourcePath"))
 
   private def resourceAsJsValue(resourcePath: String): Option[JsValue] =
     withResourceStream(resourcePath) { is =>

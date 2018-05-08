@@ -1,0 +1,17 @@
+{
+  "etag": "etag",
+  "person": {
+    "firstName": "Jennifer",
+    "lastName": "Thorsteinson",
+    "title": "Ms",
+    "sex": "Female",
+    "dateOfBirth": 917740800000,
+    "nino": "CS700100A"
+  },
+  "address": {
+    "line1": "999 Big Street",
+    "line2": "Worthing",
+    "line3": "West Sussex",
+    "postcode": "BN99 8IG"
+  }
+}
