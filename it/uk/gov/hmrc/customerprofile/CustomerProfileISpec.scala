@@ -48,19 +48,6 @@ class CustomerProfileISpec extends BaseISpec with Eventually {
       response.json shouldBe getResourceAsJsValue("expected-AA000006C-personal-details.json")
     }
 
-    "override to sandbox when using sandbox user, avoiding auth" in {
-      val nino = Nino("CS700100A")
-
-      val response = await(wsUrl(s"/profile/personal-details/${nino.value}")
-        .withHeaders("Accept" -> "application/vnd.hmrc.1.0+json", "X-MOBILE-USER-ID" -> "208606423740")
-        .get())
-
-      withClue(response.body) {
-        response.status shouldBe 200
-      }
-      response.json shouldBe getResourceAsJsValue("expected-sandbox-personal-details.json")
-    }
-
     "return a 423 response status code when the NINO is locked due to Manual Correspondence Indicator flag being set in NPS" in {
       val nino = Nino("AA000006C")
       npsDataIsLockedDueToMciFlag(nino)
@@ -120,18 +107,6 @@ class CustomerProfileISpec extends BaseISpec with Eventually {
 
       val response = await(wsUrl("/profile/preferences/paperless-settings/opt-in")
         .withHeaders("Accept" -> "application/vnd.hmrc.1.0+json")
-        .post(paperless))
-
-      withClue(response.body) {
-        response.status shouldBe 200
-      }
-    }
-
-    "return a 200 response when overriding to sandbox opting into paperless settings" in {
-      val paperless = Json.toJson(Paperless(generic = TermsAccepted(true), email = EmailAddress("new-email@new-email.new.email")))
-
-      val response = await(wsUrl("/profile/preferences/paperless-settings/opt-in")
-        .withHeaders("Accept" -> "application/vnd.hmrc.1.0+json", "X-MOBILE-USER-ID" -> "208606423740")
         .post(paperless))
 
       withClue(response.body) {
