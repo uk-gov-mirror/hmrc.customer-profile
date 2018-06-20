@@ -17,8 +17,8 @@
 package uk.gov.hmrc.customerprofile.connector
 
 import com.typesafe.config.Config
+import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.mockito.MockitoSugar
 import play.api.libs.json.{Json, Writes}
 import play.api.{Configuration, Environment}
 import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UnhealthyServiceException}
@@ -34,7 +34,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
-class EntityResolverConnectorSpec extends UnitSpec with ScalaFutures with MockitoSugar {
+class EntityResolverConnectorSpec extends UnitSpec with ScalaFutures with MockFactory {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 

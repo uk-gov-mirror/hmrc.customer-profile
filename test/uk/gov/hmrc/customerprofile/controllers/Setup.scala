@@ -19,8 +19,8 @@ package uk.gov.hmrc.customerprofile.controllers
 import java.util.UUID.randomUUID
 
 import org.joda.time.DateTime.parse
+import org.scalamock.scalatest.MockFactory
 import org.scalatest.Assertion
-import org.scalatest.mockito.MockitoSugar
 import play.api.http.Status
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.FakeRequest
@@ -80,7 +80,7 @@ class TestAccountAccessControl(nino: Option[Nino],
   override def accounts(implicit hc: HeaderCarrier) = Future(Accounts(nino, None, routeToIV = false, routeToTwoFactor = false, "102030394AAA"))
 }
 
-trait Setup extends MockitoSugar {
+trait Setup extends MockFactory {
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
   val journeyId: String = randomUUID().toString

@@ -17,7 +17,7 @@
 package uk.gov.hmrc.customerprofile.connector
 
 import com.typesafe.config.Config
-import org.scalatest.mockito.MockitoSugar
+import org.scalamock.scalatest.MockFactory
 import play.api.http.Status._
 import play.api.libs.json.Writes
 import play.api.{Configuration, Environment}
@@ -32,7 +32,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class PreferencesConnectorSpec extends UnitSpec with MockitoSugar {
+class PreferencesConnectorSpec extends UnitSpec with MockFactory {
 
   implicit val hc = HeaderCarrier()
 
