@@ -17,7 +17,8 @@
 package uk.gov.hmrc.customerprofile.domain
 
 import play.api.Logger
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.JsValue
+import play.api.libs.json.Json.{prettyPrint, toJson}
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status
 import uk.gov.hmrc.domain.{Nino, SaUtr}
 import uk.gov.hmrc.emailaddress.EmailAddress
@@ -31,23 +32,23 @@ class DomainFormatCheckSpec extends UnitSpec {
   import DomainGenerator._
 
   "Accounts" in {
-    Logger.debug("Accounts response : " + Json.prettyPrint(accountsWithNinoAndSaUtrAsJson))
+    Logger.debug("Accounts response : " + prettyPrint(accountsWithNinoAndSaUtrAsJson))
   }
 
   "Personal details" in {
-    Logger.debug("Personal details response : " + Json.prettyPrint(personalDetailsAsJson))
+    Logger.debug("Personal details response : " + prettyPrint(personalDetailsAsJson))
   }
 
   "Paperless" in {
-    Logger.debug("Paperless request : " + Json.prettyPrint(paperlessAsJson))
+    Logger.debug("Paperless request : " + prettyPrint(paperlessAsJson))
   }
 
   "Paperless opt out" in {
-    Logger.debug("Paperless opt out response : " + Json.prettyPrint(paperlessOptOutAsJson))
+    Logger.debug("Paperless opt out response : " + prettyPrint(paperlessOptOutAsJson))
   }
 
   "Verified email Preference" in {
-    Logger.debug("Preference response : " + Json.prettyPrint(verifiedEmailPreferenceAsJson))
+    Logger.debug("Preference response : " + prettyPrint(verifiedEmailPreferenceAsJson))
   }
 }
 
@@ -59,30 +60,30 @@ object DomainGenerator {
   val saUtr: SaUtr = new SaUtrGenerator().nextSaUtr
 
   val accountsWithNinoAndSaUtr = Accounts(Some(nino), Some(saUtr), routeToIV = false, routeToTwoFactor = false, "102030394AAA")
-  lazy val accountsWithNinoAndSaUtrAsJson: JsValue = Json.toJson(accountsWithNinoAndSaUtr)
+  lazy val accountsWithNinoAndSaUtrAsJson: JsValue = toJson(accountsWithNinoAndSaUtr)
 
   val email = EmailAddress("name@email.co.uk")
 
   val paperless = Paperless(TermsAccepted(true), email)
-  lazy val paperlessAsJson: JsValue = Json.toJson(paperless)
+  lazy val paperlessAsJson: JsValue = toJson(paperless)
 
   val paperlessOptOut = PaperlessOptOut(TermsAccepted(false))
-  lazy val paperlessOptOutAsJson: JsValue = Json.toJson(paperlessOptOut)
+  lazy val paperlessOptOutAsJson: JsValue = toJson(paperlessOptOut)
 
   val verifiedEmailPreference = Preference(digital = true, Some(EmailPreference(email, Status.Verified)))
-  lazy val verifiedEmailPreferenceAsJson: JsValue = Json.toJson(verifiedEmailPreference)
+  lazy val verifiedEmailPreferenceAsJson: JsValue = toJson(verifiedEmailPreference)
 
   val etag = "etag12345"
   val person = Person(Some("John"), Some("Albert"), Some("Smith"), None, Some("Mr"), None, Some("M"), Some(DateTimeUtils.now.minusYears(30)), Some(nino))
   val address: Option[Address] = None
   val personalDetails = PersonDetails(etag, person, address)
-  lazy val personalDetailsAsJson: JsValue = Json.toJson(personalDetails)
+  lazy val personalDetailsAsJson: JsValue = toJson(personalDetails)
 
 }
 
 //TODO add this to domain
 sealed class SaUtrGenerator(random: Random = new Random) {
-  def this(seed: Int) = this(new scala.util.Random(seed))
+  def this(seed: Int) = this(new Random(seed))
 
   def randomNext: Int = random.nextInt(1000000)
 

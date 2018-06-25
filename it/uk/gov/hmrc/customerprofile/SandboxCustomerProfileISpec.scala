@@ -32,7 +32,7 @@ class SandboxCustomerProfileISpec extends BaseISpec {
   private val acceptJsonHeader = "Accept" -> "application/vnd.hmrc.1.0+json"
   private val nino = Nino("CS700100A")
 
-  "GET /sandbox//profile/accounts  " should {
+  "GET /sandbox/profile/accounts  " should {
     def request: WSRequest = wsUrl("/profile/accounts").withHeaders(headerToRedirectToSandbox, acceptJsonHeader)
 
     "return the default account details" in {
@@ -93,7 +93,7 @@ class SandboxCustomerProfileISpec extends BaseISpec {
   "POST /sandbox/profile/native-app/version-check" should {
     def request: WSRequest = wsUrl("/profile/native-app/version-check").withHeaders(headerToRedirectToSandbox, acceptJsonHeader)
 
-    "return a 200 response with upfgrade required false" in {
+    "return a 200 response with upgrade required false" in {
       val deviceVersion = toJson(DeviceVersion(iOS, "1.0"))
 
       val response = await(request.post(deviceVersion))

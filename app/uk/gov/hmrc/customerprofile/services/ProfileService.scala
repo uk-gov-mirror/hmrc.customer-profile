@@ -82,7 +82,7 @@ class LiveCustomerProfileService @Inject()(citizenDetailsConnector: CitizenDetai
     }
 
   def getPreferences()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Option[Preference]] =
-    withAudit("getAccounts", Map.empty) {
+    withAudit("getPreferences", Map.empty) {
       entityResolver.getPreferences()
     }
 

@@ -16,62 +16,40 @@
 
 package uk.gov.hmrc.customerprofile.connector
 
-import com.typesafe.config.Config
-import org.scalatest.concurrent.ScalaFutures
-import uk.gov.hmrc.customerprofile.domain.{Person, PersonDetails}
+import org.scalamock.scalatest.MockFactory
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http._
-import uk.gov.hmrc.http.hooks.HttpHook
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-class CitizenDetailsConnectorSpec
-  extends UnitSpec
-    with ScalaFutures {
+class CitizenDetailsConnectorSpec extends UnitSpec with MockFactory {
+  implicit lazy val hc: HeaderCarrier = HeaderCarrier()
 
-  private trait Setup {
+  val nino = Nino("CS700100A")
+  val http: CoreGet = mock[CoreGet]
+  val connector = new CitizenDetailsConnector("someUrl", http)
 
-    implicit lazy val hc: HeaderCarrier = HeaderCarrier()
-
-    val person = PersonDetails("etag", Person(Some("Firstname"), Some("Lastname"), Some("Middle"), Some("Intial"),
-      Some("Title"), Some("Honours"), Some("sex"), None, None), None)
-    val nino = Nino("CS700100A")
-
-    lazy val http500Response = Future.failed(Upstream5xxResponse("Error", 500, 500))
-    lazy val http400Response = Future.failed(new BadRequestException("bad request"))
-    lazy val http200Response = Future.successful(HttpResponse(200, None))
-
-    lazy val response: Future[HttpResponse] = http400Response
-
-    val testHttp = new CoreGet with HttpGet {
-      override val hooks: Seq[HttpHook] = NoneRequired
-
-      override def doGet(url: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = response
-
-      override def configuration: Option[Config] = None
-    }
-
-    val connector = new CitizenDetailsConnector("someUrl", testHttp)
-  }
+  def mockHttpGet(exception: Exception): Unit =
+    (http.GET(_: String)(_: HttpReads[HttpResponse], _: HeaderCarrier, _: ExecutionContext)).expects(*,*,*,*).
+      returns(Future failed exception)
 
   "citizenDetailsConnector" should {
+    "throw BadRequestException when a 400 response is returned" in  {
+      mockHttpGet(new BadRequestException("bad request"))
 
-    "throw BadRequestException when a 400 response is returned" in new Setup {
-      override lazy val response = http400Response
       intercept[BadRequestException] {
         await(connector.personDetails(nino))
       }
     }
 
-    "throw Upstream5xxResponse when a 500 response is returned" in new Setup {
-      override lazy val response = http500Response
+    "throw Upstream5xxResponse when a 500 response is returned" in  {
+      mockHttpGet(Upstream5xxResponse("Error", 500, 500))
+
       intercept[Upstream5xxResponse] {
         await(connector.personDetails(nino))
       }
     }
-
   }
-
 }

@@ -16,12 +16,13 @@
 
 package uk.gov.hmrc.customerprofile.domain
 
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.Config
+import com.typesafe.config.ConfigFactory.parseString
 import uk.gov.hmrc.play.test.UnitSpec
 
 class ApprovedAppVersionsSpec extends UnitSpec {
 
-  val specConfig: Config = ConfigFactory.parseString(
+  val specConfig: Config = parseString(
     """approvedAppVersions {
       |  ios = "[0.0.1,)"
       |  android = "[0.0.1,)"

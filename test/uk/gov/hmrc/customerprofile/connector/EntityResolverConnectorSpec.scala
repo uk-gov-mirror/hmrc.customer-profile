@@ -16,201 +16,185 @@
 
 package uk.gov.hmrc.customerprofile.connector
 
-import com.typesafe.config.Config
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.ScalaFutures
-import play.api.libs.json.{Json, Writes}
+import play.api.libs.json.Writes
 import play.api.{Configuration, Environment}
-import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UnhealthyServiceException}
-import uk.gov.hmrc.customerprofile.config.{ServicesCircuitBreaker, WSHttpImpl}
-import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status
-import uk.gov.hmrc.customerprofile.domain.{EmailPreference, Paperless, Preference, TermsAccepted}
+import uk.gov.hmrc.circuitbreaker.UnhealthyServiceException
+import uk.gov.hmrc.customerprofile.config.WSHttpImpl
+import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status.Verified
+import uk.gov.hmrc.customerprofile.domain._
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.emailaddress.EmailAddress
-import uk.gov.hmrc.http._
-import uk.gov.hmrc.http.hooks.HttpHook
-import uk.gov.hmrc.play.config.ServicesConfig
+import uk.gov.hmrc.http.{NotFoundException, _}
 import uk.gov.hmrc.play.test.UnitSpec
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class EntityResolverConnectorSpec extends UnitSpec with ScalaFutures with MockFactory {
-
-  import scala.concurrent.ExecutionContext.Implicits.global
-
   implicit val hc: HeaderCarrier = new HeaderCarrier
 
-  private def defaultGetHandler: (String) => Future[AnyRef with HttpResponse] = {
-    _ => Future.successful(HttpResponse(200))
-  }
+  val http: WSHttpImpl = mock[WSHttpImpl]
+  val config: Configuration = mock[Configuration]
+  val environment: Environment = mock[Environment]
 
-  private def defaultPostHandler: (String, Any) => Future[AnyRef with HttpResponse] = {
-    (a, b) => Future.successful(HttpResponse(200))
-  }
+  val baseUrl = "http://entity-resolver.service"
+  val termsAndCondtionssPostUrl = s"$baseUrl/preferences/terms-and-conditions"
+  val circuitBreakerNumberOfCallsToTriggerStateChange = 5
 
-  private def defaultPutHandler: (String, Any) => Future[AnyRef with HttpResponse] = {
-    (a, b) => Future.successful(HttpResponse(200))
-  }
-
-  private def http = mock[WSHttpImpl]
-
-  class TestPreferencesConnector(http: CoreGet with CorePost,
-                                 runModeConfiguration: Configuration,
-                                 environment: Environment)
-    extends EntityResolverConnector("http://entity-resolver.service/", http, runModeConfiguration, environment)
-      with ServicesConfig with ServicesCircuitBreaker {
-
-    override protected def circuitBreakerConfig = CircuitBreakerConfig(externalServiceName, 5, 2000, 2000)
-  }
-
-  def entityResolverConnector(returnFromDoGet: String => Future[HttpResponse] = defaultGetHandler,
-                              returnFromDoPost: (String, Any) => Future[HttpResponse] = defaultPostHandler,
-                              returnFromDoPut: (String, Any) => Future[HttpResponse] = defaultPutHandler) = {
-    val http = new CoreGet with HttpGet with CorePost with HttpPost {
-      def doGet(url: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = returnFromDoGet(url)
-
-      def doPostString(url: String, body: String, headers: Seq[(String, String)])(implicit hc: HeaderCarrier): Future[HttpResponse] = ???
-
-      def doFormPost(url: String, body: Map[String, Seq[String]])(implicit hc: HeaderCarrier): Future[HttpResponse] = ???
-
-      def doPost[A](url: String, body: A, headers: Seq[(String, String)])(implicit rds: Writes[A], hc: HeaderCarrier): Future[HttpResponse] = returnFromDoPost(url, body)
-
-      def doEmptyPost[A](url: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = ???
-
-      def doPut[A](url: String, body: A)(implicit rds: Writes[A], hc: HeaderCarrier): Future[HttpResponse] = returnFromDoPut(url, body)
-
-      val hooks: Seq[HttpHook] = NoneRequired
-
-      override def configuration: Option[Config] = None
+  // create a new connectopr each time because the circuit breaker is stateful
+  def preferenceConnector: EntityResolverConnector = {
+    def mockCircuitBreakerConfig(): Unit = {
+      (config.getConfig(_:String)).expects("microservice.services.entity-resolver").returns(Some(config)).anyNumberOfTimes()
+      (config.getInt(_:String)).expects("circuitBreaker.numberOfCallsToTriggerStateChange").returns(
+        Some(circuitBreakerNumberOfCallsToTriggerStateChange)).anyNumberOfTimes()
+      (config.getInt(_:String)).expects("circuitBreaker.unavailablePeriodDurationInSeconds").returns(Some(2000)).anyNumberOfTimes()
+      (config.getInt(_:String)).expects("circuitBreaker.unstablePeriodDurationInSeconds").returns(Some(2000)).anyNumberOfTimes()
     }
-    new TestPreferencesConnector(http, mock[Configuration], mock[Environment])
+
+    mockCircuitBreakerConfig()
+    new EntityResolverConnector(baseUrl, http, config, environment )
   }
 
-  "The getPreferences method" should {
+  "getPreferences()" should {
+    def mockHttpGET(preferences: Future[Option[Preference]]): Unit = {
+      (http.GET(_: String)(_: HttpReads[Option[Preference]], _: HeaderCarrier, _: ExecutionContext)).expects(
+        s"$baseUrl/preferences",*,*,*).returns(preferences)
+    }
+
     val nino = Nino("CE123457D")
 
     "return the preferences for utr only" in {
-      val preferenceConnector = entityResolverConnector { url =>
-        url should not include nino.value
+      val preferences = Some(Preference(digital = true, Some(EmailPreference(EmailAddress("test@mail.com"), Verified))))
 
-        Future.successful(HttpResponse(200, Some(Json.parse(
-          """
-            |{
-            |   "digital": true,
-            |   "email": {
-            |     "email": "test@mail.com",
-            |     "status": "verified",
-            |     "mailboxFull": false
-            |   }
-            |}
-          """.stripMargin))))
-      }
+      mockHttpGET(Future successful preferences)
 
-      val preferences = preferenceConnector.getPreferences().futureValue
-
-      preferences shouldBe Some(Preference(
-        digital = true, email = Some(EmailPreference(
-          email = EmailAddress("test@mail.com"),
-          status = Status.Verified))
-      ))
+      await(preferenceConnector.getPreferences()) shouldBe preferences
     }
 
     "return None for a 404" in {
-      val preferenceConnector = entityResolverConnector(_ => Future.successful(HttpResponse(404, None)))
+      mockHttpGET(Future failed new NotFoundException("where are you?"))
 
-      val preferences = preferenceConnector.getPreferences().futureValue
-
-      preferences shouldBe None
+      await(preferenceConnector.getPreferences()) shouldBe None
     }
 
     "return None for a 410" in {
-      val preferenceConnector = entityResolverConnector(_ => Future.successful(HttpResponse(410, None)))
+      mockHttpGET(Future failed Upstream4xxResponse("GONE", 410, 410))
 
-      val preferences = preferenceConnector.getPreferences().futureValue
-
-      preferences shouldBe None
+      await(preferenceConnector.getPreferences()) shouldBe None
     }
 
     "circuit breaker configuration should be applied and unhealthy service exception will kick in after 5th failed call to preferences" in {
-      val connector = entityResolverConnector(
-        returnFromDoGet = _ => Future.failed(new InternalServerException("some exception"))
-      )
+      val connector = preferenceConnector
 
-      1 to 5 foreach { _ =>
-        connector.getPreferences().failed.futureValue shouldBe an[InternalServerException]
+      1 to circuitBreakerNumberOfCallsToTriggerStateChange foreach { _ =>
+        mockHttpGET(Future failed new InternalServerException("some exception"))
+
+        intercept[InternalServerException] {
+          await(connector.getPreferences())
+        }
       }
-      connector.getPreferences().failed.futureValue shouldBe an[UnhealthyServiceException]
+
+      intercept[UnhealthyServiceException] {
+        await(connector.getPreferences())
+      }
     }
   }
 
-  "The upgradeTermsAndConditions method" should {
-    trait PayloadCheck {
-      def status: Int = 200
+  "paperlessSettings()" should {
+    val email = EmailAddress("me@mine.com")
+    val paperlessSettingsAccepted = Paperless(TermsAccepted(true), email)
+    val paperlessSettingsRejected = Paperless(TermsAccepted(false), email)
 
-      def expectedPayload: Paperless
+    def mockHttpPOST(paperlessSettings: Paperless, response: Future[HttpResponse]): Unit = {
+      (http.POST(_: String, _: Paperless, _: Seq[(String, String)])
+      (_: Writes[Paperless], _: HttpReads[HttpResponse], _: HeaderCarrier, _: ExecutionContext)).expects(
+        termsAndCondtionssPostUrl, paperlessSettings, *, *, *, *, *).returning(response)
+    }
 
-      def postedPayload(payload: Paperless) = payload should be(expectedPayload)
+    "update record to opted in when terms are accepted" in {
+      mockHttpPOST(paperlessSettingsAccepted, Future successful HttpResponse(200, None))
 
-      val email = EmailAddress("test@test.com")
+      await(preferenceConnector.paperlessSettings(paperlessSettingsAccepted)) shouldBe PreferencesExists
+    }
 
-      val connector = entityResolverConnector(returnFromDoPost = checkPayloadAndReturn)
+    "update record to opted out when terms are rejected" in {
+      mockHttpPOST(paperlessSettingsRejected, Future successful HttpResponse(200, None))
 
-      def checkPayloadAndReturn(url: String, requestBody: Any): Future[HttpResponse] = {
-        postedPayload(requestBody.asInstanceOf[Paperless])
-        Future.successful(HttpResponse(status))
+      await(preferenceConnector.paperlessSettings(paperlessSettingsRejected)) shouldBe PreferencesExists
+    }
+
+    "create opt in record when terms are accepted" in {
+      mockHttpPOST(paperlessSettingsAccepted, Future successful HttpResponse(201, None))
+
+      await(preferenceConnector.paperlessSettings(paperlessSettingsAccepted)) shouldBe PreferencesCreated
+    }
+
+    "create opt out record when terms are rejected" in {
+      mockHttpPOST(paperlessSettingsRejected, Future successful HttpResponse(201, None))
+
+      await(preferenceConnector.paperlessSettings(paperlessSettingsRejected)) shouldBe PreferencesCreated
+    }
+
+    "report failure for unexpected response code when terms are accepted" in {
+      mockHttpPOST(paperlessSettingsAccepted, Future successful HttpResponse(204, None))
+
+      await(preferenceConnector.paperlessSettings(paperlessSettingsAccepted)) shouldBe PreferencesFailure
+    }
+
+    "report failure for unexpected response code when terms are rejected" in {
+      mockHttpPOST(paperlessSettingsRejected, Future successful HttpResponse(204, None))
+
+      await(preferenceConnector.paperlessSettings(paperlessSettingsRejected)) shouldBe PreferencesFailure
+    }
+
+    "throw an exception if the call fails" in {
+      mockHttpPOST(paperlessSettingsRejected, Future failed Upstream5xxResponse("error", 500, 500))
+
+      intercept[Upstream5xxResponse] {
+        await(preferenceConnector.paperlessSettings(paperlessSettingsRejected))
       }
-    }
-
-    "send accepted true and return preferences created if terms and conditions are accepted and updated and preferences created" in new PayloadCheck {
-      override val expectedPayload = Paperless(TermsAccepted(true), email)
-
-      connector.paperlessSettings(Paperless(TermsAccepted(true), email)).futureValue should be(PreferencesExists)
-    }
-
-    "send accepted false and return preferences created if terms and conditions are not accepted and updated and preferences created" in new PayloadCheck {
-      override val expectedPayload = Paperless(TermsAccepted(false), email)
-
-      connector.paperlessSettings(Paperless(TermsAccepted(false), email)).futureValue should be(PreferencesExists)
-    }
-
-    "return failure if any problems" in new PayloadCheck {
-      override val status = 401
-      override val expectedPayload = Paperless(TermsAccepted(true), email)
-
-      whenReady(connector.paperlessSettings(Paperless(TermsAccepted(true), email)).failed)(e => e shouldBe an[Upstream4xxResponse])
     }
   }
 
-  "New user" should {
-    trait NewUserPayloadCheck {
-      def status: Int = 201
+  "paperlessOptOut()" should {
+    def mockHttpPOST(response: Future[HttpResponse]): Unit = {
+      (http.POST(_: String, _: PaperlessOptOut, _: Seq[(String, String)])
+      (_: Writes[PaperlessOptOut], _: HttpReads[HttpResponse], _: HeaderCarrier, _: ExecutionContext)).expects(
+        termsAndCondtionssPostUrl, PaperlessOptOut(TermsAccepted(false)), *, *, *, *, *).returning(response)
+    }
 
-      def expectedPayload: Paperless
+    "update record to opted out" in {
+      mockHttpPOST(Future successful HttpResponse(200, None))
 
-      def postedPayload(payload: Paperless) = payload should be(expectedPayload)
+      await(preferenceConnector.paperlessOptOut()) shouldBe PreferencesExists
+    }
 
-      val email = EmailAddress("test@test.com")
+    "create opt out record" in {
+      mockHttpPOST(Future successful HttpResponse(201, None))
 
-      val connector = entityResolverConnector(returnFromDoPost = checkPayloadAndReturn)
+      await(preferenceConnector.paperlessOptOut()) shouldBe PreferencesCreated
+    }
 
-      def checkPayloadAndReturn(url: String, requestBody: Any): Future[HttpResponse] = {
-        postedPayload(requestBody.asInstanceOf[Paperless])
-        Future.successful(HttpResponse(status))
+    "report failure for unexpected response code" in {
+      mockHttpPOST(Future successful HttpResponse(204, None))
+
+      await(preferenceConnector.paperlessOptOut()) shouldBe PreferencesFailure
+    }
+
+    "report PreferencesDoesNotExist when not found" in {
+      mockHttpPOST(Future successful HttpResponse(404, None))
+
+      await(preferenceConnector.paperlessOptOut()) shouldBe PreferencesDoesNotExist
+    }
+
+    "throw an exception if the call fails" in {
+      mockHttpPOST(Future failed Upstream5xxResponse("error", 500, 500))
+
+      intercept[Upstream5xxResponse] {
+        await(preferenceConnector.paperlessOptOut())
       }
-    }
-
-    "send accepted true with email" in new NewUserPayloadCheck {
-      override def expectedPayload = Paperless(TermsAccepted(true), email)
-
-      connector.paperlessSettings(Paperless(TermsAccepted(true), email)).futureValue should be(PreferencesCreated)
-    }
-
-    "try and send accepted true with email where preferences not working" in new NewUserPayloadCheck {
-      override def expectedPayload = Paperless(TermsAccepted(true), email)
-
-      override def status: Int = 401
-
-      whenReady(connector.paperlessSettings(Paperless(TermsAccepted(true), email)).failed)(e => e shouldBe an[Upstream4xxResponse])
     }
   }
 
