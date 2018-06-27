@@ -18,28 +18,43 @@ package uk.gov.hmrc.customerprofile.stubs
 
 import com.github.tomakehurst.wiremock.client.WireMock._
 import play.api.libs.json.Json.obj
+import uk.gov.hmrc.auth.core.AuthenticateHeaderParser.{ENROLMENT, WWW_AUTHENTICATE}
 import uk.gov.hmrc.auth.core.ConfidenceLevel
 import uk.gov.hmrc.auth.core.ConfidenceLevel.L200
-import uk.gov.hmrc.domain.{Nino, SaUtr}
 import uk.gov.hmrc.customerprofile.domain.CredentialStrength
 import uk.gov.hmrc.customerprofile.domain.CredentialStrength.Strong
+import uk.gov.hmrc.domain.{Nino, SaUtr}
 
 object AuthStub {
+  private val authUrl: String = "/auth/authorise"
+  private val utr = SaUtr("1872796160")
+
+  private val authorisationRequestJson: String = """{ "authorise": [], "retrieve": ["nino","confidenceLevel"] }""".stripMargin
+  private val accountsRequestJson: String = """{ "authorise": [], "retrieve": ["nino","saUtr","credentialStrength","confidenceLevel"] }""".stripMargin
+
   def authRecordExists(nino: Nino, confidenceLevel: ConfidenceLevel = L200): Unit = {
-    stubFor(post(urlEqualTo("/auth/authorise")).withRequestBody(equalToJson(
-      """{ "authorise": [], "retrieve": ["nino","confidenceLevel"] }""".stripMargin, true, false)).willReturn(
+    stubFor(post(urlEqualTo(authUrl)).withRequestBody(equalToJson(
+      authorisationRequestJson, true, false)).willReturn(
         aResponse().withStatus(200).withBody(obj("confidenceLevel" -> confidenceLevel.level, "nino" -> nino.nino).toString)))
   }
 
+  def authFailure(): Unit = {
+    stubFor(post(urlEqualTo(authUrl)).withRequestBody(equalToJson(
+      authorisationRequestJson, true, false)).willReturn(
+        aResponse().withStatus(401).withHeader(
+          WWW_AUTHENTICATE,"""MDTP detail="BearerTokenExpired"""").withHeader(ENROLMENT, "")))
+  }
+
   def authRecordExistsWithoutNino: Unit = {
-    stubFor(post(urlEqualTo("/auth/authorise")).withRequestBody(equalToJson(
-      """{ "authorise": [], "retrieve": ["nino","confidenceLevel"] }""".stripMargin, true, false)).willReturn(
+    stubFor(post(urlEqualTo(authUrl)).withRequestBody(equalToJson(
+      authorisationRequestJson, true, false)).willReturn(
         aResponse().withStatus(200).withBody(obj("confidenceLevel" -> L200.level).toString)))
   }
 
-  def accountsFound(nino: Nino, confidenceLevel: ConfidenceLevel = L200, credentialStrength: CredentialStrength = Strong, saUtr: SaUtr = SaUtr("1872796160")): Unit = {
-    stubFor(post(urlEqualTo("/auth/authorise")).withRequestBody(equalToJson(
-      """{ "authorise": [], "retrieve": ["nino","saUtr","credentialStrength","confidenceLevel"] }""".stripMargin, true, false)).willReturn(
+
+  def accountsFound(nino: Nino, confidenceLevel: ConfidenceLevel = L200, credentialStrength: CredentialStrength = Strong, saUtr: SaUtr = utr): Unit = {
+    stubFor(post(urlEqualTo(authUrl)).withRequestBody(equalToJson(
+      accountsRequestJson, true, false)).willReturn(
         aResponse().withStatus(200).withBody(obj(
           "confidenceLevel" -> confidenceLevel.level,
           "nino" -> nino.nino,
@@ -48,13 +63,19 @@ object AuthStub {
         ).toString)))
   }
 
-  def accountsFoundWithoutNino(confidenceLevel: ConfidenceLevel, credentialStrength: CredentialStrength, saUtr: SaUtr): Unit = {
-    stubFor(post(urlEqualTo("/auth/authorise")).withRequestBody(equalToJson(
-      """{ "authorise": [], "retrieve": ["nino","saUtr","credentialStrength","confidenceLevel"] }""".stripMargin, true, false)).willReturn(
+  def accountsFailure(): Unit = {
+    stubFor(post(urlEqualTo(authUrl)).withRequestBody(equalToJson(
+      accountsRequestJson, true, false)).willReturn(
+        aResponse().withStatus(401).withHeader(
+          WWW_AUTHENTICATE,"""MDTP detail="BearerTokenExpired"""").withHeader(ENROLMENT, "")))
+  }
+
+  def accountsFoundWithoutNino(confidenceLevel: ConfidenceLevel = L200, credentialStrength: CredentialStrength = Strong, saUtr: SaUtr = utr): Unit = {
+    stubFor(post(urlEqualTo(authUrl)).withRequestBody(equalToJson(
+      accountsRequestJson, true, false)).willReturn(
         aResponse().withStatus(200).withBody(obj(
           "confidenceLevel" -> confidenceLevel.level,
           "credentialStrength" -> credentialStrength.name,
-          "saUtr" -> saUtr.utr
-        ).toString)))
+          "saUtr" -> saUtr.utr).toString)))
   }
 }

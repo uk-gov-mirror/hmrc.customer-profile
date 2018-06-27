@@ -27,14 +27,14 @@ import play.api.mvc.{ActionBuilder, Request, Result, Results}
 import uk.gov.hmrc.api.controllers._
 import uk.gov.hmrc.auth.core.retrieve.Retrievals._
 import uk.gov.hmrc.auth.core.retrieve.~
-import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
+import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisationException, AuthorisedFunctions}
 import uk.gov.hmrc.customerprofile.controllers.ErrorUnauthorizedNoNino
 import uk.gov.hmrc.customerprofile.domain.Accounts
 import uk.gov.hmrc.domain.{Nino, SaUtr}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.HeaderCarrierConverter.fromHeadersAndSession
-import scala.concurrent.ExecutionContext.Implicits.global
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
 case object ErrorUnauthorizedMicroService extends ErrorResponse(401, "UNAUTHORIZED", "Unauthorized to access resource")
@@ -87,6 +87,9 @@ class AccountAccessControl @Inject()(val authConnector: AuthConnector,
       case _: AccountWithLowCL =>
         Logger.info("Unauthorized! Account with low CL!")
         Unauthorized(toJson(ErrorUnauthorizedLowCL))
+
+      case e: AuthorisationException =>
+        Unauthorized(Json.obj("httpStatusCode" -> 401, "errorCode" -> "UNAUTHORIZED", "message" -> e.getMessage))
     }
   }
 
@@ -110,7 +113,7 @@ class AccountAccessControl @Inject()(val authConnector: AuthConnector,
   def validateAcceptWithoutAuth(rules: Option[String] => Boolean) = new ActionBuilder[Request] {
     def invokeBlock[A](request: Request[A], block: (Request[A]) => Future[Result]): Future[Result] = {
       if (rules(request.headers.get("Accept"))) block(request)
-      else Future.successful(Status(ErrorAcceptHeaderInvalid.httpStatusCode)(Json.toJson(ErrorAcceptHeaderInvalid)))
+      else Future.successful(Status(ErrorAcceptHeaderInvalid.httpStatusCode)(toJson(ErrorAcceptHeaderInvalid)))
     }
   }
 }

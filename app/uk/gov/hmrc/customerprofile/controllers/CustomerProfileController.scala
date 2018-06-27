@@ -17,17 +17,19 @@
 package uk.gov.hmrc.customerprofile.controllers
 
 import com.google.inject.Inject
+import play.api.libs.json.Json.toJson
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, BodyParsers, Result}
 import play.api.{Logger, LoggerLike, mvc}
 import uk.gov.hmrc.api.controllers._
+import uk.gov.hmrc.auth.core.AuthorisationException
 import uk.gov.hmrc.customerprofile.connector._
 import uk.gov.hmrc.customerprofile.controllers.action.{AccountAccessControlCheckOff, AccountAccessControlWithHeaderCheck, NinoNotFoundOnAccount}
 import uk.gov.hmrc.customerprofile.domain.Paperless
 import uk.gov.hmrc.customerprofile.services.{CustomerProfileService, LiveCustomerProfileService, SandboxCustomerProfileService}
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{HeaderCarrier, NotFoundException, Upstream4xxResponse}
-import uk.gov.hmrc.play.HeaderCarrierConverter
+import uk.gov.hmrc.play.HeaderCarrierConverter.fromHeadersAndSession
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
@@ -40,21 +42,24 @@ trait ErrorHandling {
   def log(message: String): Unit = Logger.info(s"$app $message")
 
   def result(errorResponse: ErrorResponse): Result =
-    Status(errorResponse.httpStatusCode)(Json.toJson(errorResponse))
+    Status(errorResponse.httpStatusCode)(toJson(errorResponse))
 
   def errorWrapper(func: => Future[mvc.Result])(implicit hc: HeaderCarrier): Future[Result] = {
     func.recover {
+      case e: AuthorisationException =>
+        Unauthorized(Json.obj("httpStatusCode" -> 401, "errorCode" -> "UNAUTHORIZED", "message" -> e.getMessage))
+
       case _: NotFoundException =>
         log("Resource not found!")
         result(ErrorNotFound)
 
       case _: NinoNotFoundOnAccount =>
         log("User has no NINO. Unauthorized!")
-        Unauthorized(Json.toJson(ErrorUnauthorizedNoNino))
+        Unauthorized(toJson(ErrorUnauthorizedNoNino))
 
       case e: Throwable =>
         Logger.error(s"$app Internal server error: ${e.getMessage}", e)
-        Status(ErrorInternalServerError.httpStatusCode)(Json.toJson(ErrorInternalServerError))
+        Status(ErrorInternalServerError.httpStatusCode)(toJson(ErrorInternalServerError))
     }
   }
 }
@@ -67,11 +72,11 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
   final def getAccounts(journeyId: Option[String] = None): Action[AnyContent] =
     accessControl.validateAcceptWithoutAuth(acceptHeaderValidationRules).async {
       implicit request =>
-        implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
+        implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
         errorWrapper(
           service.getAccounts().map(
             as =>
-              Ok(Json.toJson(as))
+              Ok(toJson(as))
           )
         )
     }
@@ -81,10 +86,10 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
   final def getPersonalDetails(nino: Nino, journeyId: Option[String] = None): Action[AnyContent] =
     accessControl.validateAcceptWithAuth(acceptHeaderValidationRules, Some(nino)).async {
       implicit request =>
-        implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
+        implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
         errorWrapper(
           service.getPersonalDetails(nino)
-            .map(as => Ok(Json.toJson(as)))
+            .map(as => Ok(toJson(as)))
             .recover {
               case Upstream4xxResponse(_, LOCKED, _, _) =>
                 result(ErrorManualCorrespondenceIndicator)
@@ -95,10 +100,10 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
   final def getPreferences(journeyId: Option[String] = None): Action[AnyContent] =
     accessControl.validateAccept(acceptHeaderValidationRules).async {
       implicit request =>
-        implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
+        implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
         errorWrapper(
           service.getPreferences().map {
-            case Some(response) => Ok(Json.toJson(response))
+            case Some(response) => Ok(toJson(response))
             case _ => NotFound
           }
         )
@@ -107,19 +112,19 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
   final def paperlessSettingsOptIn(journeyId: Option[String] = None): Action[JsValue] =
     accessControl.validateAccept(acceptHeaderValidationRules).async(BodyParsers.parse.json) {
       implicit request =>
-        implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
+        implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
         request.body.validate[Paperless].fold(
           errors => {
             Logger.warn("Received error with service getPaperlessSettings: " + errors)
-            Future.successful(BadRequest(Json.toJson(ErrorGenericBadRequest(errors))))
+            Future.successful(BadRequest(toJson(ErrorGenericBadRequest(errors))))
           },
           settings => {
             errorWrapper(service.paperlessSettings(settings).map {
               case PreferencesExists | EmailUpdateOk => Ok
               case PreferencesCreated => Created
-              case EmailNotExist => Conflict(Json.toJson(ErrorPreferenceConflict))
-              case NoPreferenceExists => NotFound(Json.toJson(ErrorNotFound))
-              case _ => InternalServerError(Json.toJson(PreferencesSettingsError))
+              case EmailNotExist => Conflict(toJson(ErrorPreferenceConflict))
+              case NoPreferenceExists => NotFound(toJson(ErrorNotFound))
+              case _ => InternalServerError(toJson(PreferencesSettingsError))
             })
           }
         )
@@ -128,12 +133,12 @@ trait CustomerProfileController extends BaseController with HeaderValidator with
   final def paperlessSettingsOptOut(journeyId: Option[String] = None): Action[AnyContent] =
     accessControl.validateAccept(acceptHeaderValidationRules).async {
       implicit request =>
-        implicit val hc: HeaderCarrier = HeaderCarrierConverter.fromHeadersAndSession(request.headers, None)
+        implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
         errorWrapper(service.paperlessSettingsOptOut().map {
           case PreferencesExists => Ok
           case PreferencesCreated => Created
           case PreferencesDoesNotExist => NotFound
-          case PreferencesFailure => InternalServerError(Json.toJson(PreferencesSettingsError))
+          case PreferencesFailure => InternalServerError(toJson(PreferencesSettingsError))
         })
     }
 
