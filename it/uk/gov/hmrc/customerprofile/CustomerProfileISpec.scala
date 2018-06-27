@@ -19,8 +19,11 @@ package uk.gov.hmrc.customerprofile
 import java.io.InputStream
 
 import org.scalatest.concurrent.Eventually
+import play.api.libs.json.Json.{parse, toJson}
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.customerprofile.domain.{Paperless, TermsAccepted}
+import play.api.libs.ws.WSResponse
+import uk.gov.hmrc.customerprofile.domain.NativeOS.iOS
+import uk.gov.hmrc.customerprofile.domain.{DeviceVersion, Paperless, TermsAccepted}
 import uk.gov.hmrc.customerprofile.stubs.AuthStub._
 import uk.gov.hmrc.customerprofile.stubs.CitizenDetailsStub.{designatoryDetailsForNinoAre, designatoryDetailsWillReturnErrorResponse, npsDataIsLockedDueToMciFlag}
 import uk.gov.hmrc.customerprofile.stubs.EntityResolverStub._
@@ -29,194 +32,235 @@ import uk.gov.hmrc.customerprofile.support.BaseISpec
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.emailaddress.EmailAddress
 
+import scala.concurrent.Future
 import scala.io.Source.fromInputStream
 
 class CustomerProfileISpec extends BaseISpec with Eventually {
-  "GET /profile/personal-details/:nino" should {
-    "return personal details for the given NINO from citizen-details" in {
-      val nino = Nino("AA000006C")
-      designatoryDetailsForNinoAre(nino, resourceAsString("AA000006C-citizen-details.json").get)
-      authRecordExists(nino)
+  val nino = Nino("AA000006C")
+  val acceptJsonHeader: (String, String) = "Accept" -> "application/vnd.hmrc.1.0+json"
 
-      val response = await(wsUrl(s"/profile/personal-details/${nino.value}")
-        .withHeaders("Accept" -> "application/vnd.hmrc.1.0+json")
-        .get())
+  def getRequestWithAcceptHeader(url: String): Future[WSResponse] = wsUrl(url).withHeaders(acceptJsonHeader).get()
 
-      withClue(response.body) {
-        response.status shouldBe 200
-      }
-      response.json shouldBe getResourceAsJsValue("expected-AA000006C-personal-details.json")
+  def postRequestWithAcceptHeader(url: String, form: JsValue): Future[WSResponse] =
+    await(wsUrl(url).withHeaders(acceptJsonHeader).post(form))
+
+  def postRequestWithAcceptHeader(url: String): Future[WSResponse] =
+    await(wsUrl(url).withHeaders(acceptJsonHeader).post(""))
+
+  "GET /profile/accounts" should {
+    val url: String = "/profile/accounts"
+
+    "return account details" in {
+      accountsFound(nino)
+
+      val response = getRequestWithAcceptHeader(url)
+
+      response.status shouldBe 200
+      ( response.json \ "nino" ).as[String] shouldBe nino.nino
     }
 
-    "override to sandbox when using sandbox user, avoiding auth" in {
-      val nino = Nino("CS700100A")
+    "return 200 if no nino on account" in {
+      accountsFoundWithoutNino()
 
-      val response = await(wsUrl(s"/profile/personal-details/${nino.value}")
-        .withHeaders("Accept" -> "application/vnd.hmrc.1.0+json", "X-MOBILE-USER-ID" -> "208606423740")
-        .get())
+      val response = getRequestWithAcceptHeader(url)
 
-      withClue(response.body) {
-        response.status shouldBe 200
-      }
-      response.json shouldBe getResourceAsJsValue("expected-sandbox-personal-details.json")
+      response.status shouldBe 200
+      ( response.json \ "nino" ).asOpt[String] shouldBe None
     }
 
-    "return a 423 response status code when the NINO is locked due to Manual Correspondence Indicator flag being set in NPS" in {
-      val nino = Nino("AA000006C")
-      npsDataIsLockedDueToMciFlag(nino)
-      authRecordExists(nino)
-
-      val response = await(wsUrl(s"/profile/personal-details/${nino.value}")
-        .withHeaders("Accept" -> "application/vnd.hmrc.1.0+json")
-        .get())
-
-      withClue(response.body) {
-        response.status shouldBe 423
-      }
-      response.json shouldBe Json.parse("""{"code":"MANUAL_CORRESPONDENCE_IND","message":"Data cannot be disclosed to the user because MCI flag is set in NPS"}""")
+    "return 406 if no request header is supplied" in {
+      wsUrl(url).get().status shouldBe 406
     }
 
-    "return 500 response status code when citizen-details returns 500 response status code." in {
-      val nino = Nino("AA000006C")
-      designatoryDetailsWillReturnErrorResponse(nino, 500)
-      authRecordExists(nino)
-
-      val response = await(wsUrl(s"/profile/personal-details/${nino.value}")
-        .withHeaders("Accept" -> "application/vnd.hmrc.1.0+json")
-        .get())
-
-      withClue(response.body) {
-        response.status shouldBe 500
-      }
-      response.json shouldBe Json.parse("""{"code":"INTERNAL_SERVER_ERROR","message":"Internal server error"}""")
-    }
-
-    "return 404 response status code when citizen-details returns 404 response status code." in {
-      val nino = Nino("AA000006C")
-      designatoryDetailsWillReturnErrorResponse(nino, 404)
-      authRecordExists(nino)
-
-      val response = await(wsUrl(s"/profile/personal-details/${nino.value}")
-        .withHeaders("Accept" -> "application/vnd.hmrc.1.0+json")
-        .get())
-
-      withClue(response.body) {
-        response.status shouldBe 404
-      }
-      response.json shouldBe Json.parse("""{"code":"NOT_FOUND","message":"Resource was not found"}""")
+    "propagate 401" in {
+      accountsFailure()
+      getRequestWithAcceptHeader(url).status shouldBe 401
     }
   }
 
-  "PUT /profile/paperless-settings/opt-in" should {
+  "GET /profile/preferences" should {
+    val url = "/profile/preferences"
+
+    "return preferences" in {
+      authRecordExists(nino)
+      respondPreferencesWithPaperlessOptedIn()
+
+      val response = getRequestWithAcceptHeader(url)
+
+      response.status shouldBe 200
+      ( response.json \ "digital" ).as[Boolean] shouldBe true
+    }
+
+    "return 406 if no request header is supplied" in {
+      wsUrl(url).get().status shouldBe 406
+    }
+
+    "propagate 401" in {
+      authFailure()
+      getRequestWithAcceptHeader(url).status shouldBe 401
+    }
+  }
+
+  "POST /profile/native-app/version-check" should {
+    val url = "/profile/native-app/version-check"
+    val version: JsValue = toJson(DeviceVersion(iOS, "0.1"))
+
+    "return a version check response with no auth required" in {
+      val response = postRequestWithAcceptHeader(url, version)
+
+      response.status shouldBe 200
+      ( response.json \ "upgrade" ).as[Boolean] shouldBe true
+    }
+
+    "return 406 if no request header is supplied" in {
+      wsUrl(url).post(version).status shouldBe 406
+    }
+  }
+
+  "GET /profile/personal-details/:nino" should {
+    val url = s"/profile/personal-details/${nino.value}"
+    "return personal details for the given NINO from citizen-details" in {
+      designatoryDetailsForNinoAre(nino, resourceAsString("AA000006C-citizen-details.json").get)
+      authRecordExists(nino)
+
+      val response = getRequestWithAcceptHeader(url)
+
+      response.status shouldBe 200
+      response.json shouldBe getResourceAsJsValue("expected-AA000006C-personal-details.json")
+    }
+
+    "return a 423 response status code when the NINO is locked due to Manual Correspondence Indicator flag being set in NPS" in {
+      npsDataIsLockedDueToMciFlag(nino)
+      authRecordExists(nino)
+
+      val response = getRequestWithAcceptHeader(url)
+
+      response.status shouldBe 423
+      response.json shouldBe parse("""{"code":"MANUAL_CORRESPONDENCE_IND","message":"Data cannot be disclosed to the user because MCI flag is set in NPS"}""")
+    }
+
+    "return 500 response status code when citizen-details returns 500 response status code." in {
+      designatoryDetailsWillReturnErrorResponse(nino, 500)
+      authRecordExists(nino)
+
+      val response = getRequestWithAcceptHeader(url)
+
+      response.status shouldBe 500
+      response.json shouldBe parse("""{"code":"INTERNAL_SERVER_ERROR","message":"Internal server error"}""")
+    }
+
+    "return 404 response status code when citizen-details returns 404 response status code." in {
+      designatoryDetailsWillReturnErrorResponse(nino, 404)
+      authRecordExists(nino)
+
+      val response = getRequestWithAcceptHeader(url)
+
+      response.status shouldBe 404
+      response.json shouldBe parse("""{"code":"NOT_FOUND","message":"Resource was not found"}""")
+    }
+
+    "return 406 if no request header is supplied" in {
+      wsUrl(url).get().status shouldBe 406
+    }
+
+    "propagate 401" in {
+      authFailure()
+      getRequestWithAcceptHeader(url).status shouldBe 401
+    }
+  }
+
+  "POST /profile/paperless-settings/opt-in" should {
+    val url = "/profile/preferences/paperless-settings/opt-in"
+    val entityId = "1098561938451038465138465"
+    val paperless = toJson(Paperless(generic = TermsAccepted(true), email = EmailAddress("new-email@new-email.new.email")))
+
     "return a 200 response when successfully opting into paperless settings" in {
-      val nino = Nino("AA000006C")
-      val entityId = "1098561938451038465138465"
-      val paperless = Json.toJson(Paperless(generic = TermsAccepted(true), email = EmailAddress("new-email@new-email.new.email")))
       respondWithEntityDetailsByNino(nino.value, entityId)
       respondPreferencesNoPaperlessSet()
       authRecordExists(nino)
-      successPaperlessSettingsOptIn()
+      successPaperlessSettingsChange()
       accountsFound(nino)
 
-      val response = await(wsUrl("/profile/preferences/paperless-settings/opt-in")
-        .withHeaders("Accept" -> "application/vnd.hmrc.1.0+json")
-        .post(paperless))
-
-      withClue(response.body) {
-        response.status shouldBe 200
-      }
-    }
-
-    "return a 200 response when overriding to sandbox opting into paperless settings" in {
-      val paperless = Json.toJson(Paperless(generic = TermsAccepted(true), email = EmailAddress("new-email@new-email.new.email")))
-
-      val response = await(wsUrl("/profile/preferences/paperless-settings/opt-in")
-        .withHeaders("Accept" -> "application/vnd.hmrc.1.0+json", "X-MOBILE-USER-ID" -> "208606423740")
-        .post(paperless))
-
-      withClue(response.body) {
-        response.status shouldBe 200
-      }
+      postRequestWithAcceptHeader(url, paperless).status shouldBe 200
     }
 
     "return a 200 response when a pending email preference is successfully updated" in {
-      val nino = Nino("AA000006C")
-      val entityId = "1098561938451038465138465"
-      val paperless = Json.toJson(Paperless(generic = TermsAccepted(true), email = EmailAddress("new-email@new-email.new.email")))
       respondWithEntityDetailsByNino(nino.value, entityId)
       respondPreferencesWithPaperlessOptedIn()
       authRecordExists(nino)
       successfulPendingEmailUpdate(entityId)
       accountsFound(nino)
 
-      val response = await(wsUrl("/profile/preferences/paperless-settings/opt-in")
-        .withHeaders("Accept" -> "application/vnd.hmrc.1.0+json")
-        .post(paperless))
-
-      withClue(response.body) {
-        response.status shouldBe 200
-      }
+      postRequestWithAcceptHeader(url, paperless).status shouldBe 200
     }
 
     "return a Conflict response when preferences has no existing verified or pending email" in {
-      val nino = Nino("AA000006C")
-      val entityId = "1098561938451038465138465"
-      val paperless = Json.toJson(Paperless(generic = TermsAccepted(true), email = EmailAddress("new-email@new-email.new.email")))
-      val expectedResponse = Json.parse("""{"code":"CONFLICT","message":"No existing verified or pending data"}""")
+      val expectedResponse = parse("""{"code":"CONFLICT","message":"No existing verified or pending data"}""")
+
       respondWithEntityDetailsByNino(nino.value, entityId)
       authRecordExists(nino)
       respondPreferencesWithBouncedEmail()
       conflictPendingEmailUpdate(entityId)
       accountsFound(nino)
 
-      val response = await(wsUrl("/profile/preferences/paperless-settings/opt-in")
-        .withHeaders("Accept" -> "application/vnd.hmrc.1.0+json")
-        .post(paperless))
-
-      withClue(response.body) {
-        response.status shouldBe 409
-        response.json shouldBe expectedResponse
-      }
+      val response = postRequestWithAcceptHeader(url, paperless)
+      response.status shouldBe 409
+      response.json shouldBe expectedResponse
     }
 
     "return a Not Found response when unable to find a preference to update for an entity" in {
-      val nino = Nino("AA000006C")
-      val entityId = "1098561938451038465138465"
-      val paperless = Json.toJson(Paperless(generic = TermsAccepted(true), email = EmailAddress("new-email@new-email.new.email")))
-      val expectedResponse = Json.parse("""{"code":"NOT_FOUND","message":"Resource was not found"}""")
+      val expectedResponse = parse("""{"code":"NOT_FOUND","message":"Resource was not found"}""")
+
       respondWithEntityDetailsByNino(nino.value, entityId)
       authRecordExists(nino)
       respondNoPreferences()
 
-      val response = await(wsUrl("/profile/preferences/paperless-settings/opt-in")
-        .withHeaders("Accept" -> "application/vnd.hmrc.1.0+json")
-        .post(paperless))
-
-      withClue(response.body) {
-        response.status shouldBe 404
-        response.json shouldBe expectedResponse
-      }
+      val response = postRequestWithAcceptHeader(url, paperless)
+      response.status shouldBe 404
+      response.json shouldBe expectedResponse
     }
 
     "return a Internal Server Error response when unable update pending email preference for an entity" in {
-      val nino = Nino("AA000006C")
-      val entityId = "1098561938451038465138465"
-      val paperless = Json.toJson(Paperless(generic = TermsAccepted(true), email = EmailAddress("new-email@new-email.new.email")))
-      val expectedResponse = Json.parse("""{"code":"PREFERENCE_SETTINGS_ERROR","message":"Failed to set preferences"}""")
+      val expectedResponse = parse("""{"code":"PREFERENCE_SETTINGS_ERROR","message":"Failed to set preferences"}""")
+
       respondWithEntityDetailsByNino(nino.value, entityId)
       authRecordExists(nino)
       respondPreferencesWithPaperlessOptedIn()
       errorPendingEmailUpdate(entityId)
       accountsFound(nino)
 
-      val response = await(wsUrl("/profile/preferences/paperless-settings/opt-in")
-        .withHeaders("Accept" -> "application/vnd.hmrc.1.0+json")
-        .post(paperless))
+      val response = postRequestWithAcceptHeader(url, paperless)
+      response.status shouldBe 500
+      response.json shouldBe expectedResponse
+    }
 
-      withClue(response.body) {
-        response.status shouldBe 500
-        response.json shouldBe expectedResponse
-      }
+    "return 406 if no request header is supplied" in {
+      wsUrl(url).post(paperless).status shouldBe 406
+    }
+
+    "propagate 401" in {
+      authFailure()
+      postRequestWithAcceptHeader(url, paperless).status shouldBe 401
+    }
+  }
+
+  "POST /profile/paperless-settings/opt-out" should {
+    val url = "/profile/preferences/paperless-settings/opt-out"
+
+    "return a 200 response when successful" in {
+      authRecordExists(nino)
+      successPaperlessSettingsChange()
+
+      postRequestWithAcceptHeader(url).status shouldBe 200
+    }
+
+    "return 406 if no request header is supplied" in {
+      wsUrl(url).post("").status shouldBe 406
+    }
+
+    "propagate 401" in {
+      authFailure()
+      postRequestWithAcceptHeader(url).status shouldBe 401
     }
   }
 

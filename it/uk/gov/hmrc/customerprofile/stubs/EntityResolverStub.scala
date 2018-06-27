@@ -1,7 +1,8 @@
 package uk.gov.hmrc.customerprofile.stubs
 
 import com.github.tomakehurst.wiremock.client.WireMock._
-import play.api.libs.json.Json
+import com.github.tomakehurst.wiremock.matching.UrlPattern
+import play.api.libs.json.Json.{stringify, toJson}
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status._
 import uk.gov.hmrc.customerprofile.domain.{EmailPreference, Preference}
@@ -9,7 +10,7 @@ import uk.gov.hmrc.emailaddress.EmailAddress
 
 object EntityResolverStub {
 
-  private def entityDetailsByNino(nino: String, entityId: String) = s"""
+  private def entityDetailsByNino(nino: String, entityId: String): String = s"""
                                        |{
                                        |  "_id":"$entityId",
                                        |  "sautr":"8040200778",
@@ -23,50 +24,37 @@ object EntityResolverStub {
     else Preference(false)
   }
 
-  private def urlEqualToEntityResolverPaye(nino: String) = {
+  private def urlEqualToEntityResolverPaye(nino: String): UrlPattern = {
     urlEqualTo(s"/entity-resolver/paye/${nino}")
   }
 
-  def respondWithEntityDetailsByNino(nino: String, entityId: String) =
+  def respondWithEntityDetailsByNino(nino: String, entityId: String): Unit =
   stubFor(get(urlEqualToEntityResolverPaye(nino))
-    .willReturn(aResponse()
-    .withStatus(200)
-    .withBody(entityDetailsByNino(nino, entityId))))
+    .willReturn(aResponse().withStatus(200).withBody(entityDetailsByNino(nino, entityId))))
 
-  def respondPreferencesWithPaperlessOptedIn() = {
+  def respondPreferencesWithPaperlessOptedIn(): Unit = {
+    stubFor(get(urlEqualToPreferences).willReturn(aResponse().withStatus(200).withBody(stringify(toJson(preferences())))))
+  }
+
+  def respondPreferencesWithBouncedEmail(): Unit = {
     stubFor(get(urlEqualToPreferences)
       .willReturn(aResponse()
-        .withStatus(200)
-        .withBody(Json.stringify(Json.toJson(preferences())))))
+        .withStatus(200).withBody(stringify(toJson(preferences(optedIn = true, status = Bounced))))))
   }
 
-  def respondPreferencesWithBouncedEmail() = {
+  def respondPreferencesNoPaperlessSet(): Unit = {
     stubFor(get(urlEqualToPreferences)
-      .willReturn(aResponse()
-        .withStatus(200)
-        .withBody(Json.stringify(Json.toJson(preferences(true, status = Bounced))))))
+      .willReturn(aResponse().withStatus(200).withBody(stringify(toJson(preferences(optedIn = false))))))
   }
 
-  def respondPreferencesNoPaperlessSet() = {
-    stubFor(get(urlEqualToPreferences)
-      .willReturn(aResponse()
-        .withStatus(200)
-        .withBody(Json.stringify(Json.toJson(preferences(false))))))
+  def respondNoPreferences(): Unit = {
+    stubFor(get(urlEqualToPreferences).willReturn(aResponse().withStatus(404)))
   }
 
-  def respondNoPreferences() = {
-    stubFor(get(urlEqualToPreferences)
-      .willReturn(aResponse()
-        .withStatus(404)))
+  def successPaperlessSettingsChange(): Unit = {
+    stubFor(post(urlEqualToPaperlessSettingsChange).willReturn(aResponse().withStatus(200)))
   }
 
-  def successPaperlessSettingsOptIn() = {
-    stubFor(post(urlEqualToPaperlessSettingsOptIn)
-      .willReturn(aResponse()
-        .withStatus(200)))
-  }
-
-  val urlEqualToPreferences = urlEqualTo(s"/preferences")
-  val urlEqualToPaperlessSettingsOptIn = urlEqualTo(s"/preferences/terms-and-conditions")
-
+  val urlEqualToPreferences: UrlPattern = urlEqualTo(s"/preferences")
+  val urlEqualToPaperlessSettingsChange: UrlPattern = urlEqualTo(s"/preferences/terms-and-conditions")
 }

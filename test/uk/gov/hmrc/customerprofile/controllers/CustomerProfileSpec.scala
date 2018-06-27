@@ -16,8 +16,7 @@
 
 package uk.gov.hmrc.customerprofile.controllers
 
-import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito._
+import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.ScalaFutures
 import play.api.libs.json.Json
 import play.api.mvc.Result
@@ -30,13 +29,16 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class TestCustomerProfileGetAccountSpec extends UnitSpec with ScalaFutures with StubApplicationConfiguration with Setup {
+class TestCustomerProfileGetAccountSpec
+  extends UnitSpec with ScalaFutures with StubApplicationConfiguration with Setup with MockFactory {
 
   "getAccount live controller " should {
+    def mockGetAccounts(): Unit =
+      (mockLiveCustomerProfileService.getAccounts()(_:HeaderCarrier, _: ExecutionContext)).expects(*,*).returning(
+        Future successful testAccount)
 
     "return the accounts successfully" in {
-      when(mockLiveCustomerProfileService.getAccounts()(any[HeaderCarrier], any[ExecutionContext]))
-        .thenReturn(Future successful testAccount)
+      mockGetAccounts()
 
       val result: Result = await(testCustomerProfileController.getAccounts()(emptyRequestWithHeader))
 
@@ -45,8 +47,7 @@ class TestCustomerProfileGetAccountSpec extends UnitSpec with ScalaFutures with 
     }
 
     "return the accounts successfully when journeyId is supplied" in {
-      when(mockLiveCustomerProfileService.getAccounts()(any[HeaderCarrier], any[ExecutionContext]))
-        .thenReturn(Future successful testAccount)
+      mockGetAccounts()
 
       val result: Result = await(testCustomerProfileController.getAccounts(Some(journeyId))(emptyRequestWithHeader))
 
@@ -100,13 +101,14 @@ class TestCustomerProfileGetAccountSpec extends UnitSpec with ScalaFutures with 
   }
 }
 
-class TestCustomerProfileGetPersonalDetailsSpec extends UnitSpec with ScalaFutures with StubApplicationConfiguration {
+class TestCustomerProfileGetPersonalDetailsSpec
+  extends UnitSpec with ScalaFutures with StubApplicationConfiguration with Setup with MockFactory {
 
   "getPersonalDetails live " should {
 
     "return the PersonalDetails successfully" in new Success {
-      when(mockCitizenDetailsConnector.personDetails(any[Nino])(any[HeaderCarrier], any[ExecutionContext]))
-        .thenReturn(Future successful person)
+      (mockCitizenDetailsConnector.personDetails(_: Nino)(_:HeaderCarrier, _: ExecutionContext)).expects(nino,*,*).returning(
+        Future successful person)
 
       val result: Result = await(controller.getPersonalDetails(nino)(emptyRequestWithHeader))
 
@@ -121,8 +123,8 @@ class TestCustomerProfileGetPersonalDetailsSpec extends UnitSpec with ScalaFutur
     }
 
     "return the PersonalDetails successfully with journeyId" in new Success {
-      when(mockCitizenDetailsConnector.personDetails(any[Nino])(any[HeaderCarrier], any[ExecutionContext]))
-        .thenReturn(Future successful person)
+      (mockCitizenDetailsConnector.personDetails(_: Nino)(_:HeaderCarrier, _: ExecutionContext)).expects(nino,*,*).returning(
+        Future successful person)
 
       val result: Result = await(controller.getPersonalDetails(nino, Some(journeyId))(emptyRequestWithHeader))
 
@@ -169,13 +171,14 @@ class TestCustomerProfileGetPersonalDetailsSpec extends UnitSpec with ScalaFutur
   }
 }
 
-class TestCustomerProfilePreferencesSpec extends UnitSpec with ScalaFutures with StubApplicationConfiguration {
+class TestCustomerProfilePreferencesSpec
+  extends UnitSpec with ScalaFutures with StubApplicationConfiguration with Setup with MockFactory {
 
   "preferences live " should {
 
     "return the preferences successfully" in new Success {
-      when(mockEntityResolverConnector.getPreferences()(any[HeaderCarrier], any[ExecutionContext]))
-        .thenReturn(Future successful defaultPreference)
+      (mockEntityResolverConnector.getPreferences()(_:HeaderCarrier, _: ExecutionContext)).expects(*,*).returning(
+        Future successful defaultPreference)
 
       val result: Result = await(controller.getPreferences()(emptyRequestWithHeader))
 
@@ -184,9 +187,8 @@ class TestCustomerProfilePreferencesSpec extends UnitSpec with ScalaFutures with
     }
 
     "return the preference as off" in new Success {
-      override lazy val defaultPreference = Some(Preference(digital = false, None))
-      when(mockEntityResolverConnector.getPreferences()(any[HeaderCarrier], any[ExecutionContext]))
-        .thenReturn(Future successful defaultPreference)
+      (mockEntityResolverConnector.getPreferences()(_:HeaderCarrier, _: ExecutionContext)).expects(*,*).returning(
+        Future successful( Some(Preference(digital = false, None))))
 
       val result: Result = await(controller.getPreferences()(emptyRequestWithHeader))
 
@@ -195,8 +197,8 @@ class TestCustomerProfilePreferencesSpec extends UnitSpec with ScalaFutures with
     }
 
     "return 404 if no preference found for the user" in new Success {
-      when(mockEntityResolverConnector.getPreferences()(any[HeaderCarrier], any[ExecutionContext]))
-        .thenReturn(Future successful None)
+      (mockEntityResolverConnector.getPreferences()(_:HeaderCarrier, _: ExecutionContext)).expects(*,*).returning(
+        Future successful(None))
 
       val result: Result = await(controller.getPreferences()(emptyRequestWithHeader))
 
@@ -242,7 +244,8 @@ class TestCustomerProfilePreferencesSpec extends UnitSpec with ScalaFutures with
   }
 }
 
-class TestCustomerProfilePaperlessSettingsSpec extends UnitSpec with ScalaFutures with StubApplicationConfiguration {
+class TestCustomerProfilePaperlessSettingsSpec
+  extends UnitSpec with ScalaFutures with StubApplicationConfiguration with MockFactory with Setup {
 
   "paperlessSettings live" should {
 
@@ -268,8 +271,8 @@ class TestCustomerProfilePaperlessSettingsSpec extends UnitSpec with ScalaFuture
     }
 
     "return status code 409 when preference has no existing verified or pending email" in new PreferenceConflict {
-      when(mockPreferencesConnector.updatePendingEmail(any[ChangeEmail], any[String])(any[HeaderCarrier], any[ExecutionContext]))
-        .thenReturn(Future successful EmailNotExist)
+      (mockPreferencesConnector.updatePendingEmail(_: ChangeEmail, _: String)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(*,*,*,*).returning(Future successful EmailNotExist)
 
       val result: Result = await(controller.paperlessSettingsOptIn()(paperlessRequest))
       status(result) shouldBe 409

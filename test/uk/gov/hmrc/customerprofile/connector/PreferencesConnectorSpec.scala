@@ -16,86 +16,62 @@
 
 package uk.gov.hmrc.customerprofile.connector
 
-import com.typesafe.config.Config
-import org.scalatest.mockito.MockitoSugar
-import play.api.http.Status._
+import org.scalamock.scalatest.MockFactory
 import play.api.libs.json.Writes
 import play.api.{Configuration, Environment}
-import uk.gov.hmrc.circuitbreaker.CircuitBreakerConfig
-import uk.gov.hmrc.customerprofile.config.ServicesCircuitBreaker
+import uk.gov.hmrc.customerprofile.config.WSHttpImpl
 import uk.gov.hmrc.customerprofile.domain.ChangeEmail
 import uk.gov.hmrc.http._
-import uk.gov.hmrc.http.hooks.HttpHook
-import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-class PreferencesConnectorSpec extends UnitSpec with MockitoSugar {
-
+class PreferencesConnectorSpec extends UnitSpec with MockFactory {
   implicit val hc = HeaderCarrier()
 
-  class TestPreferencesConnector(http: CoreGet with CorePut, configuration: Configuration, environment: Environment)
-    extends PreferencesConnector(http, "http://preferences.service/", "preferences", configuration, environment)
-      with ServicesConfig with ServicesCircuitBreaker {
-    val serviceUrl = "http://preferences.service/"
-    override val externalServiceName: String = "preferences"
+  val http: WSHttpImpl = mock[WSHttpImpl]
+  val config: Configuration = mock[Configuration]
+  val environment: Environment = mock[Environment]
+  val baseUrl = "baseUrl"
+  val externalServiceName = "externalServiceName"
+  val entityId = "entityId"
+  val changeEmailRequest = ChangeEmail(email = "some-new-email@newEmail.new.email")
 
-    override protected def circuitBreakerConfig = CircuitBreakerConfig(externalServiceName, 5, 2000, 2000)
-  }
+  val connector: PreferencesConnector = new PreferencesConnector(http, baseUrl, externalServiceName, config, environment)
 
-  def preferenceConnector(response: HttpResponse): TestPreferencesConnector = {
-    def http = new CoreGet with HttpGet with CorePut with HttpPut {
-      def doGet(url: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = ???
-
-      def doPut[A](url: String, body: A)(implicit rds: Writes[A], hc: HeaderCarrier): Future[HttpResponse] = {
-        Future.successful(response)
-      }
-
-      def configuration: Option[Config] = None
-
-      val hooks: Seq[HttpHook] = Seq.empty
+  "updatePendingEmail()" should {
+    def mockPUT(response: Future[HttpResponse]) : Unit = {
+      (http.PUT(_: String, _: ChangeEmail)(_: Writes[ChangeEmail], _: HttpReads[HttpResponse], _: HeaderCarrier, _: ExecutionContext))
+        .expects(s"$baseUrl/preferences/$entityId/pending-email", changeEmailRequest, *, *, *, *).returns(response)
     }
 
-    new TestPreferencesConnector(http, mock[Configuration], mock[Environment])
-  }
+    "return status EmailUpdateOk when the service returns an OK status" in {
+      mockPUT(Future successful HttpResponse(200))
 
-  "preferences connector" should {
-    "/preferences/:entityId/pending-email should return status EmailUpdateOk when the service returns an OK status" in {
-      val changeEmailRequest = ChangeEmail(email = "some-new-email@newEmail.new.email")
-      val preferencesResponse = HttpResponse(responseStatus = OK)
-      val response = await(preferenceConnector(preferencesResponse).updatePendingEmail(changeEmailRequest, "some-entity-id"))
+      val response = await(connector.updatePendingEmail(changeEmailRequest, entityId))
       response shouldBe EmailUpdateOk
     }
 
-    "/preferences/:entityId/pending-email should return status EmailNotExist when the service returns an CONFLICT status" in {
-      val changeEmailRequest = ChangeEmail(email = "some-new-email@newEmail.new.email")
-      val preferencesResponse = HttpResponse(responseStatus = CONFLICT)
-      val response = await(preferenceConnector(preferencesResponse).updatePendingEmail(changeEmailRequest, "some-entity-id"))
-      response shouldBe EmailNotExist
-    }
+    "handle 404 NOT_FOUND response" in  {
+      mockPUT(Future failed new NotFoundException("not found"))
 
-    "/preferences/:entityId/pending-email should return status NoPreferenceExists when the service returns an NOT_FOUND status" in {
-      val changeEmailRequest = ChangeEmail(email = "some-new-email@newEmail.new.email")
-      val preferencesResponse = HttpResponse(responseStatus = NOT_FOUND)
-      val response = await(preferenceConnector(preferencesResponse).updatePendingEmail(changeEmailRequest, "some-entity-id"))
+      val response = await(connector.updatePendingEmail(changeEmailRequest, entityId))
       response shouldBe NoPreferenceExists
     }
 
-    "/preferences/:entityId/pending-email should return status EmailUpdateFailed when the service returns any other 4xxResponse" in {
-      val changeEmailRequest = ChangeEmail(email = "some-new-email@newEmail.new.email")
-      val preferencesResponse = HttpResponse(responseStatus = TOO_MANY_REQUESTS)
-      val response = await(preferenceConnector(preferencesResponse).updatePendingEmail(changeEmailRequest, "some-entity-id"))
-      response shouldBe EmailUpdateFailed
+    "handle 409 CONFLICT response" in  {
+      mockPUT(Future failed Upstream4xxResponse("not found", 409, 409))
+
+      val response = await(connector.updatePendingEmail(changeEmailRequest, entityId))
+      response shouldBe EmailNotExist
     }
 
-    "/preferences/:entityId/pending-email should return status EmailUpdateFailed when the service returns any status NOT 200" in {
-      val changeEmailRequest = ChangeEmail(email = "some-new-email@newEmail.new.email")
-      val preferencesResponse = HttpResponse(responseStatus = SERVICE_UNAVAILABLE)
-      val response = await(preferenceConnector(preferencesResponse).updatePendingEmail(changeEmailRequest, "some-entity-id"))
+    "handles exceptions" in  {
+      mockPUT(Future failed Upstream4xxResponse("I'm a teapot", 418, 418))
+
+      val response = await(connector.updatePendingEmail(changeEmailRequest, entityId))
       response shouldBe EmailUpdateFailed
     }
   }
-
 }
