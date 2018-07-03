@@ -16,44 +16,25 @@
 
 package uk.gov.hmrc.customerprofile.services
 
-import java.util.UUID
-
 import com.google.inject.{Inject, Singleton}
-import org.joda.time.DateTime.parse
 import play.api.Configuration
-import uk.gov.hmrc.api.sandbox.FileResource
 import uk.gov.hmrc.api.service.Auditor
+import uk.gov.hmrc.customerprofile.auth.{AccountAccessControl, NinoNotFoundOnAccount}
 import uk.gov.hmrc.customerprofile.connector._
-import uk.gov.hmrc.customerprofile.controllers.action.{AccountAccessControl, NinoNotFoundOnAccount}
-import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status
 import uk.gov.hmrc.customerprofile.domain._
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.emailaddress.EmailAddress
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import scala.concurrent.{ExecutionContext, Future}
 
-trait CustomerProfileService {
-
-  def getAccounts()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Accounts]
-
-  def getPersonalDetails(nino: Nino)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PersonDetails]
-
-  def paperlessSettings(settings: Paperless)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus]
-
-  def paperlessSettingsOptOut()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus]
-
-  def getPreferences()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Option[Preference]]
-}
-
 @Singleton
-class LiveCustomerProfileService @Inject()(citizenDetailsConnector: CitizenDetailsConnector,
-                                           preferencesConnector: PreferencesConnector,
-                                           entityResolver: EntityResolverConnector,
-                                           val accountAccessControl: AccountAccessControl,
-                                           val appNameConfiguration: Configuration,
-                                           val auditConnector: AuditConnector) extends CustomerProfileService with Auditor {
+class CustomerProfileService @Inject()(citizenDetailsConnector: CitizenDetailsConnector,
+                                       preferencesConnector: PreferencesConnector,
+                                       entityResolver: EntityResolverConnector,
+                                       val accountAccessControl: AccountAccessControl,
+                                       val appNameConfiguration: Configuration,
+                                       val auditConnector: AuditConnector) extends Auditor {
   def getAccounts()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Accounts] =
     withAudit("getAccounts", Map.empty) {
       accountAccessControl.accounts
@@ -95,39 +76,9 @@ class LiveCustomerProfileService @Inject()(citizenDetailsConnector: CitizenDetai
       } yield response
     }
 
-}
-
-@Singleton
-class SandboxCustomerProfileService @Inject()() extends CustomerProfileService with FileResource {
-
-  private val nino = Nino("CS700100A")
-
-  private val personDetailsSandbox =
-    PersonDetails(
-      "etag",
-      Person(Some("Jennifer"), None, Some("Thorsteinson"), None, Some("Ms"), None, Some("Female"), Some(parse("1999-01-31")), Some(nino)),
-      Some(Address(Some("999 Big Street"), Some("Worthing"), Some("West Sussex"), None, None, Some("BN99 8IG"), None, None, None)))
-
-  private val accounts = Accounts(Some(nino), None, routeToIV = false, routeToTwoFactor = false, UUID.randomUUID().toString)
-
-  private val email = EmailAddress("name@email.co.uk")
-
-  def getAccounts()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Accounts] = {
-    Future.successful(accounts)
-  }
-
-  def getPersonalDetails(nino: Nino)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PersonDetails] = {
-    Future(personDetailsSandbox)
-  }
-
-  def paperlessSettings(settings: Paperless)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] =
-    Future(PreferencesExists)
-
-  override def paperlessSettingsOptOut()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] =
-    Future(PreferencesExists)
-
-
-  def getPreferences()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Option[Preference]] = {
-    Future(Some(Preference(digital = true, Some(EmailPreference(email, Status.Verified)))))
-  }
+  //override
+  def upgradeRequired(deviceVersion: DeviceVersion)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Boolean] =
+    withAudit("upgradeRequired", Map("os" -> deviceVersion.os.toString)) {
+      ValidateAppVersion.upgrade(deviceVersion)
+    }
 }
