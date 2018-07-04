@@ -98,11 +98,6 @@ uses:
                 required: false
             responses:
               200:
-                body:
-                  application/json:
-                    examples:
-                      example-1:
-                        value: !include examples/opt-in-paperless-preferences-example-1.json
         /opt-out:
           post:
             displayName: Opt out paperless preferences
@@ -116,11 +111,6 @@ uses:
                 required: false
             responses:
               200:
-                body:
-                  application/json:
-                    examples:
-                      example-1:
-                        value: !include examples/opt-out-paperless-preferences-example-1.json
     /native-app:
       /version-check:
         post:
