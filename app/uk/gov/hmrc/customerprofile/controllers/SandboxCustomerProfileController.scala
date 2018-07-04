@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.customerprofile.controllers
 
-import java.util.UUID.randomUUID
-
 import com.google.inject.Singleton
 import play.api.libs.json.Json.toJson
 import play.api.mvc._
@@ -33,6 +31,8 @@ import scala.concurrent.Future
 
 @Singleton
 class SandboxCustomerProfileController extends BaseController with CustomerProfileController with HeaderValidator{
+  private val SANDBOX_CONTROL_HEADER = "SANDBOX-CONTROL"
+
   private val nino = Nino("CS700100A")
 
   private val personDetailsSandbox =
@@ -41,7 +41,8 @@ class SandboxCustomerProfileController extends BaseController with CustomerProfi
       Person(Some("Jennifer"), None, Some("Thorsteinson"), None, Some("Ms"), None, Some("Female"), Some(org.joda.time.DateTime.parse("1999-01-31")), Some(nino)),
       Some(Address(Some("999 Big Street"), Some("Worthing"), Some("West Sussex"), None, None, Some("BN99 8IG"), None, None, None)))
 
-  private val accounts = Accounts(Some(nino), None, routeToIV = false, routeToTwoFactor = false, randomUUID().toString)
+  private def accounts(journeyId: Option[String]) =
+    Accounts(Some(nino), None, routeToIV = false, routeToTwoFactor = false, journeyId.getOrElse(""))
 
   private val email = EmailAddress("name@email.co.uk")
 
@@ -51,34 +52,75 @@ class SandboxCustomerProfileController extends BaseController with CustomerProfi
   override def getAccounts(journeyId: Option[String]): Action[AnyContent] = {
     validateAccept(acceptHeaderValidationRules).async {
       implicit request =>
-        Future successful Ok(toJson(accounts))
+        Future successful (request.headers.get(SANDBOX_CONTROL_HEADER) match {
+          case Some("ERROR-401") => Unauthorized
+          case Some("ERROR-403") => Forbidden
+          case Some("ERROR-500") => InternalServerError
+          case _ => Ok(toJson(accounts(journeyId)))
+        })
     }
   }
 
   override def getPersonalDetails(nino: Nino, journeyId: Option[String]): Action[AnyContent] = {
     validateAccept(acceptHeaderValidationRules).async {
       implicit request =>
-        Future successful Ok(toJson(personDetailsSandbox))
+        Future successful (request.headers.get(SANDBOX_CONTROL_HEADER) match {
+          case Some("ERROR-401") => Unauthorized
+          case Some("ERROR-403") => Forbidden
+          case Some("ERROR-500") => InternalServerError
+          case _ => Ok(toJson(personDetailsSandbox))
+        })
     }
   }
 
   override def getPreferences(journeyId: Option[String]): Action[AnyContent] = {
     validateAccept(acceptHeaderValidationRules).async {
       implicit request =>
-        Future successful Ok(toJson(Preference(digital = true, Some(EmailPreference(email, Verified)))))
+        Future successful (request.headers.get(SANDBOX_CONTROL_HEADER) match {
+          case Some("ERROR-401") => Unauthorized
+          case Some("ERROR-403") => Forbidden
+          case Some("ERROR-404") => NotFound
+          case Some("ERROR-500") => InternalServerError
+          case _ => Ok(toJson(Preference(digital = true, Some(EmailPreference(email, Verified)))))
+        })
     }
   }
 
   override def paperlessSettingsOptOut(journeyId: Option[String]): Action[AnyContent] = {
     validateAccept(acceptHeaderValidationRules).async {
       implicit request =>
-        Future successful Ok
+        Future successful (request.headers.get(SANDBOX_CONTROL_HEADER) match {
+          case Some("ERROR-401") => Unauthorized
+          case Some("ERROR-403") => Forbidden
+          case Some("ERROR-404") => NotFound
+          case Some("ERROR-500") => InternalServerError
+          case Some("PREFERENCE-CREATED") => Created
+          case _ => Ok
+        })
     }
   }
 
-  override def upgradeRequired(deviceVersion: DeviceVersion)(implicit hc: HeaderCarrier): Future[Result] = {
-    Future successful Ok(toJson(new UpgradeRequired(false)))
+  override def upgradeRequired(deviceVersion: DeviceVersion)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result] = {
+    def ok(upgradeRequired: Boolean) = Ok(toJson(new UpgradeRequired(upgradeRequired)))
+
+    Future successful (request.headers.get(SANDBOX_CONTROL_HEADER) match {
+      case Some("ERROR-401") => Unauthorized
+      case Some("ERROR-403") => Forbidden
+      case Some("ERROR-500") => InternalServerError
+      case Some("UPGRADE-REQUIRED") => ok(upgradeRequired = true)
+      case _ => ok(upgradeRequired = false)
+    })
   }
 
-  override def optIn(settings: Paperless)(implicit hc: HeaderCarrier): Future[Result] = Future successful Ok
+  override def optIn(settings: Paperless)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result] = {
+    Future successful (request.headers.get(SANDBOX_CONTROL_HEADER) match {
+      case Some("ERROR-401") => Unauthorized
+      case Some("ERROR-403") => Forbidden
+      case Some("ERROR-404") => NotFound
+      case Some("ERROR-409") => Conflict
+      case Some("ERROR-500") => InternalServerError
+      case Some("PREFERENCE-CREATED") => Created
+      case _ => Ok
+    })
+  }
 }

@@ -139,7 +139,7 @@ class LiveCustomerProfileController @Inject()(service: CustomerProfileService, a
         )
     }
 
-  override def optIn(settings: Paperless)(implicit hc: HeaderCarrier): Future[Result] = {
+  override def optIn(settings: Paperless)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result] = {
     errorWrapper(service.paperlessSettings(settings).map {
       case PreferencesExists | EmailUpdateOk => Ok
       case PreferencesCreated => Created
@@ -161,7 +161,7 @@ class LiveCustomerProfileController @Inject()(service: CustomerProfileService, a
         })
     }
 
-  override def upgradeRequired(deviceVersion: DeviceVersion)(implicit hc: HeaderCarrier): Future[Result] = {
+  override def upgradeRequired(deviceVersion: DeviceVersion)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result] = {
     errorWrapper(service.upgradeRequired(deviceVersion).map {
       b => Ok(toJson(new UpgradeRequired(b)))
     })

@@ -70,7 +70,7 @@ trait CustomerProfileController extends HeaderValidator {
     }
 
   def withAcceptHeaderValidationAndAuthIfLive(taxId : Option[Nino] = None): ActionBuilder[Request]
-  def upgradeRequired(deviceVersion: DeviceVersion)(implicit hc: HeaderCarrier): Future[Result]
-  def optIn(settings: Paperless)(implicit hc: HeaderCarrier): Future[Result]
+  def upgradeRequired(deviceVersion: DeviceVersion)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result]
+  def optIn(settings: Paperless)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result]
 }
 
