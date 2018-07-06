@@ -12,6 +12,13 @@ Paperless Settings
 
   `POST`
 
+*  **URL Params**
+
+  **Optional:**
+   `journeyId=[String]`
+
+    an optional string which may be included for journey tracking purposes but has no functional impact
+
 *  **Request body**
 
 ```json
@@ -36,10 +43,14 @@ Paperless Settings
     **Content:** `{"code":"BAD_REQUEST","message":"JSON error flattened to a string describing the error that occured on the request"}`
 
   * **Code:** 401 UNAUTHORIZED <br />
-    **Content:** `{"code":"UNAUTHORIZED","message":"NINO does not exist on account"}`
+    **Content:** `{"code":"UNAUTHORIZED","message":"Some auth error message"}`
 
-  * **Code:** 401 UNAUTHORIZED <br />
+  * **Code:** 403 FORBIDDEN <br />
     **Content:** `{"code":"LOW_CONFIDENCE_LEVEL","Confidence Level on account does not allow access"}`
+
+  * **Code:** 404 NOT FOUND <br />
+    **Content:** `{"code":"NOT_FOUND","Resource was not found"}`
+    **Note:** Propagates a NOT_FOUND from the preferences system
 
   * **Code:** 406 NOT ACCEPTABLE <br />
     **Content:** `{"code":"ACCEPT_HEADER_INVALID","message":"The accept header is missing or invalid"}`

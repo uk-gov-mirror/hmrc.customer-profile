@@ -18,6 +18,10 @@ Personal Details
 
    The [NINO](https://github.com/hmrc/domain/blob/master/src/main/scala/uk/gov/hmrc/domain/Nino.scala#L21), National Insurance Number, given must be a valid NINO, ([http://www.hmrc.gov.uk/manuals/nimmanual/nim39110.htm](http://www.hmrc.gov.uk/manuals/nimmanual/nim39110.htm) / [Regular expression](https://github.com/hmrc/domain/blob/master/src/main/scala/uk/gov/hmrc/domain/Nino.scala#L36))
 
+  **Optional:**
+   `journeyId=[String]`
+
+    an optional string which may be included for journey tracking purposes but has no functional impact
 
 * **Success Response:**
 
@@ -26,39 +30,30 @@ Personal Details
 
 ```json
 {
-  "etag" : "etag12345",
-  "person" : {
-    "firstName" : "John",
-    "middleName" : "Albert",
-    "lastName" : "Smith",
-    "title" : "Mr",
-    "honours" : "BSC",
-    "sex" : "M",
-    "dateOfBirth" : 513774181935,
-    "nino" : "YH261980B"
+  "etag": "etag12345",
+  "person": {
+    "firstName": "Jennifer",
+    "lastName": "Thorsteinson",
+    "title": "Ms",
+    "sex": "Female",
+    "dateOfBirth": 513774181935,
+    "nino": "CS700100A"
   },
-  "address" : {
-    "line1": "1 Test Street",
-    "line2": "Testington",
-    "line3": "Testville",
-    "line4": "Testshire",
-    "postcode:" : "AA1 1AA",
-    "country:" : "Test Country",
-    "startDate": 1509556398243,
-    "type": "Residential"
+  "address": {
+    "line1": "999 Big Street",
+    "line2": "Worthing",
+    "line3": "West Sussex",
+    "postcode": "BN99 8IG"
   }
 }
 ```
 
 * **Error Response:**
 
-  * **Code:** 400 BAD REQUEST <br />
-    **Content:** `{"code":"BAD_REQUEST","message":"Bad Request"}`
-
   * **Code:** 401 UNAUTHORIZED <br />
-    **Content:** `{"code":"UNAUTHORIZED","message":"NINO does not exist on account"}`
+    **Content:** `{"code":"UNAUTHORIZED","message":"Some auth message"}`
 
-  * **Code:** 401 UNAUTHORIZED <br />
+  * **Code:** 403 FORBIDDEN <br />
     **Content:** `{"code":"LOW_CONFIDENCE_LEVEL","Confidence Level on account does not allow access"}`
 
   * **Code:** 406 NOT ACCEPTABLE <br />
