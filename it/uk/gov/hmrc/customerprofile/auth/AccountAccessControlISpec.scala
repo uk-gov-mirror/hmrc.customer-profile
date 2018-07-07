@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.customerprofile.controllers.action
+package uk.gov.hmrc.customerprofile.auth
 
 import org.scalatest.concurrent.Eventually
 import uk.gov.hmrc.auth.core.ConfidenceLevel.{L200, L50}

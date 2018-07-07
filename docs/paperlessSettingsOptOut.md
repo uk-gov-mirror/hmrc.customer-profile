@@ -10,6 +10,10 @@ Paperless Settings Opt Out
 
   `POST`
 
+*  **URL Params**
+
+  journeyId - an optional string which may be included for journey tracking purposes but has no functional impact
+  
 *  **Request body**
 
 ```json
@@ -27,9 +31,9 @@ Paperless Settings Opt Out
     **Content:** `{"code":"BAD_REQUEST","message":"JSON error flattened to a string describing the error that occured on the request"}`
 
   * **Code:** 401 UNAUTHORIZED <br />
-    **Content:** `{"code":"UNAUTHORIZED","message":"NINO does not exist on account"}`
+    **Content:** `{"code":"UNAUTHORIZED","message":"Some auth message"}`
 
-  * **Code:** 401 UNAUTHORIZED <br />
+  * **Code:** 403 FORBIDDEN <br />
     **Content:** `{"code":"LOW_CONFIDENCE_LEVEL","Confidence Level on account does not allow access"}`
 
   * **Code:** 404 NOT FOUND <br />

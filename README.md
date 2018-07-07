@@ -31,6 +31,23 @@ All the above endpoints are accessible on sandbox with `/sandbox` prefix on each
     GET /sandbox/profile/accounts
 ```
 
+To trigger the sandbox endpoints locally, use the "X-MOBILE-USER-ID" header with one of the following values:
+208606423740 or 167927702220
+
+To test different scenarios, add a header "SANDBOX-CONTROL" to specify the appropriate status code and return payload. 
+See each linked file for details:
+
+| *Task* | *Supported Methods* | *Description* |
+|--------|----|----|
+| ```/sandbox/profile/accounts``` | GET | Acts as a stub for the related live endpoint. [More...](docs/sandbox/accounts.md)  |
+| ```/sandbox/profile/personal-details/:nino``` | GET | Acts as a stub for the related live endpoint. [More...](docs/sandbox/personalDetails.md)  |
+| ```/sandbox/profile/preferences``` | GET | Acts as a stub for the related live endpoint. [More...](docs/sandbox/preferences.md)|
+| ```/sandbox/profile/preferences/paperless-settings/opt-in``` | POST | Acts as a stub for the related live endpoint. [More...](docs/sandbox/paperlessSettingsOptIn.md)|
+| ```/sandbox/profile/preferences/paperless-settings/opt-out``` | POST | Acts as a stub for the related live endpoint. [More...](docs/sandbox/paperlessSettingsOptOut.md)|
+| ```/sandbox/profile/native-app/version-check``` | POST | Acts as a stub for the related live endpoint. [More...](docs/sandbox/versionCheck.md)|
+
+
+
 # Version
 Version of API need to be provided in `Accept` request header
 ```

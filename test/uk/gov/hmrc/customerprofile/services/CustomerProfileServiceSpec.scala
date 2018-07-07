@@ -16,25 +16,60 @@
 
 package uk.gov.hmrc.customerprofile.services
 
+import org.scalamock.matchers.MatcherBase
+import org.scalamock.scalatest.MockFactory
+import play.api.Configuration
+import uk.gov.hmrc.customerprofile.auth.AccountAccessControl
 import uk.gov.hmrc.customerprofile.connector._
-import uk.gov.hmrc.customerprofile.controllers.action.AccountAccessControl
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status.Verified
+import uk.gov.hmrc.customerprofile.domain.NativeOS.iOS
 import uk.gov.hmrc.customerprofile.domain._
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.emailaddress.EmailAddress
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.audit.model.DataEvent
+import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
-class CustomerProfileServiceSpec extends BaseServiceSpec{
+class CustomerProfileServiceSpec extends UnitSpec with MockFactory{
+  implicit lazy val hc: HeaderCarrier = HeaderCarrier()
+
+  val appNameConfiguration: Configuration = mock[Configuration]
+  val auditConnector: AuditConnector = mock[AuditConnector]
+
+  val appName = "customer-profile"
+
+  def mockAudit(transactionName: String, detail: Map[String, String] =  Map.empty) = {
+    def dataEventWith(auditSource: String,
+                      auditType: String,
+                      tags: Map[String, String]): MatcherBase = {
+      argThat((dataEvent: DataEvent) => {
+        dataEvent.auditSource.equals(auditSource) &&
+          dataEvent.auditType.equals(auditType) &&
+          dataEvent.tags.equals(tags) &&
+          dataEvent.detail.equals(detail)
+      })
+    }
+
+    (appNameConfiguration.getString(_: String, _: Option[Set[String]])).expects(
+      "appName", None).returns(Some(appName)).anyNumberOfTimes()
+
+    (auditConnector.sendEvent(_:DataEvent)(_: HeaderCarrier, _: ExecutionContext)).expects(
+      dataEventWith(appName, auditType = "ServiceResponseSent", tags = Map("transactionName" -> transactionName)), *, *).returns(
+      Future successful Success)
+  }
+
   val citizenDetailsConnector: CitizenDetailsConnector = mock[CitizenDetailsConnector]
   val preferencesConnector: PreferencesConnector = mock[PreferencesConnector]
   val entityResolver: EntityResolverConnector = mock[EntityResolverConnector]
   val accountAccessControl: AccountAccessControl = mock[AccountAccessControl]
 
   val service =
-    new LiveCustomerProfileService(
+    new CustomerProfileService(
       citizenDetailsConnector, preferencesConnector, entityResolver, accountAccessControl, appNameConfiguration, auditConnector)
 
   val existingDigitalPreference: Preference =  existingPreferences(digital = true)
@@ -140,6 +175,23 @@ class CustomerProfileServiceSpec extends BaseServiceSpec{
         Future successful PreferencesExists)
 
       await(service.paperlessSettingsOptOut()) shouldBe PreferencesExists
+    }
+  }
+
+  "upgradeRequired" should {
+    "audit and not require an upgrade for the configured lower bound version" in {
+      mockAudit(transactionName = "upgradeRequired", Map("os" -> "ios"))
+      await(service.upgradeRequired(DeviceVersion(iOS, "3.0.7"))) shouldBe false
+    }
+
+    "audit and not require an upgrade below the configured lower bound version" in {
+      mockAudit(transactionName = "upgradeRequired", Map("os" -> "ios"))
+      await(service.upgradeRequired(DeviceVersion(iOS, "3.0.6"))) shouldBe true
+    }
+
+    "audit and not require an upgrade above the configured lower bound version" in {
+      mockAudit(transactionName = "upgradeRequired", Map("os" -> "ios"))
+      await(service.upgradeRequired(DeviceVersion(iOS, "3.0.8"))) shouldBe false
     }
   }
 }
