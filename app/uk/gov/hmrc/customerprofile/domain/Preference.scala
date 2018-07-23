@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.customerprofile.domain
 
-import org.joda.time.LocalDate
 import play.api.libs.json.{JsError, Json, _}
 import uk.gov.hmrc.emailaddress.EmailAddress
 
@@ -50,16 +49,16 @@ object EmailPreference {
       }
     }
 
-    implicit val formats = Format(reads, writes)
+    implicit val formats: Format[Status] = Format(reads, writes)
   }
 
-  implicit val formats = Json.format[EmailPreference]
+  implicit val formats: OFormat[EmailPreference] = Json.format[EmailPreference]
 }
 
 case class Preference(digital: Boolean, email: Option[EmailPreference] = None)
 
 object Preference {
-  implicit val format = {
+  implicit val format: OFormat[Preference] = {
     import EmailPreference.formats
     Json.format[Preference]
   }

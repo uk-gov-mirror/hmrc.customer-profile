@@ -20,9 +20,9 @@ import org.scalatest.{FlatSpec, Matchers}
 
 class VersionSpec extends FlatSpec with Matchers {
 
-  implicit def toLeft(i: Int) = Left(i)
+  implicit def toLeft(i: Int): Left[Int, Nothing] = Left(i)
 
-  implicit def toRight(s: String) = Right(s)
+  implicit def toRight(s: String): Right[Nothing, String] = Right(s)
 
   "Version parsing" should "work for '1'" in {
     Version("1") shouldBe Version(1, 0, 0, None)

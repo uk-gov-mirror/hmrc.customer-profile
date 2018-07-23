@@ -16,19 +16,19 @@
 
 package uk.gov.hmrc.customerprofile.domain
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.emailaddress.EmailAddress
 
 case class TermsAccepted(accepted: Boolean)
 
 object TermsAccepted {
-  implicit val formats = Json.format[TermsAccepted]
+  implicit val formats: OFormat[TermsAccepted] = Json.format[TermsAccepted]
 }
 
 case class Paperless(generic: TermsAccepted, email: EmailAddress)
 
 object Paperless {
-  implicit val formats = {
+  implicit val formats: OFormat[Paperless] = {
     import uk.gov.hmrc.emailaddress.PlayJsonFormats.{emailAddressReads, emailAddressWrites}
     Json.format[Paperless]
   }
@@ -36,5 +36,5 @@ object Paperless {
 
 case class PaperlessOptOut(generic: TermsAccepted)
 object PaperlessOptOut {
-  implicit val format = Json.format[PaperlessOptOut]
+  implicit val format: OFormat[PaperlessOptOut] = Json.format[PaperlessOptOut]
 }

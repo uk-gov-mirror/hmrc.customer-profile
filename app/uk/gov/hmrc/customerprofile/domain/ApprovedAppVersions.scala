@@ -17,6 +17,7 @@
 package uk.gov.hmrc.customerprofile.domain
 
 import net.ceedubs.ficus.readers.ValueReader
+import play.api.libs.json.Json.format
 import play.api.libs.json.{JsError, Writes, _}
 import uk.gov.hmrc.customerprofile.domain.NativeOS.Windows
 
@@ -35,7 +36,7 @@ trait LoadConfig {
 trait ApprovedAppVersions extends LoadConfig {
   import net.ceedubs.ficus.Ficus._
 
-  private implicit val nativeVersionReader: ValueReader[NativeVersion] = ValueReader.relative { nativeVersion =>
+  private implicit val nativeVersionReader: ValueReader[NativeVersion] = ValueReader.relative { _ =>
     NativeVersion(
       VersionRange(config.as[String]("approvedAppVersions.ios")),
       VersionRange(config.as[String]("approvedAppVersions.android")),
@@ -48,7 +49,7 @@ trait ApprovedAppVersions extends LoadConfig {
 
 trait ValidateAppVersion extends ApprovedAppVersions {
 
-  import uk.gov.hmrc.customerprofile.domain.NativeOS.{iOS, Android}
+  import uk.gov.hmrc.customerprofile.domain.NativeOS.{Android, iOS}
 
   def upgrade(deviceVersion: DeviceVersion) : Future[Boolean] = {
     val outsideValidRange = deviceVersion.os match {
@@ -91,20 +92,18 @@ object NativeOS {
   }
 
   val writes: Writes[NativeOS] = new Writes[NativeOS] {
-    override def writes(os: NativeOS) = os match {
+    override def writes(os: NativeOS): JsString = os match {
       case `iOS` => JsString("ios")
       case Android => JsString("android")
       case Windows => JsString("windows")
     }
   }
 
-  implicit val formats = Format(reads, writes)
+  implicit val formats: Format[NativeOS] = Format(reads, writes)
 }
 
 case class DeviceVersion(os : NativeOS, version : String)
 
 object DeviceVersion {
-  import NativeOS.formats
-
-  implicit val formats = Json.format[DeviceVersion]
+  implicit val formats: OFormat[DeviceVersion] = format[DeviceVersion]
 }

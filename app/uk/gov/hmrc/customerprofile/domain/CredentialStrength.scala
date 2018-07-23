@@ -28,9 +28,9 @@ object CredentialStrength {
 
   val fromName: String => CredentialStrength = Seq(Strong, Weak, None).map(c => c.name -> c).toMap
 
-  implicit val format = {
+  implicit val format: Format[CredentialStrength] = {
     val reads = new Reads[CredentialStrength] {
-      override def reads(json: JsValue) =
+      override def reads(json: JsValue): JsResult[CredentialStrength] =
         try {
           JsSuccess(fromName(json.as[String]))
         } catch {
@@ -38,7 +38,7 @@ object CredentialStrength {
         }
     }
     val writes = new Writes[CredentialStrength] {
-      override def writes(o: CredentialStrength) = new JsString(o.name)
+      override def writes(o: CredentialStrength) = JsString(o.name)
     }
     Format(reads, writes)
   }

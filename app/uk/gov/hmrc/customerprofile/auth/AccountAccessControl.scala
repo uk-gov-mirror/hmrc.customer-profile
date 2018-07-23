@@ -50,14 +50,13 @@ class AccountAccessControl @Inject()(val authConnector: AuthConnector,
   def accounts(implicit hc: HeaderCarrier): Future[Accounts] = {
     authorised()
       .retrieve(nino and saUtr and credentialStrength and confidenceLevel) {
-        case nino ~ saUtr ~ credentialStrength ~ confidenceLevel ⇒ {
+        case foundNino ~ foundSaUtr ~ foundCredentialStrength ~ foundConfidenceLevel ⇒
           Future successful Accounts(
-            nino.map(Nino(_)),
-            saUtr.map(SaUtr(_)),
-            serviceConfidenceLevel > confidenceLevel.level,
-            credentialStrength.orNull != "strong",
+            foundNino.map(Nino(_)),
+            foundSaUtr.map(SaUtr(_)),
+            serviceConfidenceLevel > foundConfidenceLevel.level,
+            foundCredentialStrength.orNull != "strong",
             journeyId = randomUUID().toString)
-        }
       }
   }
 
@@ -65,17 +64,15 @@ class AccountAccessControl @Inject()(val authConnector: AuthConnector,
   def grantAccess(taxId: Option[Nino])(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = {
     authorised()
       .retrieve(nino and confidenceLevel) {
-        case Some(foundNino) ~ foundConfidenceLevel ⇒ {
+        case Some(foundNino) ~ foundConfidenceLevel ⇒
           if (foundNino.isEmpty) throw ninoNotFoundOnAccount
           else if (taxId.nonEmpty && !taxId.get.value.equals(foundNino))
             throw new FailToMatchTaxIdOnAuth("The nino in the URL failed to match auth!")
           else if (serviceConfidenceLevel > foundConfidenceLevel.level)
             throw new AccountWithLowCL("The user does not have sufficient CL permissions to access this service")
           else Future(Unit)
-        }
-        case None ~ _ ⇒ {
+        case None ~ _ ⇒
           throw ninoNotFoundOnAccount
-        }
       }
   }
 }

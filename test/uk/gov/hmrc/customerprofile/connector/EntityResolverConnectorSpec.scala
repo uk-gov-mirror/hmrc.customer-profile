@@ -63,8 +63,6 @@ class EntityResolverConnectorSpec extends UnitSpec with ScalaFutures with MockFa
         s"$baseUrl/preferences",*,*,*).returns(preferences)
     }
 
-    val nino = Nino("CE123457D")
-
     "return the preferences for utr only" in {
       val preferences = Some(Preference(digital = true, Some(EmailPreference(EmailAddress("test@mail.com"), Verified))))
 

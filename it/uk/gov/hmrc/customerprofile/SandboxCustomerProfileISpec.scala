@@ -17,8 +17,8 @@
 package uk.gov.hmrc.customerprofile
 
 import org.joda.time.DateTime.parse
-import play.api.libs.json.{JsValue, Json}
 import play.api.libs.json.Json.toJson
+import play.api.libs.json.{JsValue, Json}
 import play.api.libs.ws.WSRequest
 import uk.gov.hmrc.customerprofile.controllers.UpgradeRequired
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status.Verified
@@ -29,7 +29,6 @@ import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.emailaddress.EmailAddress
 
 class SandboxCustomerProfileISpec extends BaseISpec {
-  private val headerToRedirectToSandbox = "X-MOBILE-USER-ID" -> "208606423740"
   private val acceptJsonHeader = "Accept" -> "application/vnd.hmrc.1.0+json"
   private val nino = Nino("CS700100A")
   private val journeyId = "journeyId"

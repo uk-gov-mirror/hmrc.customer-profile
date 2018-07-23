@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.customerprofile.services
 
+import org.scalamock.handlers.CallHandler3
 import org.scalamock.matchers.MatcherBase
 import org.scalamock.scalatest.MockFactory
 import play.api.Configuration
@@ -27,7 +28,7 @@ import uk.gov.hmrc.customerprofile.domain._
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.emailaddress.EmailAddress
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.audit.model.DataEvent
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
@@ -43,7 +44,7 @@ class CustomerProfileServiceSpec extends UnitSpec with MockFactory{
 
   val appName = "customer-profile"
 
-  def mockAudit(transactionName: String, detail: Map[String, String] =  Map.empty) = {
+  def mockAudit(transactionName: String, detail: Map[String, String] =  Map.empty): CallHandler3[DataEvent, HeaderCarrier, ExecutionContext, Future[AuditResult]] = {
     def dataEventWith(auditSource: String,
                       auditType: String,
                       tags: Map[String, String]): MatcherBase = {

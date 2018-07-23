@@ -29,7 +29,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class AccountAccessControlISpec extends BaseISpec with Eventually {
 
-  implicit val hc = HeaderCarrier()
+  implicit val hc: HeaderCarrier = HeaderCarrier()
 
   val saUtr = SaUtr("1872796160")
   val nino = Nino("CS100700A")

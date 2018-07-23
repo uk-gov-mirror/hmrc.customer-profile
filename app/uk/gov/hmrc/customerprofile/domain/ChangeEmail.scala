@@ -16,10 +16,11 @@
 
 package uk.gov.hmrc.customerprofile.domain
 
-import play.api.libs.json.Json
+import play.api.libs.json.Json.format
+import play.api.libs.json.OFormat
 
 case class ChangeEmail(email: String)
 
 object ChangeEmail {
-  implicit val formats = Json.format[ChangeEmail]
+  implicit val formats: OFormat[ChangeEmail] = format[ChangeEmail]
 }

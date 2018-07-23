@@ -21,11 +21,11 @@ object EntityResolverStub {
     if(optedIn) {
       Preference(optedIn, Some(EmailPreference(EmailAddress(email), status)))
     }
-    else Preference(false)
+    else Preference(digital = false)
   }
 
   private def urlEqualToEntityResolverPaye(nino: String): UrlPattern = {
-    urlEqualTo(s"/entity-resolver/paye/${nino}")
+    urlEqualTo(s"/entity-resolver/paye/$nino")
   }
 
   def respondWithEntityDetailsByNino(nino: String, entityId: String): Unit =
@@ -39,7 +39,7 @@ object EntityResolverStub {
   def respondPreferencesWithBouncedEmail(): Unit = {
     stubFor(get(urlEqualToPreferences)
       .willReturn(aResponse()
-        .withStatus(200).withBody(stringify(toJson(preferences(optedIn = true, status = Bounced))))))
+        .withStatus(200).withBody(stringify(toJson(preferences(status = Bounced))))))
   }
 
   def respondPreferencesNoPaperlessSet(): Unit = {

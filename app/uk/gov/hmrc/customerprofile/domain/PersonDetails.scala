@@ -17,11 +17,12 @@
 package uk.gov.hmrc.customerprofile.domain
 
 import org.joda.time.DateTime
+import play.api.libs.json.Json.format
 import play.api.libs.json._
 import uk.gov.hmrc.domain.Nino
 
 object Person {
-  implicit val formats = Json.format[Person]
+  implicit val formats: OFormat[Person] = format[Person]
 }
 case class Person(
                    firstName: Option[String],
@@ -35,13 +36,13 @@ case class Person(
                    nino: Option[Nino]
                  ) {
 
-  lazy val shortName = for (f <- firstName; l <- lastName) yield List(f, l).mkString(" ")
-  lazy val fullName = List(title, firstName, middleName, lastName, honours).flatten.mkString(" ")
+  lazy val shortName: Option[String] = for (f <- firstName; l <- lastName) yield List(f, l).mkString(" ")
+  lazy val fullName: String = List(title, firstName, middleName, lastName, honours).flatten.mkString(" ")
 }
 
 
 object Address {
-  implicit val formats = Json.format[Address]
+  implicit val formats: OFormat[Address] = format[Address]
 }
 
 case class Address(
@@ -58,7 +59,7 @@ case class Address(
 
 
 object PersonDetails {
-  implicit val formats = Json.format[PersonDetails]
+  implicit val formats: OFormat[PersonDetails] = format[PersonDetails]
 }
 case class PersonDetails(
                           etag: String,

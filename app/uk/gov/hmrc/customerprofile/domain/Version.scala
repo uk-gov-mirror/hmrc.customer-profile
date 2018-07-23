@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.customerprofile.domain
 
+import scala.util.matching.Regex
+
 
 case class VersionRange(lowerBound: Option[Version],
                         lowerBoundInclusive: Boolean,
@@ -40,7 +42,7 @@ case class VersionRange(lowerBound: Option[Version],
     }
   }
 
-  override def toString():String={
+  override def toString:String={
     if (qualifierStartsWith.isDefined) {
       s"[*-${qualifierStartsWith.get}]"
     } else {
@@ -69,15 +71,13 @@ case class VersionRange(lowerBound: Option[Version],
   * @throws IllegalArgumentException when an illegal format is used
   */
 object VersionRange {
-
-
   implicit def toVersion(v: String): Version = Version(v)
 
-  val ValidFixedVersion = """^\[(\d+\.\d+.\d+)\]""".r
-  val ValidVersionRangeLeftOpen = """^\(,?(\d+\.\d+.\d+)[\]\)]""".r
-  val ValidVersionRangeRightOpen = """^[\[\(](\d+\.\d+.\d+),[\]\)]""".r
-  val ValidVersionRangeBetween = """^[\[\(](\d+\.\d+.\d+),(\d+\.\d+.\d+)[\]\)]""".r
-  val Qualifier = """^\[[-\*]+(.*)\]""".r
+  val ValidFixedVersion: Regex = """^\[(\d+\.\d+.\d+)\]""".r
+  val ValidVersionRangeLeftOpen: Regex = """^\(,?(\d+\.\d+.\d+)[\]\)]""".r
+  val ValidVersionRangeRightOpen: Regex = """^[\[\(](\d+\.\d+.\d+),[\]\)]""".r
+  val ValidVersionRangeBetween: Regex = """^[\[\(](\d+\.\d+.\d+),(\d+\.\d+.\d+)[\]\)]""".r
+  val Qualifier: Regex = """^\[[-\*]+(.*)\]""".r
 
   def apply(range: String): VersionRange = {
     range.replaceAll(" ", "") match {
@@ -109,7 +109,7 @@ object Version {
   def toVer(v: String):(Int, Int, Int) = {
     val elem = v.split('.')
     if (elem.forall(x => isAllDigits(x)) &&
-      elem.size <= 3 &&
+      elem.length <= 3 &&
       !v.startsWith(".") &&
       !v.endsWith(".") &&
       !v.contains("..")
@@ -132,9 +132,9 @@ case class Version(major: Int, minor: Int, revision: Int, buildOrQualifier: Opti
 
   def isBefore(version: Version): Boolean = this.compareTo(version) < 0
 
-  def isAfter(version: Version) = this.compareTo(version) > 0
+  def isAfter(version: Version): Boolean = this.compareTo(version) > 0
 
-  lazy val boqFormatted = buildOrQualifier.map { boqE => boqE match {
+  lazy val boqFormatted: Option[String] = buildOrQualifier.map { boqE => boqE match {
     case Left(num) => num.toString
     case Right(st) => st
   }}
@@ -155,12 +155,12 @@ case class Version(major: Int, minor: Int, revision: Int, buildOrQualifier: Opti
     partsComparison match {
       case 0 => buildOrQualifier -> version.buildOrQualifier match {
         case (None, None) => 0
-        case (None, Some(Left(b))) => -1
-        case (None, Some(Right(q))) => 1
-        case (Some(Left(b)), None) => 1
-        case (Some(Right(q)), None) => -1
-        case (Some(Left(b1)), Some(Right(s2))) => 1
-        case (Some(Right(s1)), Some(Left(b2))) => -1
+        case (None, Some(Left(_))) => -1
+        case (None, Some(Right(_))) => 1
+        case (Some(Left(_)), None) => 1
+        case (Some(Right(_)), None) => -1
+        case (Some(Left(_)), Some(Right(_))) => 1
+        case (Some(Right(_)), Some(Left(_))) => -1
         case (Some(Left(b1)), Some(Left(b2))) => b1.compareTo(b2)
         case (Some(Right(s1)), Some(Right(s2))) => s1.compareTo(s2)
       }
