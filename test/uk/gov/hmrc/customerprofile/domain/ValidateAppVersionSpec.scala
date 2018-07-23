@@ -23,7 +23,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 class ValidateAppVersionSpec extends UnitSpec {
 
   def validateAppVersion(iosVersionRange: String = "[0.0.1,)", androidVersionRange: String = "[0.0.1,)",
-                         windowsVersionRange: String = "[0.0.1,)") = new ValidateAppVersion {
+                         windowsVersionRange: String = "[0.0.1,)"): ValidateAppVersion = new ValidateAppVersion {
     override lazy val config: Config = ConfigFactory.parseString(
       s"""approvedAppVersions {
          |  ios = "$iosVersionRange"

@@ -16,18 +16,14 @@
 
 package uk.gov.hmrc.customerprofile.domain
 
-import play.api.libs.json.Json
+import play.api.libs.json.Json.format
+import play.api.libs.json.OFormat
 import uk.gov.hmrc.domain.{Nino, SaUtr}
-
-import scala.concurrent.{ExecutionContext, Future}
 
 case class Accounts(nino: Option[Nino], saUtr: Option[SaUtr], routeToIV : Boolean, routeToTwoFactor: Boolean, journeyId: String)
 
 object Accounts {
-  implicit val accountsFmt = {
-    import Nino.{ninoRead, ninoWrite}
-    import SaUtr.{saUtrRead, saUtrWrite}
-
-    Json.format[Accounts]
+  implicit val accountsFmt: OFormat[Accounts] = {
+    format[Accounts]
   }
 }

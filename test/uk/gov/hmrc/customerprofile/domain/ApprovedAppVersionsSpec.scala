@@ -30,7 +30,7 @@ class ApprovedAppVersionsSpec extends UnitSpec {
       |}
       | """.stripMargin)
 
-  lazy val approvedAppVersions = new ApprovedAppVersions {
+  lazy val approvedAppVersions: ApprovedAppVersions = new ApprovedAppVersions {
     override lazy val config: Config = specConfig
   }
 

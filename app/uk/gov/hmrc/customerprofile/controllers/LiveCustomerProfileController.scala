@@ -40,9 +40,9 @@ class LiveCustomerProfileController @Inject()(service: CustomerProfileService, a
   val app = "Live-Customer-Profile"
 
   def invokeAuthBlock[A](request: Request[A], block: (Request[A]) => Future[Result], taxId: Option[Nino]): Future[Result] = {
-    implicit val hc = fromHeadersAndSession(request.headers, None)
+    implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
 
-    accessControl.grantAccess(taxId).flatMap { access =>
+    accessControl.grantAccess(taxId).flatMap { _ =>
       block(request)
     }.recover {
       case _: Upstream4xxResponse =>
@@ -66,7 +66,7 @@ class LiveCustomerProfileController @Inject()(service: CustomerProfileService, a
     }
   }
 
-  override def withAcceptHeaderValidationAndAuthIfLive(taxId: Option[Nino] = None) = new ActionBuilder[Request] {
+  override def withAcceptHeaderValidationAndAuthIfLive(taxId: Option[Nino] = None): ActionBuilder[Request] = new ActionBuilder[Request] {
     def invokeBlock[A](request: Request[A], block: (Request[A]) => Future[Result]): Future[Result] = {
       if (acceptHeaderValidationRules(request.headers.get("Accept"))) {
         invokeAuthBlock(request, block, taxId)

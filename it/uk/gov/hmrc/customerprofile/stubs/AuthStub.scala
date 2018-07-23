@@ -45,7 +45,7 @@ object AuthStub {
           WWW_AUTHENTICATE,"""MDTP detail="BearerTokenExpired"""").withHeader(ENROLMENT, "")))
   }
 
-  def authRecordExistsWithoutNino: Unit = {
+  def authRecordExistsWithoutNino(): Unit = {
     stubFor(post(urlEqualTo(authUrl)).withRequestBody(equalToJson(
       authorisationRequestJson, true, false)).willReturn(
         aResponse().withStatus(200).withBody(obj("confidenceLevel" -> L200.level).toString)))

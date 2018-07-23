@@ -17,6 +17,7 @@
 package uk.gov.hmrc.customerprofile.controllers
 
 import play.api.Logger
+import play.api.libs.json.Json.format
 import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.api.controllers._
@@ -29,7 +30,7 @@ import scala.concurrent.Future
 
 sealed case class UpgradeRequired(upgrade : Boolean)
 object UpgradeRequired {
-  implicit val formats = Json.format[UpgradeRequired]
+  implicit val formats: OFormat[UpgradeRequired] = format[UpgradeRequired]
 }
 
 trait CustomerProfileController extends HeaderValidator {
@@ -56,7 +57,7 @@ trait CustomerProfileController extends HeaderValidator {
   final def validateAppVersion(journeyId: Option[String] = None): Action[JsValue] =
     validateAccept(acceptHeaderValidationRules).async(BodyParsers.parse.json) {
       implicit request =>
-        implicit val hc = fromHeadersAndSession(request.headers, None)
+        implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
 
         request.body.validate[DeviceVersion].fold(
           errors => {

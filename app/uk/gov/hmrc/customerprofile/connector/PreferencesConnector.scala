@@ -49,13 +49,12 @@ class PreferencesConnector @Inject()(http: CorePut with CoreGet,
   def updatePendingEmail(changeEmail: ChangeEmail, entityId: String)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] = {
     http.PUT(url(s"/preferences/$entityId/pending-email"), changeEmail).map(_ => EmailUpdateOk).recoverWith {
       case e: NotFoundException ⇒ log(e.message, entityId); Future(NoPreferenceExists)
-      case e: Upstream4xxResponse ⇒ {
+      case e: Upstream4xxResponse ⇒
         e.upstreamResponseCode match {
           case CONFLICT ⇒ log(e.message, entityId); Future(EmailNotExist)
           case NOT_FOUND ⇒ log(e.message, entityId); Future(NoPreferenceExists)
           case _ ⇒ log(e.message, entityId); Future(EmailUpdateFailed)
         }
-      }
       case _ ⇒ log("Failed to update preferences email", entityId); Future(EmailUpdateFailed)
     }
   }

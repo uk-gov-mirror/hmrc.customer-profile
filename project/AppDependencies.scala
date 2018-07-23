@@ -4,9 +4,9 @@ object AppDependencies {
   import play.core.PlayVersion
   import play.sbt.PlayImport._
 
-  private val bootstrap25Version = "1.5.0"
+  private val bootstrap25Version = "1.7.0"
   private val authClientVersion = "2.6.0"
-  private val domainVersion = "5.1.0"
+  private val domainVersion = "5.2.0"
   private val playHmrcApiVersion = "2.1.0"
   private val reactiveCircuitBreakerVersion = "3.2.0"
   private val emailaddressVersion = "2.2.0"
@@ -32,7 +32,7 @@ object AppDependencies {
   private val scalamockVersion = "4.0.0"
 
   object Test {
-    def apply() = new TestDependencies {
+    def apply(): Seq[ModuleID] = new TestDependencies {
       override lazy val test = Seq(
         "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
         "uk.gov.hmrc" %% "hmrctest" % hmrcTestVersion % scope,
@@ -42,7 +42,7 @@ object AppDependencies {
   }
 
   object IntegrationTest {
-    def apply() = new TestDependencies {
+    def apply(): Seq[ModuleID] = new TestDependencies {
 
       override lazy val scope: String = "it"
 
@@ -55,5 +55,5 @@ object AppDependencies {
     }.test
   }
 
-  def apply() = compile ++ Test() ++ IntegrationTest()
+  def apply(): Seq[ModuleID] = compile ++ Test() ++ IntegrationTest()
 }

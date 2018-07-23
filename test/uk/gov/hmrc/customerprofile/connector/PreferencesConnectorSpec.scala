@@ -28,7 +28,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
 class PreferencesConnectorSpec extends UnitSpec with MockFactory {
-  implicit val hc = HeaderCarrier()
+  implicit val hc: HeaderCarrier = HeaderCarrier()
 
   val http: WSHttpImpl = mock[WSHttpImpl]
   val config: Configuration = mock[Configuration]

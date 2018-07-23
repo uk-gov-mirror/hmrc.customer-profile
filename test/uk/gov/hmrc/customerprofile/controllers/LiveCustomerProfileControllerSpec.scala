@@ -22,7 +22,7 @@ import org.scalamock.scalatest.MockFactory
 import play.api.http.HeaderNames
 import play.api.libs.json.JsValue
 import play.api.libs.json.Json.{parse, toJson}
-import play.api.mvc.Result
+import play.api.mvc.{AnyContentAsEmpty, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.auth.core.SessionRecordNotFound
@@ -49,8 +49,8 @@ class LiveCustomerProfileControllerSpec extends UnitSpec with MockFactory{
   val journeyId: String = randomUUID().toString
   val emptyRequest = FakeRequest()
   val acceptheader: String = "application/vnd.hmrc.1.0+json"
-  val requestWithAcceptHeader = FakeRequest().withHeaders("Accept" -> acceptheader)
-  val requestWithoutAcceptHeader = FakeRequest().withHeaders("Authorization" -> "Some Header")
+  val requestWithAcceptHeader: FakeRequest[AnyContentAsEmpty.type] = FakeRequest().withHeaders("Accept" -> acceptheader)
+  val requestWithoutAcceptHeader: FakeRequest[AnyContentAsEmpty.type] = FakeRequest().withHeaders("Authorization" -> "Some Header")
 
   val invalidPostRequest: FakeRequest[JsValue] =
     FakeRequest().withBody(parse("""{ "blah" : "blah" }""")).withHeaders(HeaderNames.ACCEPT → acceptheader)
