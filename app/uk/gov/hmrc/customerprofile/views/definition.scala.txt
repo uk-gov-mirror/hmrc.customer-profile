@@ -1,3 +1,7 @@
+@import uk.gov.hmrc.customerprofile.controllers.api.ApiAccess
+@import play.api.libs.json.Json
+
+@(apiAccess: ApiAccess)
 {
   "scopes":[
     {
@@ -15,7 +19,8 @@
       {
         "version":"1.0",
         "status":"STABLE",
-        "endpointsEnabled": true
+        "endpointsEnabled": true,
+        "access": @Json.toJson(apiAccess)
       }
     ]
   }

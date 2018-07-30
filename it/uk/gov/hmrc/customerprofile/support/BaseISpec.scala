@@ -32,17 +32,17 @@ class BaseISpec extends UnitSpec with Matchers with OptionValues with WsScalaTes
   override implicit lazy val app: Application = appBuilder
     .build()
 
-  protected def appBuilder: GuiceApplicationBuilder =
-    new GuiceApplicationBuilder()
-      .configure(
-        "auditing.enabled" -> false,
-        "microservice.services.service-locator.enabled" -> false,
-        "microservice.services.auth.port" -> wireMockPort,
-        "microservice.services.citizen-details.port" -> wireMockPort,
-        "microservice.services.entity-resolver.port" -> wireMockPort,
-        "microservice.services.service-locator.port" -> wireMockPort,
-        "microservice.services.preferences.port" -> wireMockPort
-      )
+  def config: Map[String, Any] = Map(
+    "auditing.enabled" -> false,
+    "microservice.services.service-locator.enabled" -> false,
+    "microservice.services.auth.port" -> wireMockPort,
+    "microservice.services.citizen-details.port" -> wireMockPort,
+    "microservice.services.entity-resolver.port" -> wireMockPort,
+    "microservice.services.service-locator.port" -> wireMockPort,
+    "microservice.services.preferences.port" -> wireMockPort
+  )
+
+  protected def appBuilder: GuiceApplicationBuilder = new GuiceApplicationBuilder().configure(config)
 
   protected implicit lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
 
