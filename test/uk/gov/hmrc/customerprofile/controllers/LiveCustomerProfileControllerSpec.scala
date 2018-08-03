@@ -43,7 +43,7 @@ class LiveCustomerProfileControllerSpec extends UnitSpec with MockFactory{
   val service: CustomerProfileService = mock[CustomerProfileService]
   val accessControl: AccountAccessControl = mock[AccountAccessControl]
 
-  val controller: LiveCustomerProfileController = new LiveCustomerProfileController(service, accessControl)
+  val controller: LiveCustomerProfileController = new LiveCustomerProfileController(service, accessControl, citizenDetailsEnabled = true)
 
   val nino = Nino("CS700100A")
   val journeyId: String = randomUUID().toString

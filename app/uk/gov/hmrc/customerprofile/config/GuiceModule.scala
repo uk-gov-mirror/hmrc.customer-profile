@@ -50,6 +50,8 @@ class GuiceModule(environment: Environment, configuration: Configuration) extend
     bind(classOf[ApiAccess]).toInstance(
       ApiAccess("PRIVATE", configuration.underlying.getStringList("api.access.white-list.applicationIds").asScala))
 
+    bindConfigBoolean("citizen-details.enabled", "microservice.services.citizen-details.enabled")
+
     bindConfigInt("controllers.confidenceLevel")
     bind(classOf[String]).annotatedWith(named("auth")).toInstance(baseUrl("auth"))
     bind(classOf[String]).annotatedWith(named("citizen-details")).toInstance(baseUrl("citizen-details"))
@@ -65,8 +67,10 @@ class GuiceModule(environment: Environment, configuration: Configuration) extend
     * Binds a configuration value using the `path` as the name for the binding.
     * Throws an exception if the configuration value does not exist or cannot be read as an Int.
     */
-  private def bindConfigInt(path: String): Unit = {
+  private def bindConfigInt(path: String): Unit =
     bindConstant().annotatedWith(named(path))
       .to(configuration.underlying.getInt(path))
-  }
+
+  private def bindConfigBoolean(name: String, path: String): Unit =
+    bindConstant().annotatedWith(named(name)).to(configuration.underlying.getBoolean(path))
 }
