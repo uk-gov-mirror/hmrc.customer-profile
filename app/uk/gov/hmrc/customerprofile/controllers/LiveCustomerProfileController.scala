@@ -17,6 +17,7 @@
 package uk.gov.hmrc.customerprofile.controllers
 
 import com.google.inject.{Inject, Singleton}
+import javax.inject.Named
 import play.api.libs.json.Json.{obj, toJson}
 import play.api.mvc._
 import play.api.{Logger, LoggerLike, mvc}
@@ -35,11 +36,12 @@ import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import scala.concurrent.Future
 
 @Singleton
-class LiveCustomerProfileController @Inject()(service: CustomerProfileService, accessControl: AccountAccessControl)
-  extends BaseController with CustomerProfileController {
+class LiveCustomerProfileController @Inject()(service: CustomerProfileService,
+                                              accessControl: AccountAccessControl,
+                                              @Named("citizen-details.enabled") val citizenDetailsEnabled: Boolean) extends BaseController with CustomerProfileController {
   val app = "Live-Customer-Profile"
 
-  def invokeAuthBlock[A](request: Request[A], block: (Request[A]) => Future[Result], taxId: Option[Nino]): Future[Result] = {
+  def invokeAuthBlock[A](request: Request[A], block: Request[A] => Future[Result], taxId: Option[Nino]): Future[Result] = {
     implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
 
     accessControl.grantAccess(taxId).flatMap { _ =>
@@ -67,7 +69,7 @@ class LiveCustomerProfileController @Inject()(service: CustomerProfileService, a
   }
 
   override def withAcceptHeaderValidationAndAuthIfLive(taxId: Option[Nino] = None): ActionBuilder[Request] = new ActionBuilder[Request] {
-    def invokeBlock[A](request: Request[A], block: (Request[A]) => Future[Result]): Future[Result] = {
+    def invokeBlock[A](request: Request[A], block: Request[A] => Future[Result]): Future[Result] = {
       if (acceptHeaderValidationRules(request.headers.get("Accept"))) {
         invokeAuthBlock(request, block, taxId)
       }
@@ -117,14 +119,16 @@ class LiveCustomerProfileController @Inject()(service: CustomerProfileService, a
     withAcceptHeaderValidationAndAuthIfLive(Some(nino)).async {
       implicit request =>
         implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
-        errorWrapper(
-          service.getPersonalDetails(nino)
-            .map(as => Ok(toJson(as)))
-            .recover {
-              case Upstream4xxResponse(_, LOCKED, _, _) =>
-                result(ErrorManualCorrespondenceIndicator)
-            }
-        )
+        errorWrapper {
+          if(citizenDetailsEnabled) {
+            service.getPersonalDetails(nino)
+              .map(as => Ok(toJson(as)))
+              .recover {
+                case Upstream4xxResponse(_, LOCKED, _, _) =>
+                  result(ErrorManualCorrespondenceIndicator)
+              }
+          } else Future successful result(ErrorNotFound)
+        }
     }
 
   override def getPreferences(journeyId: Option[String] = None): Action[AnyContent] =

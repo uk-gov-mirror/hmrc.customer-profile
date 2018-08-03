@@ -19,6 +19,7 @@ package uk.gov.hmrc.customerprofile
 import java.io.InputStream
 
 import org.scalatest.concurrent.Eventually
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json.{parse, toJson}
 import play.api.libs.json.{JsValue, Json}
 import play.api.libs.ws.WSResponse
@@ -35,7 +36,7 @@ import uk.gov.hmrc.emailaddress.EmailAddress
 import scala.concurrent.Future
 import scala.io.Source.fromInputStream
 
-class CustomerProfileISpec extends BaseISpec with Eventually {
+trait CustomerProfileTests extends BaseISpec with Eventually {
   val nino = Nino("AA000006C")
   val acceptJsonHeader: (String, String) = "Accept" -> "application/vnd.hmrc.1.0+json"
 
@@ -119,35 +120,6 @@ class CustomerProfileISpec extends BaseISpec with Eventually {
 
   "GET /profile/personal-details/:nino" should {
     val url = s"/profile/personal-details/${nino.value}"
-    "return personal details for the given NINO from citizen-details" in {
-      designatoryDetailsForNinoAre(nino, resourceAsString("AA000006C-citizen-details.json").get)
-      authRecordExists(nino)
-
-      val response = getRequestWithAcceptHeader(url)
-
-      response.status shouldBe 200
-      response.json shouldBe getResourceAsJsValue("expected-AA000006C-personal-details.json")
-    }
-
-    "return a 423 response status code when the NINO is locked due to Manual Correspondence Indicator flag being set in NPS" in {
-      npsDataIsLockedDueToMciFlag(nino)
-      authRecordExists(nino)
-
-      val response = getRequestWithAcceptHeader(url)
-
-      response.status shouldBe 423
-      response.json shouldBe parse("""{"code":"MANUAL_CORRESPONDENCE_IND","message":"Data cannot be disclosed to the user because MCI flag is set in NPS"}""")
-    }
-
-    "return 500 response status code when citizen-details returns 500 response status code." in {
-      designatoryDetailsWillReturnErrorResponse(nino, 500)
-      authRecordExists(nino)
-
-      val response = getRequestWithAcceptHeader(url)
-
-      response.status shouldBe 500
-      response.json shouldBe parse("""{"code":"INTERNAL_SERVER_ERROR","message":"Internal server error"}""")
-    }
 
     "return 404 response status code when citizen-details returns 404 response status code." in {
       designatoryDetailsWillReturnErrorResponse(nino, 404)
@@ -264,20 +236,20 @@ class CustomerProfileISpec extends BaseISpec with Eventually {
     }
   }
 
-  private def resourceAsString(resourcePath: String): Option[String] =
+  protected def resourceAsString(resourcePath: String): Option[String] =
     withResourceStream(resourcePath) { is =>
       fromInputStream(is).mkString
     }
 
-  private def resourceAsJsValue(resourcePath: String): Option[JsValue] =
+  protected def resourceAsJsValue(resourcePath: String): Option[JsValue] =
     withResourceStream(resourcePath) { is =>
       Json.parse(is)
     }
 
-  private def getResourceAsJsValue(resourcePath: String): JsValue =
+  protected def getResourceAsJsValue(resourcePath: String): JsValue =
     resourceAsJsValue(resourcePath).getOrElse(throw new RuntimeException(s"Could not find resource $resourcePath"))
 
-  private def withResourceStream[A](resourcePath: String)(f: (InputStream => A)): Option[A] =
+  protected def withResourceStream[A](resourcePath: String)(f: InputStream => A): Option[A] =
     Option(getClass.getResourceAsStream(resourcePath)) map { is =>
       try {
         f(is)
@@ -286,4 +258,61 @@ class CustomerProfileISpec extends BaseISpec with Eventually {
       }
     }
 
+}
+
+class CustomerProfileAllEnabledISpec extends CustomerProfileTests {
+  "GET /profile/personal-details/:nino - Citizen Details Enabled" should {
+    val url = s"/profile/personal-details/${nino.value}"
+    "return personal details for the given NINO from citizen-details" in {
+      designatoryDetailsForNinoAre(nino, resourceAsString("AA000006C-citizen-details.json").get)
+      authRecordExists(nino)
+
+      val response = getRequestWithAcceptHeader(url)
+
+      response.status shouldBe 200
+      response.json shouldBe getResourceAsJsValue("expected-AA000006C-personal-details.json")
+    }
+
+    "return a 423 response status code when the NINO is locked due to Manual Correspondence Indicator flag being set in NPS" in {
+      npsDataIsLockedDueToMciFlag(nino)
+      authRecordExists(nino)
+
+      val response = getRequestWithAcceptHeader(url)
+
+      response.status shouldBe 423
+      response.json shouldBe parse("""{"code":"MANUAL_CORRESPONDENCE_IND","message":"Data cannot be disclosed to the user because MCI flag is set in NPS"}""")
+    }
+
+    "return 500 response status code when citizen-details returns 500 response status code." in {
+      designatoryDetailsWillReturnErrorResponse(nino, 500)
+      authRecordExists(nino)
+
+      val response = getRequestWithAcceptHeader(url)
+
+      response.status shouldBe 500
+      response.json shouldBe parse("""{"code":"INTERNAL_SERVER_ERROR","message":"Internal server error"}""")
+    }
+  }
+
+}
+
+class CustomerProfileCitizenDetailsDisabledISpec extends CustomerProfileTests {
+  override protected def appBuilder: GuiceApplicationBuilder = new GuiceApplicationBuilder().configure(
+    config ++
+      Map(
+        "microservice.services.citizen-details.enabled" -> false
+      )
+  )
+
+  "GET /profile/personal-details/:nino - Citizen Details Disabled" should {
+    val url = s"/profile/personal-details/${nino.value}"
+    "return 404 for disabled citizen-details" in {
+      authRecordExists(nino)
+
+      val response = getRequestWithAcceptHeader(url)
+
+      response.status shouldBe 404
+    }
+
+  }
 }
