@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/hmrc/customer-profile.svg?branch=master)](https://travis-ci.org/hmrc/customer-profile) [ ![Download](https://api.bintray.com/packages/hmrc/releases/customer-profile/images/download.svg) ](https://bintray.com/hmrc/releases/customer-profile/_latestVersion)
 
 Allows users to view tax profile and communication preferences
-
+ 
 
 Requirements
 ------------
