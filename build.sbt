@@ -1,38 +1,54 @@
-import TestPhases.oneForkedJvmPerTest
-import play.sbt.routes.RoutesKeys._
-import uk.gov.hmrc.DefaultBuildSettings.{addTestReportOption, _}
-import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin._
+import play.core.PlayVersion
+import play.sbt.PlayImport.PlayKeys.playDefaultPort
+import sbt.Tests.{Group, SubProcess}
+import uk.gov.hmrc.SbtArtifactory
+import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin.publishingSettings
+import uk.gov.hmrc.versioning.SbtGitVersioning
 
-name := "customer-profile"
+val appName: String = "customer-profile"
 
-lazy val root = (project in file("."))
-  .enablePlugins(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin)
+lazy val microservice = Project(appName, file("."))
+  .enablePlugins(Seq(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin, SbtArtifactory): _*)
   .configs(IntegrationTest)
   .settings(inConfig(IntegrationTest)(Defaults.itSettings): _*)
+  .settings(publishingSettings: _*)
+  .settings(Seq(routesImport ++= Seq("uk.gov.hmrc.domain._", "uk.gov.hmrc.customerprofile.binder.Binders._")))
+  .settings(
+    majorVersion := 1,
+    playDefaultPort := 8233,
+    libraryDependencies ++= compile ++ test ++ integration,
+    evictionWarningOptions in update := EvictionWarningOptions.default.withWarnScalaVersionEviction(false),
+    resolvers += Resolver.jcenterRepo,
+    unmanagedResourceDirectories in IntegrationTest := (baseDirectory in IntegrationTest) (base => Seq(base / "it-resources")).value,
+    unmanagedResourceDirectories in Compile += baseDirectory.value / "resources",
+    unmanagedSourceDirectories in IntegrationTest := (baseDirectory in IntegrationTest) (base => Seq(base / "it")).value,
+    testGrouping in IntegrationTest := oneForkedJvmPerTest((definedTests in IntegrationTest).value)
+  )
 
-routesImport ++= Seq("uk.gov.hmrc.domain._", "uk.gov.hmrc.customerprofile.binder.Binders._")
-publishingSettings
-unmanagedResourceDirectories in Compile += baseDirectory.value / "resources"
-defaultSettings()
+def oneForkedJvmPerTest(tests: Seq[TestDefinition]): Seq[Group] =
+  tests map {
+    test => Group(test.name, Seq(test), SubProcess(ForkOptions(runJVMOptions = Seq("-Dtest.name=" + test.name))))
+  }
 
-scalaVersion := "2.11.11"
-crossScalaVersions := Seq("2.11.11")
+val compile = Seq(
+  "uk.gov.hmrc" %% "bootstrap-play-25" % "1.7.0",
+  "uk.gov.hmrc" %% "auth-client" % "2.6.0",
+  "uk.gov.hmrc" %% "play-hmrc-api" % "2.1.0",
+  "uk.gov.hmrc" %% "domain" % "5.2.0",
+  "uk.gov.hmrc" %% "reactive-circuit-breaker" % "3.2.0",
+  "uk.gov.hmrc" %% "emailaddress" % "2.2.0"
 
-PlayKeys.playDefaultPort := 8233
+)
 
-libraryDependencies ++= AppDependencies()
-retrieveManaged := true
-evictionWarningOptions in update := EvictionWarningOptions.default.withWarnScalaVersionEviction(false)
-routesGenerator := StaticRoutesGenerator
+val test = Seq(
+  "com.typesafe.play" %% "play-test" % PlayVersion.current % Test,
+  "uk.gov.hmrc" %% "hmrctest" % "3.0.0" % Test,
+  "org.scalamock" %% "scalamock" % "4.0.0" % Test
+)
 
-Keys.fork in IntegrationTest := false
-unmanagedSourceDirectories in IntegrationTest := (baseDirectory in IntegrationTest)(base => Seq(base / "it")).value
-unmanagedResourceDirectories in IntegrationTest := (baseDirectory in IntegrationTest)(base => Seq(base / "it-resources")).value
-addTestReportOption(IntegrationTest, "int-test-reports")
-testGrouping in IntegrationTest := oneForkedJvmPerTest((definedTests in IntegrationTest).value)
-parallelExecution in IntegrationTest := false
-
-resolvers ++= Seq(
-      Resolver.bintrayRepo("hmrc", "releases"),
-      Resolver.jcenterRepo
+val integration = Seq(
+  "com.typesafe.play" %% "play-test" % PlayVersion.current % IntegrationTest,
+  "uk.gov.hmrc" %% "hmrctest" % "3.0.0" % IntegrationTest,
+  "com.github.tomakehurst" % "wiremock" % "2.9.0" % IntegrationTest,
+  "org.scalatestplus.play" %% "scalatestplus-play" % "2.0.1" % IntegrationTest
 )
