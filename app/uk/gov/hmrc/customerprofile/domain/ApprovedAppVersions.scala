@@ -19,12 +19,10 @@ package uk.gov.hmrc.customerprofile.domain
 import net.ceedubs.ficus.readers.ValueReader
 import play.api.libs.json.Json.format
 import play.api.libs.json.{JsError, Writes, _}
-import uk.gov.hmrc.customerprofile.domain.NativeOS.Windows
 
 import scala.concurrent.Future
 
-
-case class NativeVersion(ios: VersionRange, android: VersionRange, windows: VersionRange)
+case class NativeVersion(ios: VersionRange, android: VersionRange)
 
 trait LoadConfig {
 
@@ -39,8 +37,7 @@ trait ApprovedAppVersions extends LoadConfig {
   private implicit val nativeVersionReader: ValueReader[NativeVersion] = ValueReader.relative { _ =>
     NativeVersion(
       VersionRange(config.as[String]("approvedAppVersions.ios")),
-      VersionRange(config.as[String]("approvedAppVersions.android")),
-      VersionRange(config.as[String]("approvedAppVersions.windows"))
+      VersionRange(config.as[String]("approvedAppVersions.android"))
     )
   }
 
@@ -55,7 +52,6 @@ trait ValidateAppVersion extends ApprovedAppVersions {
     val outsideValidRange = deviceVersion.os match {
       case `iOS` => appVersion.ios.excluded(Version(deviceVersion.version))
       case Android => appVersion.android.excluded(Version(deviceVersion.version))
-      case Windows => appVersion.windows.excluded(Version(deviceVersion.version))
     }
     Future.successful(outsideValidRange)
   }
@@ -67,7 +63,6 @@ object ValidateAppVersion extends ValidateAppVersion {
   lazy val config: Config = ConfigFactory.load()
 }
 
-
 trait NativeOS
 
 object NativeOS {
@@ -78,15 +73,10 @@ object NativeOS {
     override def toString: String = "android"
   }
 
-  case object Windows extends NativeOS {
-    override def toString: String = "windows"
-  }
-
   val reads: Reads[NativeOS] = new Reads[NativeOS] {
     override def reads(json: JsValue): JsResult[NativeOS] = json match {
       case JsString("ios") => JsSuccess(iOS)
       case JsString("android") => JsSuccess(Android)
-      case JsString("windows") => JsSuccess(Windows)
       case _ => JsError("unknown os")
     }
   }
@@ -95,7 +85,6 @@ object NativeOS {
     override def writes(os: NativeOS): JsString = os match {
       case `iOS` => JsString("ios")
       case Android => JsString("android")
-      case Windows => JsString("windows")
     }
   }
 
