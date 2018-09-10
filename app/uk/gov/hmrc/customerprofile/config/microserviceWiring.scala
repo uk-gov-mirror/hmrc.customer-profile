@@ -16,19 +16,13 @@
 
 package uk.gov.hmrc.customerprofile.config
 
-import com.google.inject.{Inject, Singleton}
+import com.google.inject.Inject
 import javax.inject.Named
-import play.api.Mode.Mode
-import play.api.{Configuration, Environment, Logger}
-import uk.gov.hmrc.api.config.ServiceLocatorConfig
-import uk.gov.hmrc.api.connector.ServiceLocatorConnector
-import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.hooks.HttpHooks
 import uk.gov.hmrc.play.audit.http.HttpAuditing
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.Audit
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
-import uk.gov.hmrc.play.config.AppName
 import uk.gov.hmrc.play.http.ws._
 
 trait Hooks extends HttpHooks with HttpAuditing {
@@ -44,18 +38,3 @@ class WSHttpImpl @Inject()(@Named("appName") val appName: String, val auditConne
 
 class MicroserviceAudit @Inject()(@Named("appName") val applicationName: String,
                                   val auditConnector: AuditConnector) extends Audit(applicationName, auditConnector)
-
-@Singleton
-class ApiServiceLocatorConnector @Inject()(override val runModeConfiguration: Configuration, environment: Environment, wsHttp: WSHttpImpl)
-  extends ServiceLocatorConnector with ServiceLocatorConfig with AppName {
-  override val appUrl: String = runModeConfiguration.getString("appUrl").getOrElse(throw new RuntimeException("appUrl is not configured"))
-  override val serviceUrl: String = serviceLocatorUrl
-  override val handlerOK: () => Unit = () => Logger.info("Service is registered on the service locator")
-  override val handlerError: Throwable => Unit = e ⇒ Logger.error("Service could not register on the service locator", e)
-  override val metadata: Option[Map[String, String]] = Some(Map("third-party-api" → "true"))
-  override val http: CorePost = wsHttp
-
-  override def appNameConfiguration: Configuration = runModeConfiguration
-
-  override protected def mode: Mode = environment.mode
-}

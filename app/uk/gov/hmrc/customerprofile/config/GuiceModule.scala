@@ -21,7 +21,7 @@ import com.google.inject.name.Names.named
 import com.google.inject.{AbstractModule, Provides}
 import play.api.Mode.Mode
 import play.api.{Configuration, Environment}
-import uk.gov.hmrc.api.connector.ServiceLocatorConnector
+import uk.gov.hmrc.api.connector.{ApiServiceLocatorConnector, ServiceLocatorConnector}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.customerprofile.tasks.ServiceLocatorRegistrationTask
 import uk.gov.hmrc.http.{CoreGet, CorePost, CorePut}

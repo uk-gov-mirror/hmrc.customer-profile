@@ -33,7 +33,7 @@ def oneForkedJvmPerTest(tests: Seq[TestDefinition]): Seq[Group] =
 val compile = Seq(
   "uk.gov.hmrc" %% "bootstrap-play-25" % "1.7.0",
   "uk.gov.hmrc" %% "auth-client" % "2.6.0",
-  "uk.gov.hmrc" %% "play-hmrc-api" % "2.1.0",
+  "uk.gov.hmrc" %% "play-hmrc-api" % "3.2.0",
   "uk.gov.hmrc" %% "domain" % "5.2.0",
   "uk.gov.hmrc" %% "reactive-circuit-breaker" % "3.2.0",
   "uk.gov.hmrc" %% "emailaddress" % "2.2.0"
