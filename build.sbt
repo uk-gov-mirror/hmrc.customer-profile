@@ -35,14 +35,14 @@ val compile = Seq(
   "uk.gov.hmrc" %% "auth-client" % "2.10.0",
   "uk.gov.hmrc" %% "play-hmrc-api" % "3.2.0",
   "uk.gov.hmrc" %% "domain" % "5.2.0",
-  "uk.gov.hmrc" %% "reactive-circuit-breaker" % "3.2.0",
+  "uk.gov.hmrc" %% "reactive-circuit-breaker" % "3.3.0",
   "uk.gov.hmrc" %% "emailaddress" % "2.2.0"
 
 )
 
 val test = Seq(
   "com.typesafe.play" %% "play-test" % PlayVersion.current % Test,
-  "uk.gov.hmrc" %% "hmrctest" % "3.1.0" % Test,
+  "uk.gov.hmrc" %% "hmrctest" % "3.2.0" % Test,
   "org.scalamock" %% "scalamock" % "4.0.0" % Test
 )
 
