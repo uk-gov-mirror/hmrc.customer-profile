@@ -23,8 +23,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json.{parse, toJson}
 import play.api.libs.json.{JsValue, Json}
 import play.api.libs.ws.WSResponse
-import uk.gov.hmrc.customerprofile.domain.NativeOS.iOS
-import uk.gov.hmrc.customerprofile.domain.{DeviceVersion, Paperless, TermsAccepted}
+import uk.gov.hmrc.customerprofile.domain.{Paperless, TermsAccepted}
 import uk.gov.hmrc.customerprofile.stubs.AuthStub._
 import uk.gov.hmrc.customerprofile.stubs.CitizenDetailsStub.{designatoryDetailsForNinoAre, designatoryDetailsWillReturnErrorResponse, npsDataIsLockedDueToMciFlag}
 import uk.gov.hmrc.customerprofile.stubs.EntityResolverStub._
@@ -99,22 +98,6 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
     "propagate 401" in {
       authFailure()
       getRequestWithAcceptHeader(url).status shouldBe 401
-    }
-  }
-
-  "POST /profile/native-app/version-check" should {
-    val url = "/profile/native-app/version-check"
-    val version: JsValue = toJson(DeviceVersion(iOS, "0.1"))
-
-    "return a version check response with no auth required" in {
-      val response = postRequestWithAcceptHeader(url, version)
-
-      response.status shouldBe 200
-      ( response.json \ "upgrade" ).as[Boolean] shouldBe true
-    }
-
-    "return 406 if no request header is supplied" in {
-      wsUrl(url).post(version).status shouldBe 406
     }
   }
 

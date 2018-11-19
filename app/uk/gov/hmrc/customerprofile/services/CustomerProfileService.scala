@@ -75,10 +75,5 @@ class CustomerProfileService @Inject()(citizenDetailsConnector: CitizenDetailsCo
         response ← preferencesConnector.updatePendingEmail(changeEmail, entity._id)
       } yield response
     }
-
-  //override
-  def upgradeRequired(deviceVersion: DeviceVersion)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Boolean] =
-    withAudit("upgradeRequired", Map("os" -> deviceVersion.os.toString)) {
-      ValidateAppVersion.upgrade(deviceVersion)
-    }
+  
 }

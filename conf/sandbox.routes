@@ -9,5 +9,3 @@ GET         /profile/preferences                                   @uk.gov.hmrc.
 POST        /profile/preferences/paperless-settings/opt-in         @uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.paperlessSettingsOptIn(journeyId: Option[String])
 
 POST        /profile/preferences/paperless-settings/opt-out        @uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.paperlessSettingsOptOut(journeyId: Option[String])
-
-POST        /profile/native-app/version-check                      @uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.validateAppVersion(journeyId: Option[String])

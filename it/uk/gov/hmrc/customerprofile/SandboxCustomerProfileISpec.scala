@@ -20,9 +20,7 @@ import org.joda.time.DateTime.parse
 import play.api.libs.json.Json.toJson
 import play.api.libs.json.{JsValue, Json}
 import play.api.libs.ws.WSRequest
-import uk.gov.hmrc.customerprofile.controllers.UpgradeRequired
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status.Verified
-import uk.gov.hmrc.customerprofile.domain.NativeOS.iOS
 import uk.gov.hmrc.customerprofile.domain._
 import uk.gov.hmrc.customerprofile.support.BaseISpec
 import uk.gov.hmrc.domain.Nino
@@ -258,51 +256,4 @@ class SandboxCustomerProfileISpec extends BaseISpec {
     }
   }
 
-  "POST /sandbox/profile/native-app/version-check" should {
-    val url = "/profile/native-app/version-check"
-    val deviceVersion = toJson(DeviceVersion(iOS, "1.0"))
-
-    "return a 200 response with upgrade required false by default without a journey id" in {
-      val response = await(request(url).post(deviceVersion))
-      response.status shouldBe 200
-      response.json shouldBe toJson(UpgradeRequired(false))
-    }
-
-    "return a 200 response with upgrade required false by default with a journey id" in {
-      val response = await(request(url, None, Some(journeyId)).post(deviceVersion))
-      response.status shouldBe 200
-      response.json shouldBe toJson(UpgradeRequired(false))
-    }
-
-    "return a 200 response with upgrade required trye for UPGRADE-REQUIRED" in {
-      val response = await(request(url, Some("UPGRADE-REQUIRED")).post(deviceVersion))
-      response.status shouldBe 200
-      response.json shouldBe toJson(UpgradeRequired(true))
-    }
-
-    "return 400 for invalid form" in {
-      val response = await(request(url).post(invalidJsonBody))
-      response.status shouldBe 400
-    }
-
-    "return 401 for ERROR-401" in {
-      val response = await(request(url, Some("ERROR-401")).post(deviceVersion))
-      response.status shouldBe 401
-    }
-
-    "return 403 for ERROR-403" in {
-      val response = await(request(url, Some("ERROR-403")).post(deviceVersion))
-      response.status shouldBe 403
-    }
-
-    "return 406 without Accept header" in {
-      val response = await(requestWithoutAcceptHeader(url).post(deviceVersion))
-      response.status shouldBe 406
-    }
-
-    "return a 500 response for ERROR-500" in {
-      val response = await(request(url, Some("ERROR-500")).post(deviceVersion))
-      response.status shouldBe 500
-    }
-  }
 }

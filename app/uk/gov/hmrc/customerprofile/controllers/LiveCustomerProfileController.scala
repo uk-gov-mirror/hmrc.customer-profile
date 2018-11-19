@@ -25,7 +25,7 @@ import uk.gov.hmrc.api.controllers._
 import uk.gov.hmrc.auth.core.AuthorisationException
 import uk.gov.hmrc.customerprofile.auth._
 import uk.gov.hmrc.customerprofile.connector._
-import uk.gov.hmrc.customerprofile.domain.{DeviceVersion, Paperless}
+import uk.gov.hmrc.customerprofile.domain.Paperless
 import uk.gov.hmrc.customerprofile.services.CustomerProfileService
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{HeaderCarrier, NotFoundException, Upstream4xxResponse}
@@ -120,7 +120,7 @@ class LiveCustomerProfileController @Inject()(service: CustomerProfileService,
       implicit request =>
         implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
         errorWrapper {
-          if(citizenDetailsEnabled) {
+          if (citizenDetailsEnabled) {
             service.getPersonalDetails(nino)
               .map(as => Ok(toJson(as)))
               .recover {
@@ -165,9 +165,4 @@ class LiveCustomerProfileController @Inject()(service: CustomerProfileService,
         })
     }
 
-  override def upgradeRequired(deviceVersion: DeviceVersion)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result] = {
-    errorWrapper(service.upgradeRequired(deviceVersion).map {
-      b => Ok(toJson(new UpgradeRequired(b)))
-    })
-  }
 }

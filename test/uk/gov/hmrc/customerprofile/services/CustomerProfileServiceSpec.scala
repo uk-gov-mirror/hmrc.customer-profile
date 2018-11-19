@@ -23,15 +23,14 @@ import play.api.Configuration
 import uk.gov.hmrc.customerprofile.auth.AccountAccessControl
 import uk.gov.hmrc.customerprofile.connector._
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status.Verified
-import uk.gov.hmrc.customerprofile.domain.NativeOS.iOS
 import uk.gov.hmrc.customerprofile.domain._
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.emailaddress.EmailAddress
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.audit.model.DataEvent
 import uk.gov.hmrc.play.test.UnitSpec
-import uk.gov.hmrc.play.audit.http.connector.AuditResult.Success
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
@@ -179,20 +178,4 @@ class CustomerProfileServiceSpec extends UnitSpec with MockFactory{
     }
   }
 
-  "upgradeRequired" should {
-    "audit and not require an upgrade for the configured lower bound version" in {
-      mockAudit(transactionName = "upgradeRequired", Map("os" -> "ios"))
-      await(service.upgradeRequired(DeviceVersion(iOS, "3.0.7"))) shouldBe false
-    }
-
-    "audit and not require an upgrade below the configured lower bound version" in {
-      mockAudit(transactionName = "upgradeRequired", Map("os" -> "ios"))
-      await(service.upgradeRequired(DeviceVersion(iOS, "3.0.6"))) shouldBe true
-    }
-
-    "audit and not require an upgrade above the configured lower bound version" in {
-      mockAudit(transactionName = "upgradeRequired", Map("os" -> "ios"))
-      await(service.upgradeRequired(DeviceVersion(iOS, "3.0.8"))) shouldBe false
-    }
-  }
 }

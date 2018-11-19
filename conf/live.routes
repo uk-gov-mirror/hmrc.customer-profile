@@ -10,5 +10,3 @@ POST        /profile/preferences/paperless-settings/opt-in         @uk.gov.hmrc.
 
 POST        /profile/preferences/paperless-settings/opt-out        @uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.paperlessSettingsOptOut(journeyId: Option[String])
 
-POST        /profile/native-app/version-check                      @uk.gov.hmrc.customerprofile.controllers.LiveCustomerProfileController.validateAppVersion(journeyId: Option[String])
-

@@ -17,7 +17,6 @@
 package uk.gov.hmrc.customerprofile.controllers
 
 import play.api.Logger
-import play.api.libs.json.Json.format
 import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.api.controllers._
@@ -28,15 +27,13 @@ import uk.gov.hmrc.play.HeaderCarrierConverter.fromHeadersAndSession
 
 import scala.concurrent.Future
 
-sealed case class UpgradeRequired(upgrade : Boolean)
-object UpgradeRequired {
-  implicit val formats: OFormat[UpgradeRequired] = format[UpgradeRequired]
-}
-
 trait CustomerProfileController extends HeaderValidator {
   def getAccounts(journeyId: Option[String] = None): Action[AnyContent]
+
   def getPersonalDetails(nino: Nino, journeyId: Option[String] = None): Action[AnyContent]
+
   def getPreferences(journeyId: Option[String] = None): Action[AnyContent]
+
   def paperlessSettingsOptOut(journeyId: Option[String] = None): Action[AnyContent]
 
   final def paperlessSettingsOptIn(journeyId: Option[String] = None): Action[JsValue] =
@@ -54,24 +51,8 @@ trait CustomerProfileController extends HeaderValidator {
         )
     }
 
-  final def validateAppVersion(journeyId: Option[String] = None): Action[JsValue] =
-    validateAccept(acceptHeaderValidationRules).async(BodyParsers.parse.json) {
-      implicit request =>
-        implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
+  def withAcceptHeaderValidationAndAuthIfLive(taxId: Option[Nino] = None): ActionBuilder[Request]
 
-        request.body.validate[DeviceVersion].fold(
-          errors => {
-            Logger.warn("Received error with service validate app version: " + errors)
-            Future.successful(BadRequest(JsError.toJson(errors)))
-          },
-          deviceVersion => {
-            upgradeRequired(deviceVersion)
-          }
-        )
-    }
-
-  def withAcceptHeaderValidationAndAuthIfLive(taxId : Option[Nino] = None): ActionBuilder[Request]
-  def upgradeRequired(deviceVersion: DeviceVersion)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result]
   def optIn(settings: Paperless)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result]
 }
 

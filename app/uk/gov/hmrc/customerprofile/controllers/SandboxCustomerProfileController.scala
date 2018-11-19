@@ -30,7 +30,7 @@ import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import scala.concurrent.Future
 
 @Singleton
-class SandboxCustomerProfileController extends BaseController with CustomerProfileController with HeaderValidator{
+class SandboxCustomerProfileController extends BaseController with CustomerProfileController with HeaderValidator {
   private val SANDBOX_CONTROL_HEADER = "SANDBOX-CONTROL"
 
   private val nino = Nino("CS700100A")
@@ -98,18 +98,6 @@ class SandboxCustomerProfileController extends BaseController with CustomerProfi
           case _ => Ok
         })
     }
-  }
-
-  override def upgradeRequired(deviceVersion: DeviceVersion)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result] = {
-    def ok(upgradeRequired: Boolean) = Ok(toJson(new UpgradeRequired(upgradeRequired)))
-
-    Future successful (request.headers.get(SANDBOX_CONTROL_HEADER) match {
-      case Some("ERROR-401") => Unauthorized
-      case Some("ERROR-403") => Forbidden
-      case Some("ERROR-500") => InternalServerError
-      case Some("UPGRADE-REQUIRED") => ok(upgradeRequired = true)
-      case _ => ok(upgradeRequired = false)
-    })
   }
 
   override def optIn(settings: Paperless)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result] = {

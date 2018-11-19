@@ -29,7 +29,6 @@ import uk.gov.hmrc.auth.core.SessionRecordNotFound
 import uk.gov.hmrc.customerprofile.auth.{AccountAccessControl, NinoNotFoundOnAccount}
 import uk.gov.hmrc.customerprofile.connector.{PreferencesDoesNotExist, PreferencesFailure, _}
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status.Verified
-import uk.gov.hmrc.customerprofile.domain.NativeOS.iOS
 import uk.gov.hmrc.customerprofile.domain.{Paperless, _}
 import uk.gov.hmrc.customerprofile.services.CustomerProfileService
 import uk.gov.hmrc.domain.Nino
@@ -414,58 +413,4 @@ class LiveCustomerProfileControllerSpec extends UnitSpec with MockFactory{
     }
   }
 
-  "validateAppVersion" should {
-    def mockUpgradeRequired(deviceVersion: DeviceVersion, result: Future[Boolean]): Unit =
-      (service.upgradeRequired(_:DeviceVersion)(_: HeaderCarrier, _: ExecutionContext)).expects(deviceVersion, *, *).returns(result)
-
-    val deviceVersion = DeviceVersion(iOS, "1.0")
-
-    val validateAppVersionRequest: FakeRequest[JsValue] =
-      FakeRequest().withBody(toJson(deviceVersion)).withHeaders(HeaderNames.ACCEPT → acceptheader)
-    val validateAppVersionRequestWithoutAcceptHeader: FakeRequest[JsValue] = FakeRequest().withBody(toJson(deviceVersion))
-
-    "mandate an upgrade for a user with no preferences without journey id" in {
-      mockUpgradeRequired(deviceVersion, Future successful true)
-
-      val result: Result = await(controller.validateAppVersion()(validateAppVersionRequest))
-
-      status(result) shouldBe 200
-      contentAsJson(result) shouldBe toJson(UpgradeRequired(true))
-    }
-
-    "mandate an upgrade for a user with no preferences with journey id" in {
-      mockUpgradeRequired(deviceVersion, Future successful true)
-
-      val result: Result = await(controller.validateAppVersion(Some(journeyId))(validateAppVersionRequest))
-
-      status(result) shouldBe 200
-      contentAsJson(result) shouldBe toJson(UpgradeRequired(true))
-    }
-
-    "mandate no upgrade" in {
-      mockUpgradeRequired(deviceVersion, Future successful false)
-
-      val result: Result = await(controller.validateAppVersion()(validateAppVersionRequest))
-
-      status(result) shouldBe 200
-      contentAsJson(result) shouldBe toJson(UpgradeRequired(false))
-    }
-
-    "return status code 406 when no accept header is provided" in {
-      val result: Result = await(controller.validateAppVersion()(validateAppVersionRequestWithoutAcceptHeader))
-      status(result) shouldBe 406
-    }
-
-    "return 400 for an invalid form" in {
-      val result: Result = await(controller.validateAppVersion()(invalidPostRequest))
-      status(result) shouldBe 400
-    }
-
-    "return 500 for an unexpected error" in {
-      mockUpgradeRequired(deviceVersion, Future failed new RuntimeException())
-
-      val result: Result = await(controller.validateAppVersion()(validateAppVersionRequest))
-      status(result) shouldBe 500
-    }
-  }
 }

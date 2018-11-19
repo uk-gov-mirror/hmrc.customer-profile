@@ -1,3 +1,0 @@
-leakDetectionExemptions:
- - ruleId: 'ip_addresses'
-   filePath: '/test/uk/gov/hmrc/customerprofile/domain/VersionSpec.scala'
