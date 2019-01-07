@@ -15,6 +15,7 @@ lazy val microservice = Project(appName, file("."))
   .settings(Seq(routesImport ++= Seq("uk.gov.hmrc.domain._", "uk.gov.hmrc.customerprofile.binder.Binders._")))
   .settings(
     majorVersion := 1,
+    scalaVersion := "2.11.12",
     playDefaultPort := 8233,
     libraryDependencies ++= compile ++ test ++ integration,
     evictionWarningOptions in update := EvictionWarningOptions.default.withWarnScalaVersionEviction(false),
@@ -48,7 +49,7 @@ val test = Seq(
 
 val integration = Seq(
   "com.typesafe.play" %% "play-test" % PlayVersion.current % IntegrationTest,
-  "uk.gov.hmrc" %% "hmrctest" % "3.1.0" % IntegrationTest,
-  "com.github.tomakehurst" % "wiremock" % "2.9.0" % IntegrationTest,
+  "uk.gov.hmrc" %% "hmrctest" % "3.3.0" % IntegrationTest,
+  "com.github.tomakehurst" % "wiremock" % "2.20.0" % IntegrationTest,
   "org.scalatestplus.play" %% "scalatestplus-play" % "2.0.1" % IntegrationTest
 )
