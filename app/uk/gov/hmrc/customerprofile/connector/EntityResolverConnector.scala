@@ -18,7 +18,6 @@ package uk.gov.hmrc.customerprofile.connector
 
 import com.google.inject.{Inject, Singleton}
 import javax.inject.Named
-import play.api.Mode.Mode
 import play.api.http.Status
 import play.api.{Configuration, Environment, Logger}
 import uk.gov.hmrc.customerprofile.config.ServicesCircuitBreaker
@@ -47,13 +46,15 @@ case object EmailNotExist extends PreferencesStatus
 case object NoPreferenceExists extends PreferencesStatus
 
 @Singleton
-class EntityResolverConnector @Inject()(@Named("entity-resolver") serviceUrl: String,
-                                        http: CoreGet with CorePost,
-                                        val runModeConfiguration: Configuration, environment: Environment) extends ServicesCircuitBreaker with Status {
+class EntityResolverConnector @Inject()(
+  @Named("entity-resolver") serviceUrl: String,
+  http:                                 CoreGet with CorePost,
+  val configuration:                    Configuration,
+  val environment:                      Environment)
+    extends ServicesCircuitBreaker
+    with Status {
 
   import Paperless.formats
-
-  override protected def mode: Mode = environment.mode
 
   val externalServiceName = "entity-resolver"
 
@@ -63,12 +64,12 @@ class EntityResolverConnector @Inject()(@Named("entity-resolver") serviceUrl: St
     withCircuitBreaker(http.GET[Option[Preference]](url(s"/preferences")))
       .recover {
         case response: Upstream4xxResponse if response.upstreamResponseCode == GONE => None
-        case _: NotFoundException => None
+        case _:        NotFoundException                                            => None
       }
 
   def paperlessSettings(paperless: Paperless)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] =
     withCircuitBreaker(http.POST(url(s"/preferences/terms-and-conditions"), paperless)).map(_.status).map {
-      case OK => PreferencesExists
+      case OK      => PreferencesExists
       case CREATED => PreferencesCreated
       case _ =>
         Logger.warn("Failed to update paperless settings")
@@ -77,7 +78,7 @@ class EntityResolverConnector @Inject()(@Named("entity-resolver") serviceUrl: St
 
   def paperlessOptOut()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] =
     withCircuitBreaker(http.POST(url(s"/preferences/terms-and-conditions"), PaperlessOptOut(TermsAccepted(false)))).map(_.status).map {
-      case OK => PreferencesExists
+      case OK      => PreferencesExists
       case CREATED =>
         //how could you create an opt-out paperless setting prior to opting-in??
         Logger.warn("Unexpected behaviour : creating paperless setting opt-out")
@@ -90,9 +91,8 @@ class EntityResolverConnector @Inject()(@Named("entity-resolver") serviceUrl: St
         PreferencesFailure
     }
 
-  def getEntityIdByNino(nino: Nino)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Entity] = {
+  def getEntityIdByNino(nino: Nino)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Entity] =
     withCircuitBreaker {
       http.GET[Entity](url(s"/entity-resolver/paye/${nino.nino}"))
     }
-  }
 }

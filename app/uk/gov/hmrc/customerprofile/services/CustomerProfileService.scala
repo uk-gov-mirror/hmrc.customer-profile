@@ -17,24 +17,28 @@
 package uk.gov.hmrc.customerprofile.services
 
 import com.google.inject.{Inject, Singleton}
+import javax.inject.Named
 import play.api.Configuration
-import uk.gov.hmrc.api.service.Auditor
 import uk.gov.hmrc.customerprofile.auth.{AccountAccessControl, NinoNotFoundOnAccount}
 import uk.gov.hmrc.customerprofile.connector._
 import uk.gov.hmrc.customerprofile.domain._
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.service.Auditor
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class CustomerProfileService @Inject()(citizenDetailsConnector: CitizenDetailsConnector,
-                                       preferencesConnector: PreferencesConnector,
-                                       entityResolver: EntityResolverConnector,
-                                       val accountAccessControl: AccountAccessControl,
-                                       val appNameConfiguration: Configuration,
-                                       val auditConnector: AuditConnector) extends Auditor {
+class CustomerProfileService @Inject()(
+  citizenDetailsConnector:       CitizenDetailsConnector,
+  preferencesConnector:          PreferencesConnector,
+  entityResolver:                EntityResolverConnector,
+  val accountAccessControl:      AccountAccessControl,
+  val appNameConfiguration:      Configuration,
+  val auditConnector:            AuditConnector,
+  @Named("appName") val appName: String
+) extends Auditor {
   def getAccounts()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Accounts] =
     withAudit("getAccounts", Map.empty) {
       accountAccessControl.accounts
@@ -49,11 +53,10 @@ class CustomerProfileService @Inject()(citizenDetailsConnector: CitizenDetailsCo
     withAudit("paperlessSettings", Map("accepted" -> settings.generic.accepted.toString)) {
       for {
         preferences ← entityResolver.getPreferences()
-        status ← preferences.fold(entityResolver.paperlessSettings(settings)) {
-          preference =>
-            if (preference.digital) setPreferencesPendingEmail(ChangeEmail(settings.email.value))
-            else entityResolver.paperlessSettings(settings)
-        }
+        status ← preferences.fold(entityResolver.paperlessSettings(settings)) { preference =>
+                  if (preference.digital) setPreferencesPendingEmail(ChangeEmail(settings.email.value))
+                  else entityResolver.paperlessSettings(settings)
+                }
       } yield status
     }
 
@@ -75,5 +78,5 @@ class CustomerProfileService @Inject()(citizenDetailsConnector: CitizenDetailsCo
         response ← preferencesConnector.updatePendingEmail(changeEmail, entity._id)
       } yield response
     }
-  
+
 }

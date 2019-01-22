@@ -16,18 +16,20 @@
 
 package uk.gov.hmrc.customerprofile.domain
 
+import java.time.LocalDateTime
+
+import org.scalatest.{Matchers, WordSpecLike}
 import play.api.Logger
 import play.api.libs.json.JsValue
 import play.api.libs.json.Json.{prettyPrint, toJson}
+import play.api.test.{DefaultAwaitTimeout, FutureAwaits}
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status
 import uk.gov.hmrc.domain.{Nino, SaUtr}
 import uk.gov.hmrc.emailaddress.EmailAddress
-import uk.gov.hmrc.play.test.UnitSpec
-import uk.gov.hmrc.time.DateTimeUtils
 
 import scala.util.Random
 
-class DomainFormatCheckSpec extends UnitSpec {
+class DomainFormatCheckSpec extends WordSpecLike with Matchers with FutureAwaits with DefaultAwaitTimeout {
 
   import DomainGenerator._
 
@@ -56,7 +58,7 @@ object DomainGenerator {
 
   import uk.gov.hmrc.domain.Generator
 
-  val nino: Nino = new Generator().nextNino
+  val nino:  Nino  = new Generator().nextNino
   val saUtr: SaUtr = new SaUtrGenerator().nextSaUtr
 
   val accountsWithNinoAndSaUtr = Accounts(Some(nino), Some(saUtr), routeToIV = false, routeToTwoFactor = false, "102030394AAA")
@@ -74,7 +76,8 @@ object DomainGenerator {
   lazy val verifiedEmailPreferenceAsJson: JsValue = toJson(verifiedEmailPreference)
 
   val etag = "etag12345"
-  val person = Person(Some("John"), Some("Albert"), Some("Smith"), None, Some("Mr"), None, Some("M"), Some(DateTimeUtils.now.minusYears(30)), Some(nino))
+  val person =
+    Person(Some("John"), Some("Albert"), Some("Smith"), None, Some("Mr"), None, Some("M"), Some(LocalDateTime.now.minusYears(30)), Some(nino))
   val address: Option[Address] = None
   val personalDetails = PersonDetails(etag, person, address)
   lazy val personalDetailsAsJson: JsValue = toJson(personalDetails)

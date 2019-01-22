@@ -17,26 +17,26 @@
 package uk.gov.hmrc.customerprofile.connector
 
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.{Matchers, WordSpecLike}
+import play.api.test.{DefaultAwaitTimeout, FutureAwaits}
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http._
-import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
-class CitizenDetailsConnectorSpec extends UnitSpec with MockFactory {
+class CitizenDetailsConnectorSpec extends WordSpecLike with Matchers with FutureAwaits with DefaultAwaitTimeout with MockFactory {
   implicit lazy val hc: HeaderCarrier = HeaderCarrier()
 
   val nino = Nino("CS700100A")
   val http: CoreGet = mock[CoreGet]
   val connector = new CitizenDetailsConnector("someUrl", http)
 
-  def mockHttpGet(exception: Exception): Unit =
-    (http.GET(_: String)(_: HttpReads[HttpResponse], _: HeaderCarrier, _: ExecutionContext)).expects(*,*,*,*).
-      returns(Future failed exception)
+  def mockHttpGet(exception: Exception) =
+    (http.GET(_: String)(_: HttpReads[HttpResponse], _: HeaderCarrier, _: ExecutionContext)).expects(*, *, *, *).returns(Future failed exception)
 
   "citizenDetailsConnector" should {
-    "throw BadRequestException when a 400 response is returned" in  {
+    "throw BadRequestException when a 400 response is returned" in {
       mockHttpGet(new BadRequestException("bad request"))
 
       intercept[BadRequestException] {
@@ -44,7 +44,7 @@ class CitizenDetailsConnectorSpec extends UnitSpec with MockFactory {
       }
     }
 
-    "throw Upstream5xxResponse when a 500 response is returned" in  {
+    "throw Upstream5xxResponse when a 500 response is returned" in {
       mockHttpGet(Upstream5xxResponse("Error", 500, 500))
 
       intercept[Upstream5xxResponse] {

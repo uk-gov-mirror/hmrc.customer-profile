@@ -17,26 +17,30 @@
 package uk.gov.hmrc.customerprofile.stubs
 
 import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.matching.UrlPattern
+import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import uk.gov.hmrc.domain.Nino
 
 object CitizenDetailsStub {
 
-  def designatoryDetailsForNinoAre(nino: Nino, detailsJson: String): Unit =
-    stubFor(get(urlEqualToDesignatoryDetails(nino))
-      .willReturn(aResponse()
-        .withStatus(200)
-        .withBody(detailsJson)))
+  def designatoryDetailsForNinoAre(nino: Nino, detailsJson: String): StubMapping =
+    stubFor(
+      get(urlEqualToDesignatoryDetails(nino))
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+            .withBody(detailsJson)))
 
-  def designatoryDetailsWillReturnErrorResponse(nino: Nino, responseStatusCode: Int): Unit =
-    stubFor(get(urlEqualToDesignatoryDetails(nino))
-      .willReturn(aResponse()
-        .withStatus(responseStatusCode)))
+  def designatoryDetailsWillReturnErrorResponse(nino: Nino, responseStatusCode: Int): StubMapping =
+    stubFor(
+      get(urlEqualToDesignatoryDetails(nino))
+        .willReturn(aResponse()
+          .withStatus(responseStatusCode)))
 
-  def npsDataIsLockedDueToMciFlag(nino: Nino): Unit =
+  def npsDataIsLockedDueToMciFlag(nino: Nino): StubMapping =
     designatoryDetailsWillReturnErrorResponse(nino, 423)
 
-  private def urlEqualToDesignatoryDetails(nino: Nino) = {
+  private def urlEqualToDesignatoryDetails(nino: Nino): UrlPattern =
     urlEqualTo(s"/citizen-details/${nino.value}/designatory-details")
-  }
 
 }

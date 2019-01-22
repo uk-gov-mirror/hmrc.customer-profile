@@ -19,12 +19,13 @@ package uk.gov.hmrc.customerprofile.controllers
 import java.util.UUID.randomUUID
 
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.{Matchers, WordSpecLike}
 import play.api.http.HeaderNames
 import play.api.libs.json.JsValue
 import play.api.libs.json.Json.{parse, toJson}
-import play.api.mvc.{AnyContentAsEmpty, Result}
-import play.api.test.FakeRequest
+import play.api.mvc.AnyContentAsEmpty
 import play.api.test.Helpers._
+import play.api.test.{DefaultAwaitTimeout, FakeRequest, FutureAwaits}
 import uk.gov.hmrc.auth.core.SessionRecordNotFound
 import uk.gov.hmrc.customerprofile.auth.{AccountAccessControl, NinoNotFoundOnAccount}
 import uk.gov.hmrc.customerprofile.connector.{PreferencesDoesNotExist, PreferencesFailure, _}
@@ -34,45 +35,44 @@ import uk.gov.hmrc.customerprofile.services.CustomerProfileService
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.emailaddress.EmailAddress
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.test.UnitSpec
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
-class LiveCustomerProfileControllerSpec extends UnitSpec with MockFactory{
-  val service: CustomerProfileService = mock[CustomerProfileService]
-  val accessControl: AccountAccessControl = mock[AccountAccessControl]
+class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with FutureAwaits with DefaultAwaitTimeout with MockFactory {
+  val service:       CustomerProfileService = mock[CustomerProfileService]
+  val accessControl: AccountAccessControl   = mock[AccountAccessControl]
 
-  val controller: LiveCustomerProfileController = new LiveCustomerProfileController(service, accessControl, citizenDetailsEnabled = true)
+  val controller: LiveCustomerProfileController =
+    new LiveCustomerProfileController(service, accessControl, citizenDetailsEnabled = true, stubControllerComponents())
 
   val nino = Nino("CS700100A")
   val journeyId: String = randomUUID().toString
   val emptyRequest = FakeRequest()
-  val acceptheader: String = "application/vnd.hmrc.1.0+json"
-  val requestWithAcceptHeader: FakeRequest[AnyContentAsEmpty.type] = FakeRequest().withHeaders("Accept" -> acceptheader)
+  val acceptheader:               String                              = "application/vnd.hmrc.1.0+json"
+  val requestWithAcceptHeader:    FakeRequest[AnyContentAsEmpty.type] = FakeRequest().withHeaders("Accept" -> acceptheader)
   val requestWithoutAcceptHeader: FakeRequest[AnyContentAsEmpty.type] = FakeRequest().withHeaders("Authorization" -> "Some Header")
 
   val invalidPostRequest: FakeRequest[JsValue] =
     FakeRequest().withBody(parse("""{ "blah" : "blah" }""")).withHeaders(HeaderNames.ACCEPT → acceptheader)
 
-  def authSuccess(maybeNino: Option[Nino] = None): Unit =
-    (accessControl.grantAccess(_: Option[Nino])
-    (_: HeaderCarrier, _: ExecutionContext)).expects(maybeNino, *, *).returns(Future successful Unit)
+  def authSuccess(maybeNino: Option[Nino] = None) =
+    (accessControl.grantAccess(_: Option[Nino])(_: HeaderCarrier, _: ExecutionContext)).expects(maybeNino, *, *).returns(Future.successful(()))
 
-  def authError(e: Exception, maybeNino: Option[Nino] = None): Unit =
-    (accessControl.grantAccess(_: Option[Nino])
-    (_: HeaderCarrier, _: ExecutionContext)).expects(maybeNino, *, *).returns(Future failed e)
+  def authError(e: Exception, maybeNino: Option[Nino] = None) =
+    (accessControl.grantAccess(_: Option[Nino])(_: HeaderCarrier, _: ExecutionContext)).expects(maybeNino, *, *).returns(Future failed e)
 
-  "getAccounts" should{
-    def mockGetAccounts(result: Future[Accounts]): Unit =
+  "getAccounts" should {
+    def mockGetAccounts(result: Future[Accounts]) =
       (service.getAccounts()(_: HeaderCarrier, _: ExecutionContext)).expects(*, *).returns(result)
 
     "return account details without journey id" in {
       val accounts: Accounts = Accounts(Some(nino), None, routeToIV = false, routeToTwoFactor = false, "102030394AAA")
       mockGetAccounts(Future successful accounts)
 
-      val result: Result = await(controller.getAccounts()(requestWithAcceptHeader))
+      val result = controller.getAccounts()(requestWithAcceptHeader)
 
-      status(result) shouldBe 200
+      status(result)        shouldBe 200
       contentAsJson(result) shouldBe toJson(accounts)
     }
 
@@ -80,85 +80,89 @@ class LiveCustomerProfileControllerSpec extends UnitSpec with MockFactory{
       val accounts: Accounts = Accounts(Some(nino), None, routeToIV = false, routeToTwoFactor = false, "102030394AAA")
       mockGetAccounts(Future successful accounts)
 
-      val result: Result = await(controller.getAccounts(Some(journeyId))(requestWithAcceptHeader))
+      val result = controller.getAccounts(Some(journeyId))(requestWithAcceptHeader)
 
-      status(result) shouldBe 200
+      status(result)        shouldBe 200
       contentAsJson(result) shouldBe toJson(accounts)
     }
 
     "propagate 401" in {
       mockGetAccounts(Future failed new SessionRecordNotFound)
 
-      val result: Result = await(controller.getAccounts()(requestWithAcceptHeader))
+      val result = controller.getAccounts()(requestWithAcceptHeader)
       status(result) shouldBe 401
     }
 
     "return 403 if the user has no nino" in {
       mockGetAccounts(Future failed new NinoNotFoundOnAccount("no nino"))
 
-      val result: Result = await(controller.getAccounts()(requestWithAcceptHeader))
+      val result = controller.getAccounts()(requestWithAcceptHeader)
       status(result) shouldBe 403
     }
 
     "return status code 406 when the headers are invalid" in {
-      val result: Result = await(controller.getAccounts()(requestWithoutAcceptHeader))
+      val result = controller.getAccounts()(requestWithoutAcceptHeader)
       status(result) shouldBe 406
     }
 
     "return 500 for an unexpected error" in {
       mockGetAccounts(Future failed new RuntimeException())
 
-      val result: Result = await(controller.getAccounts()(requestWithAcceptHeader))
+      val result = controller.getAccounts()(requestWithAcceptHeader)
       status(result) shouldBe 500
     }
   }
 
-  "getPersonalDetails" should{
-    def mockGetAccounts(result: Future[PersonDetails]): Unit =
+  "getPersonalDetails" should {
+    def mockGetAccounts(result: Future[PersonDetails]) =
       (service.getPersonalDetails(_: Nino)(_: HeaderCarrier, _: ExecutionContext)).expects(nino, *, *).returns(result)
 
     "return personal details without journey id" in {
-      val person = PersonDetails("etag", Person(Some("Firstname"), Some("Lastname"), Some("Middle"), Some("Intial"),
-        Some("Title"), Some("Honours"), Some("sex"), None, None), None)
+      val person = PersonDetails(
+        "etag",
+        Person(Some("Firstname"), Some("Lastname"), Some("Middle"), Some("Intial"), Some("Title"), Some("Honours"), Some("sex"), None, None),
+        None)
 
       authSuccess(Some(nino))
       mockGetAccounts(Future successful person)
 
-      val result: Result = await(controller.getPersonalDetails(nino)(requestWithAcceptHeader))
+      val result = controller.getPersonalDetails(nino)(requestWithAcceptHeader)
 
-      status(result) shouldBe 200
+      status(result)        shouldBe 200
       contentAsJson(result) shouldBe toJson(person)
     }
 
     "return personal details with journey id" in {
-      val person = PersonDetails("etag", Person(Some("Firstname"), Some("Lastname"), Some("Middle"), Some("Intial"),
-        Some("Title"), Some("Honours"), Some("sex"), None, None), None)
+      val person = PersonDetails(
+        "etag",
+        Person(Some("Firstname"), Some("Lastname"), Some("Middle"), Some("Intial"), Some("Title"), Some("Honours"), Some("sex"), None, None),
+        None)
 
       authSuccess(Some(nino))
       mockGetAccounts(Future successful person)
 
-      val result: Result = await(controller.getPersonalDetails(nino, Some(journeyId))(requestWithAcceptHeader))
+      val result = controller.getPersonalDetails(nino, Some(journeyId))(requestWithAcceptHeader)
 
-      status(result) shouldBe 200
+      status(result)        shouldBe 200
       contentAsJson(result) shouldBe toJson(person)
     }
 
     "propagate 401" in {
       authError(new SessionRecordNotFound, Some(nino))
 
-      val result: Result = await(controller.getPersonalDetails(nino)(requestWithAcceptHeader))
+      val result = controller.getPersonalDetails(nino)(requestWithAcceptHeader)
       status(result) shouldBe 401
     }
 
     "return 403 if the user has no nino" in {
       authError(new NinoNotFoundOnAccount("no nino"), Some(nino))
 
-      val result: Result = await(controller.getPersonalDetails(nino)(requestWithAcceptHeader))
+      val result = controller.getPersonalDetails(nino)(requestWithAcceptHeader)
       status(result) shouldBe 403
     }
 
     "return status code 406 when the headers are invalid" in {
-      val result: Result = await(controller.getPersonalDetails(nino)(requestWithoutAcceptHeader))
+      val result = controller.getPersonalDetails(nino)(requestWithoutAcceptHeader)
       status(result) shouldBe 406
     }
 
@@ -166,13 +170,13 @@ class LiveCustomerProfileControllerSpec extends UnitSpec with MockFactory{
       authSuccess(Some(nino))
       mockGetAccounts(Future failed new RuntimeException())
 
-      val result: Result = await(controller.getPersonalDetails(nino)(requestWithAcceptHeader))
+      val result = controller.getPersonalDetails(nino)(requestWithAcceptHeader)
       status(result) shouldBe 500
     }
   }
 
-  "getPreferences" should{
-    def mockGetPreferences(result: Future[Option[Preference]]): Unit =
+  "getPreferences" should {
+    def mockGetPreferences(result: Future[Option[Preference]]) =
       (service.getPreferences()(_: HeaderCarrier, _: ExecutionContext)).expects(*, *).returns(result)
 
     "return preferences without journeyId" in {
@@ -181,9 +185,9 @@ class LiveCustomerProfileControllerSpec extends UnitSpec with MockFactory{
       authSuccess()
       mockGetPreferences(Future successful Some(preference))
 
-      val result: Result = await(controller.getPreferences()(requestWithAcceptHeader))
+      val result = controller.getPreferences()(requestWithAcceptHeader)
 
-      status(result) shouldBe 200
+      status(result)        shouldBe 200
       contentAsJson(result) shouldBe toJson(preference)
     }
 
@@ -193,9 +197,9 @@ class LiveCustomerProfileControllerSpec extends UnitSpec with MockFactory{
       authSuccess()
       mockGetPreferences(Future successful Some(preference))
 
-      val result: Result = await(controller.getPreferences(Some(journeyId))(requestWithAcceptHeader))
+      val result = controller.getPreferences(Some(journeyId))(requestWithAcceptHeader)
 
-      status(result) shouldBe 200
+      status(result)        shouldBe 200
       contentAsJson(result) shouldBe toJson(preference)
     }
 
@@ -203,7 +207,7 @@ class LiveCustomerProfileControllerSpec extends UnitSpec with MockFactory{
       authSuccess()
       mockGetPreferences(Future successful None)
 
-      val result: Result = await(controller.getPreferences()(requestWithAcceptHeader))
+      val result = controller.getPreferences()(requestWithAcceptHeader)
 
       status(result) shouldBe 404
     }
@@ -211,19 +215,19 @@ class LiveCustomerProfileControllerSpec extends UnitSpec with MockFactory{
     "propagate 401" in {
       authError(new SessionRecordNotFound)
 
-      val result: Result = await(controller.getPreferences()(requestWithAcceptHeader))
+      val result = controller.getPreferences()(requestWithAcceptHeader)
       status(result) shouldBe 401
     }
 
     "return 403 if the user has no nino" in {
       authError(new NinoNotFoundOnAccount("no nino"))
 
-      val result: Result = await(controller.getPreferences()(requestWithAcceptHeader))
+      val result = controller.getPreferences()(requestWithAcceptHeader)
       status(result) shouldBe 403
     }
 
     "return status code 406 when the headers are invalid" in {
-      val result: Result = await(controller.getPreferences()(requestWithoutAcceptHeader))
+      val result = controller.getPreferences()(requestWithoutAcceptHeader)
       status(result) shouldBe 406
     }
 
@@ -231,28 +235,27 @@ class LiveCustomerProfileControllerSpec extends UnitSpec with MockFactory{
       authSuccess()
       mockGetPreferences(Future failed new RuntimeException())
 
-      val result: Result = await(controller.getPreferences()(requestWithAcceptHeader))
+      val result = controller.getPreferences()(requestWithAcceptHeader)
       status(result) shouldBe 500
     }
   }
 
-  "paperlessSettingsOptIn" should{
-    def mockPaperlessSettings(settings: Paperless, result: Future[PreferencesStatus]): Unit =
-      (service.paperlessSettings(_:Paperless)(_: HeaderCarrier, _: ExecutionContext)).expects(settings, *, *).returns(result)
+  "paperlessSettingsOptIn" should {
+    def mockPaperlessSettings(settings: Paperless, result: Future[PreferencesStatus]) =
+      (service.paperlessSettings(_: Paperless)(_: HeaderCarrier, _: ExecutionContext)).expects(settings, *, *).returns(result)
 
-    val newEmail = EmailAddress("new@new.com")
+    val newEmail          = EmailAddress("new@new.com")
     val paperlessSettings = Paperless(TermsAccepted(true), newEmail)
 
     val validPaperlessSettingsRequest: FakeRequest[JsValue] =
       FakeRequest().withBody(toJson(paperlessSettings)).withHeaders(HeaderNames.ACCEPT → acceptheader)
     val paperlessSettingsRequestWithoutAcceptHeader: FakeRequest[JsValue] = FakeRequest().withBody(toJson(paperlessSettings))
 
-
     "opt in for a user with no preferences without journey id" in {
       authSuccess()
       mockPaperlessSettings(paperlessSettings, Future successful PreferencesCreated)
 
-      val result: Result = await(controller.paperlessSettingsOptIn()(validPaperlessSettingsRequest))
+      val result = controller.paperlessSettingsOptIn()(validPaperlessSettingsRequest)
 
       status(result) shouldBe 201
     }
@@ -261,7 +264,7 @@ class LiveCustomerProfileControllerSpec extends UnitSpec with MockFactory{
       authSuccess()
       mockPaperlessSettings(paperlessSettings, Future successful PreferencesCreated)
 
-      val result: Result = await(controller.paperlessSettingsOptIn(Some(journeyId))(validPaperlessSettingsRequest))
+      val result = controller.paperlessSettingsOptIn(Some(journeyId))(validPaperlessSettingsRequest)
 
       status(result) shouldBe 201
     }
@@ -270,7 +273,7 @@ class LiveCustomerProfileControllerSpec extends UnitSpec with MockFactory{
       authSuccess()
       mockPaperlessSettings(paperlessSettings, Future successful PreferencesExists)
 
-      val result: Result = await(controller.paperlessSettingsOptIn()(validPaperlessSettingsRequest))
+      val result = controller.paperlessSettingsOptIn()(validPaperlessSettingsRequest)
 
       status(result) shouldBe 200
     }
@@ -279,7 +282,7 @@ class LiveCustomerProfileControllerSpec extends UnitSpec with MockFactory{
       authSuccess()
       mockPaperlessSettings(paperlessSettings, Future successful NoPreferenceExists)
 
-      val result: Result = await(controller.paperlessSettingsOptIn()(validPaperlessSettingsRequest))
+      val result = controller.paperlessSettingsOptIn()(validPaperlessSettingsRequest)
 
       status(result) shouldBe 404
     }
@@ -288,7 +291,7 @@ class LiveCustomerProfileControllerSpec extends UnitSpec with MockFactory{
       authSuccess()
       mockPaperlessSettings(paperlessSettings, Future successful EmailNotExist)
 
-      val result: Result = await(controller.paperlessSettingsOptIn()(validPaperlessSettingsRequest))
+      val result = controller.paperlessSettingsOptIn()(validPaperlessSettingsRequest)
 
       status(result) shouldBe 409
     }
@@ -297,7 +300,7 @@ class LiveCustomerProfileControllerSpec extends UnitSpec with MockFactory{
       authSuccess()
       mockPaperlessSettings(paperlessSettings, Future successful PreferencesFailure)
 
-      val result: Result = await(controller.paperlessSettingsOptIn()(validPaperlessSettingsRequest))
+      val result = controller.paperlessSettingsOptIn()(validPaperlessSettingsRequest)
 
       status(result) shouldBe 500
     }
@@ -305,25 +308,25 @@ class LiveCustomerProfileControllerSpec extends UnitSpec with MockFactory{
     "propagate 401 for auth failure" in {
       authError(new SessionRecordNotFound)
 
-      val result: Result = await(controller.paperlessSettingsOptIn()(validPaperlessSettingsRequest))
+      val result = controller.paperlessSettingsOptIn()(validPaperlessSettingsRequest)
       status(result) shouldBe 401
     }
 
     "return 403 if the user has no nino" in {
       authError(new NinoNotFoundOnAccount("no nino"))
 
-      val result: Result = await(controller.paperlessSettingsOptIn()(validPaperlessSettingsRequest))
+      val result = controller.paperlessSettingsOptIn()(validPaperlessSettingsRequest)
       status(result) shouldBe 403
     }
 
     "return status code 406 when no accept header is provided" in {
-      val result: Result = await(controller.paperlessSettingsOptIn()(paperlessSettingsRequestWithoutAcceptHeader))
+      val result = controller.paperlessSettingsOptIn()(paperlessSettingsRequestWithoutAcceptHeader)
       status(result) shouldBe 406
     }
 
     "return 400 for an invalid form" in {
       authSuccess()
-      val result: Result = await(controller.paperlessSettingsOptIn()(invalidPostRequest))
+      val result = controller.paperlessSettingsOptIn()(invalidPostRequest)
       status(result) shouldBe 400
     }
 
@@ -331,7 +334,7 @@ class LiveCustomerProfileControllerSpec extends UnitSpec with MockFactory{
       authSuccess()
       mockPaperlessSettings(paperlessSettings, Future failed new RuntimeException())
 
-      val result: Result = await(controller.paperlessSettingsOptIn()(validPaperlessSettingsRequest))
+      val result = controller.paperlessSettingsOptIn()(validPaperlessSettingsRequest)
       status(result) shouldBe 500
     }
   }
@@ -344,7 +347,7 @@ class LiveCustomerProfileControllerSpec extends UnitSpec with MockFactory{
       authSuccess()
       mockPaperlessSettingsOptOut(Future successful PreferencesExists)
 
-      val result: Result = await(controller.paperlessSettingsOptOut()(requestWithAcceptHeader))
+      val result = controller.paperlessSettingsOptOut()(requestWithAcceptHeader)
 
       status(result) shouldBe 200
     }
@@ -353,7 +356,7 @@ class LiveCustomerProfileControllerSpec extends UnitSpec with MockFactory{
       authSuccess()
       mockPaperlessSettingsOptOut(Future successful PreferencesExists)
 
-      val result: Result = await(controller.paperlessSettingsOptOut(Some(journeyId))(requestWithAcceptHeader))
+      val result = controller.paperlessSettingsOptOut(Some(journeyId))(requestWithAcceptHeader)
 
       status(result) shouldBe 200
     }
@@ -362,7 +365,7 @@ class LiveCustomerProfileControllerSpec extends UnitSpec with MockFactory{
       authSuccess()
       mockPaperlessSettingsOptOut(Future successful PreferencesCreated)
 
-      val result: Result = await(controller.paperlessSettingsOptOut()(requestWithAcceptHeader))
+      val result = controller.paperlessSettingsOptOut()(requestWithAcceptHeader)
 
       status(result) shouldBe 201
     }
@@ -371,7 +374,7 @@ class LiveCustomerProfileControllerSpec extends UnitSpec with MockFactory{
       authSuccess()
       mockPaperlessSettingsOptOut(Future successful PreferencesDoesNotExist)
 
-      val result: Result = await(controller.paperlessSettingsOptOut()(requestWithAcceptHeader))
+      val result = controller.paperlessSettingsOptOut()(requestWithAcceptHeader)
 
       status(result) shouldBe 404
     }
@@ -380,7 +383,7 @@ class LiveCustomerProfileControllerSpec extends UnitSpec with MockFactory{
       authSuccess()
       mockPaperlessSettingsOptOut(Future successful PreferencesFailure)
 
-      val result: Result = await(controller.paperlessSettingsOptOut()(requestWithAcceptHeader))
+      val result = controller.paperlessSettingsOptOut()(requestWithAcceptHeader)
 
       status(result) shouldBe 500
     }
@@ -388,19 +391,19 @@ class LiveCustomerProfileControllerSpec extends UnitSpec with MockFactory{
     "propagate 401 for auth failure" in {
       authError(new SessionRecordNotFound)
 
-      val result: Result = await(controller.paperlessSettingsOptOut()(requestWithAcceptHeader))
+      val result = controller.paperlessSettingsOptOut()(requestWithAcceptHeader)
       status(result) shouldBe 401
     }
 
     "return 403 if the user has no nino" in {
       authError(new NinoNotFoundOnAccount("no nino"))
 
-      val result: Result = await(controller.paperlessSettingsOptOut()(requestWithAcceptHeader))
+      val result = controller.paperlessSettingsOptOut()(requestWithAcceptHeader)
       status(result) shouldBe 403
     }
 
     "return status code 406 when no accept header is provided" in {
-      val result: Result = await(controller.paperlessSettingsOptOut()(requestWithoutAcceptHeader))
+      val result = controller.paperlessSettingsOptOut()(requestWithoutAcceptHeader)
       status(result) shouldBe 406
     }
 
@@ -408,7 +411,7 @@ class LiveCustomerProfileControllerSpec extends UnitSpec with MockFactory{
       authSuccess()
       mockPaperlessSettingsOptOut(Future failed new RuntimeException())
 
-      val result: Result = await(controller.paperlessSettingsOptOut()(requestWithAcceptHeader))
+      val result = controller.paperlessSettingsOptOut()(requestWithAcceptHeader)
       status(result) shouldBe 500
     }
   }

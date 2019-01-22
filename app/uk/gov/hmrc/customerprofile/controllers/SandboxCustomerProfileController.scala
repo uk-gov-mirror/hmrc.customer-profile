@@ -16,7 +16,10 @@
 
 package uk.gov.hmrc.customerprofile.controllers
 
+import java.time.{LocalDate, LocalDateTime}
+
 import com.google.inject.Singleton
+import javax.inject.Inject
 import play.api.libs.json.Json.toJson
 import play.api.mvc._
 import uk.gov.hmrc.api.controllers.HeaderValidator
@@ -25,12 +28,17 @@ import uk.gov.hmrc.customerprofile.domain._
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.emailaddress.EmailAddress
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class SandboxCustomerProfileController extends BaseController with CustomerProfileController with HeaderValidator {
+class SandboxCustomerProfileController @Inject()(cc: ControllerComponents)(implicit val executionContext: ExecutionContext)
+    extends BackendController(cc)
+    with CustomerProfileController
+    with HeaderValidator {
+  override def parser: BodyParser[AnyContent] = cc.parsers.anyContent
+
   private val SANDBOX_CONTROL_HEADER = "SANDBOX-CONTROL"
 
   private val nino = Nino("CS700100A")
@@ -38,77 +46,79 @@ class SandboxCustomerProfileController extends BaseController with CustomerProfi
   private val personDetailsSandbox =
     PersonDetails(
       "etag",
-      Person(Some("Jennifer"), None, Some("Thorsteinson"), None, Some("Ms"), None, Some("Female"), Some(org.joda.time.DateTime.parse("1999-01-31")), Some(nino)),
-      Some(Address(Some("999 Big Street"), Some("Worthing"), Some("West Sussex"), None, None, Some("BN99 8IG"), None, None, None)))
+      Person(
+        Some("Jennifer"),
+        None,
+        Some("Thorsteinson"),
+        None,
+        Some("Ms"),
+        None,
+        Some("Female"),
+        Some(LocalDate.parse("1999-01-31").atStartOfDay()),
+        Some(nino)),
+      Some(Address(Some("999 Big Street"), Some("Worthing"), Some("West Sussex"), None, None, Some("BN99 8IG"), None, None, None))
+    )
 
   private def accounts(journeyId: Option[String]) =
     Accounts(Some(nino), None, routeToIV = false, routeToTwoFactor = false, journeyId.getOrElse(""))
 
   private val email = EmailAddress("name@email.co.uk")
 
-  override def withAcceptHeaderValidationAndAuthIfLive(taxId: Option[Nino] = None): ActionBuilder[Request] =
+  override def withAcceptHeaderValidationAndAuthIfLive(taxId: Option[Nino] = None): ActionBuilder[Request, AnyContent] =
     validateAccept(acceptHeaderValidationRules)
 
-  override def getAccounts(journeyId: Option[String]): Action[AnyContent] = {
-    validateAccept(acceptHeaderValidationRules).async {
-      implicit request =>
-        Future successful (request.headers.get(SANDBOX_CONTROL_HEADER) match {
-          case Some("ERROR-401") => Unauthorized
-          case Some("ERROR-403") => Forbidden
-          case Some("ERROR-500") => InternalServerError
-          case _ => Ok(toJson(accounts(journeyId)))
-        })
+  override def getAccounts(journeyId: Option[String]): Action[AnyContent] =
+    validateAccept(acceptHeaderValidationRules).async { implicit request =>
+      Future successful (request.headers.get(SANDBOX_CONTROL_HEADER) match {
+        case Some("ERROR-401") => Unauthorized
+        case Some("ERROR-403") => Forbidden
+        case Some("ERROR-500") => InternalServerError
+        case _                 => Ok(toJson(accounts(journeyId)))
+      })
     }
-  }
 
-  override def getPersonalDetails(nino: Nino, journeyId: Option[String]): Action[AnyContent] = {
-    validateAccept(acceptHeaderValidationRules).async {
-      implicit request =>
-        Future successful (request.headers.get(SANDBOX_CONTROL_HEADER) match {
-          case Some("ERROR-401") => Unauthorized
-          case Some("ERROR-403") => Forbidden
-          case Some("ERROR-500") => InternalServerError
-          case _ => Ok(toJson(personDetailsSandbox))
-        })
+  override def getPersonalDetails(nino: Nino, journeyId: Option[String]): Action[AnyContent] =
+    validateAccept(acceptHeaderValidationRules).async { implicit request =>
+      Future successful (request.headers.get(SANDBOX_CONTROL_HEADER) match {
+        case Some("ERROR-401") => Unauthorized
+        case Some("ERROR-403") => Forbidden
+        case Some("ERROR-500") => InternalServerError
+        case _                 => Ok(toJson(personDetailsSandbox))
+      })
     }
-  }
 
-  override def getPreferences(journeyId: Option[String]): Action[AnyContent] = {
-    validateAccept(acceptHeaderValidationRules).async {
-      implicit request =>
-        Future successful (request.headers.get(SANDBOX_CONTROL_HEADER) match {
-          case Some("ERROR-401") => Unauthorized
-          case Some("ERROR-403") => Forbidden
-          case Some("ERROR-404") => NotFound
-          case Some("ERROR-500") => InternalServerError
-          case _ => Ok(toJson(Preference(digital = true, Some(EmailPreference(email, Verified)))))
-        })
+  override def getPreferences(journeyId: Option[String]): Action[AnyContent] =
+    validateAccept(acceptHeaderValidationRules).async { implicit request =>
+      Future successful (request.headers.get(SANDBOX_CONTROL_HEADER) match {
+        case Some("ERROR-401") => Unauthorized
+        case Some("ERROR-403") => Forbidden
+        case Some("ERROR-404") => NotFound
+        case Some("ERROR-500") => InternalServerError
+        case _                 => Ok(toJson(Preference(digital = true, Some(EmailPreference(email, Verified)))))
+      })
     }
-  }
 
-  override def paperlessSettingsOptOut(journeyId: Option[String]): Action[AnyContent] = {
-    validateAccept(acceptHeaderValidationRules).async {
-      implicit request =>
-        Future successful (request.headers.get(SANDBOX_CONTROL_HEADER) match {
-          case Some("ERROR-401") => Unauthorized
-          case Some("ERROR-403") => Forbidden
-          case Some("ERROR-404") => NotFound
-          case Some("ERROR-500") => InternalServerError
-          case Some("PREFERENCE-CREATED") => Created
-          case _ => Ok
-        })
+  override def paperlessSettingsOptOut(journeyId: Option[String]): Action[AnyContent] =
+    validateAccept(acceptHeaderValidationRules).async { implicit request =>
+      Future successful (request.headers.get(SANDBOX_CONTROL_HEADER) match {
+        case Some("ERROR-401")          => Unauthorized
+        case Some("ERROR-403")          => Forbidden
+        case Some("ERROR-404")          => NotFound
+        case Some("ERROR-500")          => InternalServerError
+        case Some("PREFERENCE-CREATED") => Created
+        case _                          => Ok
+      })
     }
-  }
 
-  override def optIn(settings: Paperless)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result] = {
+  override def optIn(settings: Paperless)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result] =
     Future successful (request.headers.get(SANDBOX_CONTROL_HEADER) match {
-      case Some("ERROR-401") => Unauthorized
-      case Some("ERROR-403") => Forbidden
-      case Some("ERROR-404") => NotFound
-      case Some("ERROR-409") => Conflict
-      case Some("ERROR-500") => InternalServerError
+      case Some("ERROR-401")          => Unauthorized
+      case Some("ERROR-403")          => Forbidden
+      case Some("ERROR-404")          => NotFound
+      case Some("ERROR-409")          => Conflict
+      case Some("ERROR-500")          => InternalServerError
       case Some("PREFERENCE-CREATED") => Created
-      case _ => Ok
+      case _                          => Ok
     })
-  }
+
 }

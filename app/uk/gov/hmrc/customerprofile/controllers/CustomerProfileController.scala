@@ -28,6 +28,8 @@ import uk.gov.hmrc.play.HeaderCarrierConverter.fromHeadersAndSession
 import scala.concurrent.Future
 
 trait CustomerProfileController extends HeaderValidator {
+  def controllerComponents: ControllerComponents
+
   def getAccounts(journeyId: Option[String] = None): Action[AnyContent]
 
   def getPersonalDetails(nino: Nino, journeyId: Option[String] = None): Action[AnyContent]
@@ -37,10 +39,11 @@ trait CustomerProfileController extends HeaderValidator {
   def paperlessSettingsOptOut(journeyId: Option[String] = None): Action[AnyContent]
 
   final def paperlessSettingsOptIn(journeyId: Option[String] = None): Action[JsValue] =
-    withAcceptHeaderValidationAndAuthIfLive().async(BodyParsers.parse.json) {
-      implicit request =>
-        implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
-        request.body.validate[Paperless].fold(
+    withAcceptHeaderValidationAndAuthIfLive().async(controllerComponents.parsers.json) { implicit request =>
+      implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
+      request.body
+        .validate[Paperless]
+        .fold(
           errors => {
             Logger.warn("Received error with service getPaperlessSettings: " + errors)
             Future successful BadRequest
@@ -51,8 +54,7 @@ trait CustomerProfileController extends HeaderValidator {
         )
     }
 
-  def withAcceptHeaderValidationAndAuthIfLive(taxId: Option[Nino] = None): ActionBuilder[Request]
+  def withAcceptHeaderValidationAndAuthIfLive(taxId: Option[Nino] = None): ActionBuilder[Request, AnyContent]
 
   def optIn(settings: Paperless)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result]
 }
-
