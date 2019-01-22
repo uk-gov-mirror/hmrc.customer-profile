@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.customerprofile
 
-import java.time.LocalDateTime
+import java.time.{LocalDate, LocalDateTime, ZoneOffset}
+
 import play.api.libs.json.Json.toJson
 import play.api.libs.json.{JsValue, Json}
 import play.api.libs.ws.WSRequest
@@ -83,7 +84,7 @@ class SandboxCustomerProfileISpec extends BaseISpec {
     val expectedDetails =
       PersonDetails(
         "etag",
-        Person(Some("Jennifer"), None, Some("Thorsteinson"), None, Some("Ms"), None, Some("Female"), Option(LocalDateTime.parse("1999-01-31")), Some(nino)),
+        Person(Some("Jennifer"), None, Some("Thorsteinson"), None, Some("Ms"), None, Some("Female"), Option(LocalDate.parse("1999-01-31").atStartOfDay().toEpochSecond(ZoneOffset.UTC)), Some(nino)),
         Some(Address(Some("999 Big Street"), Some("Worthing"), Some("West Sussex"), None, None, Some("BN99 8IG"), None, None, None)))
 
     "return the default personal details without journey id" in {

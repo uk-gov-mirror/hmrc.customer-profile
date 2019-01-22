@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.customerprofile.domain
 
-import java.time.LocalDateTime
+import java.time.{LocalDateTime, ZoneOffset}
 
 import org.scalatest.{Matchers, WordSpecLike}
 import play.api.Logger
@@ -77,7 +77,17 @@ object DomainGenerator {
 
   val etag = "etag12345"
   val person =
-    Person(Some("John"), Some("Albert"), Some("Smith"), None, Some("Mr"), None, Some("M"), Some(LocalDateTime.now.minusYears(30)), Some(nino))
+    Person(
+      Some("John"),
+      Some("Albert"),
+      Some("Smith"),
+      None,
+      Some("Mr"),
+      None,
+      Some("M"),
+      Some(LocalDateTime.now.minusYears(30).toEpochSecond(ZoneOffset.UTC)),
+      Some(nino)
+    )
   val address: Option[Address] = None
   val personalDetails = PersonDetails(etag, person, address)
   lazy val personalDetailsAsJson: JsValue = toJson(personalDetails)
