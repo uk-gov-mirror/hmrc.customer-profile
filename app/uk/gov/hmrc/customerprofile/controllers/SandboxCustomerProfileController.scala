@@ -54,7 +54,7 @@ class SandboxCustomerProfileController @Inject()(cc: ControllerComponents)(impli
         Some("Ms"),
         None,
         Some("Female"),
-        Some(LocalDate.parse("1999-01-31").atStartOfDay().toEpochSecond(ZoneOffset.UTC)),
+        Some(LocalDate.parse("1999-01-31")),
         Some(nino)
       ),
       Some(Address(Some("999 Big Street"), Some("Worthing"), Some("West Sussex"), None, None, Some("BN99 8IG"), None, None, None))

@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.customerprofile.domain
 
-import java.time.{LocalDateTime, ZoneOffset}
+import java.time.LocalDate
 
 import org.scalatest.{Matchers, WordSpecLike}
 import play.api.Logger
@@ -29,16 +29,24 @@ import uk.gov.hmrc.emailaddress.EmailAddress
 
 import scala.util.Random
 
-class DomainFormatCheckSpec extends WordSpecLike with Matchers with FutureAwaits with DefaultAwaitTimeout {
+class DomainFormatCheckSpec
+    extends WordSpecLike
+    with Matchers
+    with FutureAwaits
+    with DefaultAwaitTimeout {
 
   import DomainGenerator._
 
   "Accounts" in {
-    Logger.debug("Accounts response : " + prettyPrint(accountsWithNinoAndSaUtrAsJson))
+    Logger.debug(
+      "Accounts response : " + prettyPrint(accountsWithNinoAndSaUtrAsJson)
+    )
   }
 
   "Personal details" in {
-    Logger.debug("Personal details response : " + prettyPrint(personalDetailsAsJson))
+    Logger.debug(
+      "Personal details response : " + prettyPrint(personalDetailsAsJson)
+    )
   }
 
   "Paperless" in {
@@ -46,11 +54,15 @@ class DomainFormatCheckSpec extends WordSpecLike with Matchers with FutureAwaits
   }
 
   "Paperless opt out" in {
-    Logger.debug("Paperless opt out response : " + prettyPrint(paperlessOptOutAsJson))
+    Logger.debug(
+      "Paperless opt out response : " + prettyPrint(paperlessOptOutAsJson)
+    )
   }
 
   "Verified email Preference" in {
-    Logger.debug("Preference response : " + prettyPrint(verifiedEmailPreferenceAsJson))
+    Logger.debug(
+      "Preference response : " + prettyPrint(verifiedEmailPreferenceAsJson)
+    )
   }
 }
 
@@ -58,11 +70,19 @@ object DomainGenerator {
 
   import uk.gov.hmrc.domain.Generator
 
-  val nino:  Nino  = new Generator().nextNino
+  val nino: Nino = new Generator().nextNino
   val saUtr: SaUtr = new SaUtrGenerator().nextSaUtr
 
-  val accountsWithNinoAndSaUtr = Accounts(Some(nino), Some(saUtr), routeToIV = false, routeToTwoFactor = false, "102030394AAA")
-  lazy val accountsWithNinoAndSaUtrAsJson: JsValue = toJson(accountsWithNinoAndSaUtr)
+  val accountsWithNinoAndSaUtr = Accounts(
+    Some(nino),
+    Some(saUtr),
+    routeToIV = false,
+    routeToTwoFactor = false,
+    "102030394AAA"
+  )
+  lazy val accountsWithNinoAndSaUtrAsJson: JsValue = toJson(
+    accountsWithNinoAndSaUtr
+  )
 
   val email = EmailAddress("name@email.co.uk")
 
@@ -72,8 +92,11 @@ object DomainGenerator {
   val paperlessOptOut = PaperlessOptOut(TermsAccepted(false))
   lazy val paperlessOptOutAsJson: JsValue = toJson(paperlessOptOut)
 
-  val verifiedEmailPreference = Preference(digital = true, Some(EmailPreference(email, Status.Verified)))
-  lazy val verifiedEmailPreferenceAsJson: JsValue = toJson(verifiedEmailPreference)
+  val verifiedEmailPreference =
+    Preference(digital = true, Some(EmailPreference(email, Status.Verified)))
+  lazy val verifiedEmailPreferenceAsJson: JsValue = toJson(
+    verifiedEmailPreference
+  )
 
   val etag = "etag12345"
   val person =
@@ -85,7 +108,7 @@ object DomainGenerator {
       Some("Mr"),
       None,
       Some("M"),
-      Some(LocalDateTime.now.minusYears(30).toEpochSecond(ZoneOffset.UTC)),
+      Some(LocalDate.now.minusYears(30)),
       Some(nino)
     )
   val address: Option[Address] = None

@@ -84,7 +84,7 @@ class SandboxCustomerProfileISpec extends BaseISpec {
     val expectedDetails =
       PersonDetails(
         "etag",
-        Person(Some("Jennifer"), None, Some("Thorsteinson"), None, Some("Ms"), None, Some("Female"), Option(LocalDate.parse("1999-01-31").atStartOfDay().toEpochSecond(ZoneOffset.UTC)), Some(nino)),
+        Person(Some("Jennifer"), None, Some("Thorsteinson"), None, Some("Ms"), None, Some("Female"), Option(LocalDate.parse("1999-01-31")), Some(nino)),
         Some(Address(Some("999 Big Street"), Some("Worthing"), Some("West Sussex"), None, None, Some("BN99 8IG"), None, None, None)))
 
     "return the default personal details without journey id" in {
