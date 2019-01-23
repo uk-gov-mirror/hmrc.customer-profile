@@ -21,6 +21,7 @@ import com.google.inject.Inject
 import com.typesafe.config.Config
 import javax.inject.Named
 import play.api.Configuration
+import play.api.libs.ws.WSClient
 import uk.gov.hmrc.http.hooks.HttpHooks
 import uk.gov.hmrc.play.audit.http.HttpAuditing
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -33,19 +34,20 @@ trait Hooks extends HttpHooks with HttpAuditing {
 }
 
 class WSHttpImpl @Inject()(
-  config: Configuration,
-  override val actorSystem: ActorSystem,
+  val wsClient:                  WSClient,
+  config:                        Configuration,
+  override val actorSystem:      ActorSystem,
   @Named("appName") val appName: String,
-  val auditConnector: AuditConnector
+  val auditConnector:            AuditConnector
 ) extends HttpClient
-  with WSGet
-  with WSPut
-  with WSPost
-  with WSDelete
-  with WSPatch
-  with Hooks {
+    with WSGet
+    with WSPut
+    with WSPost
+    with WSDelete
+    with WSPatch
+    with Hooks {
   override lazy val configuration: Option[Config] = Option(config.underlying)
 }
 
-class MicroserviceAudit @Inject()(@Named("appName") val applicationName: String,
-                                  val auditConnector: AuditConnector) extends Audit(applicationName, auditConnector)
+class MicroserviceAudit @Inject()(@Named("appName") val applicationName: String, val auditConnector: AuditConnector)
+    extends Audit(applicationName, auditConnector)

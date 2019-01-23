@@ -16,10 +16,8 @@
 
 package uk.gov.hmrc.customerprofile.connector
 
-
 import com.google.inject.{Inject, Singleton}
 import javax.inject.Named
-import play.api.Mode.Mode
 import play.api.libs.json.{Json, OFormat}
 import play.api.{Configuration, Environment, Logger}
 import play.mvc.Http.Status._
@@ -29,7 +27,6 @@ import uk.gov.hmrc.http._
 
 import scala.concurrent.{ExecutionContext, Future}
 
-
 case class Entity(_id: String)
 
 object Entity {
@@ -37,16 +34,17 @@ object Entity {
 }
 
 @Singleton
-class PreferencesConnector @Inject()(http: CorePut with CoreGet,
-                                     @Named("preferences") serviceUrl: String,
-                                     override val externalServiceName: String,
-                                     val runModeConfiguration: Configuration, environment: Environment) extends ServicesCircuitBreaker {
-
-  override protected def mode: Mode = environment.mode
+class PreferencesConnector @Inject()(
+  http:                             CorePut with CoreGet,
+  @Named("preferences") serviceUrl: String,
+  override val externalServiceName: String,
+  val configuration:                Configuration,
+  val environment:                  Environment
+) extends ServicesCircuitBreaker {
 
   def url(path: String): String = s"$serviceUrl$path"
 
-  def updatePendingEmail(changeEmail: ChangeEmail, entityId: String)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] = {
+  def updatePendingEmail(changeEmail: ChangeEmail, entityId: String)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] =
     http.PUT(url(s"/preferences/$entityId/pending-email"), changeEmail).map(_ => EmailUpdateOk).recoverWith {
       case e: NotFoundException ⇒ log(e.message, entityId); Future(NoPreferenceExists)
       case e: Upstream4xxResponse ⇒
@@ -57,9 +55,7 @@ class PreferencesConnector @Inject()(http: CorePut with CoreGet,
         }
       case _ ⇒ log("Failed to update preferences email", entityId); Future(EmailUpdateFailed)
     }
-  }
 
-  def log(msg: String, entityId: String): Unit = {
+  def log(msg: String, entityId: String): Unit =
     Logger.warn(msg + s" for entity $entityId")
-  }
 }

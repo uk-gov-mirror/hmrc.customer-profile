@@ -39,13 +39,13 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
   val nino = Nino("AA000006C")
   val acceptJsonHeader: (String, String) = "Accept" -> "application/vnd.hmrc.1.0+json"
 
-  def getRequestWithAcceptHeader(url: String): Future[WSResponse] = wsUrl(url).withHeaders(acceptJsonHeader).get()
+  def getRequestWithAcceptHeader(url: String): Future[WSResponse] = wsUrl(url).addHttpHeaders(acceptJsonHeader).get()
 
   def postRequestWithAcceptHeader(url: String, form: JsValue): Future[WSResponse] =
-    await(wsUrl(url).withHeaders(acceptJsonHeader).post(form))
+    wsUrl(url).addHttpHeaders(acceptJsonHeader).post(form)
 
   def postRequestWithAcceptHeader(url: String): Future[WSResponse] =
-    await(wsUrl(url).withHeaders(acceptJsonHeader).post(""))
+    wsUrl(url).addHttpHeaders(acceptJsonHeader).post("")
 
   "GET /profile/accounts" should {
     val url: String = "/profile/accounts"
@@ -53,28 +53,28 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
     "return account details" in {
       accountsFound(nino)
 
-      val response = getRequestWithAcceptHeader(url)
+      val response = await(getRequestWithAcceptHeader(url))
 
-      response.status shouldBe 200
-      ( response.json \ "nino" ).as[String] shouldBe nino.nino
+      response.status                     shouldBe 200
+      (response.json \ "nino").as[String] shouldBe nino.nino
     }
 
     "return 200 if no nino on account" in {
       accountsFoundWithoutNino()
 
-      val response = getRequestWithAcceptHeader(url)
+      val response = await(getRequestWithAcceptHeader(url))
 
-      response.status shouldBe 200
-      ( response.json \ "nino" ).asOpt[String] shouldBe None
+      response.status                        shouldBe 200
+      (response.json \ "nino").asOpt[String] shouldBe None
     }
 
     "return 406 if no request header is supplied" in {
-      wsUrl(url).get().status shouldBe 406
+      await(wsUrl(url).get()).status shouldBe 406
     }
 
     "propagate 401" in {
       accountsFailure()
-      getRequestWithAcceptHeader(url).status shouldBe 401
+      await(getRequestWithAcceptHeader(url)).status shouldBe 401
     }
   }
 
@@ -85,19 +85,19 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
       authRecordExists(nino)
       respondPreferencesWithPaperlessOptedIn()
 
-      val response = getRequestWithAcceptHeader(url)
+      val response = await(getRequestWithAcceptHeader(url))
 
-      response.status shouldBe 200
-      ( response.json \ "digital" ).as[Boolean] shouldBe true
+      response.status                         shouldBe 200
+      (response.json \ "digital").as[Boolean] shouldBe true
     }
 
     "return 406 if no request header is supplied" in {
-      wsUrl(url).get().status shouldBe 406
+      await(wsUrl(url).get()).status shouldBe 406
     }
 
     "propagate 401" in {
       authFailure()
-      getRequestWithAcceptHeader(url).status shouldBe 401
+      await(getRequestWithAcceptHeader(url)).status shouldBe 401
     }
   }
 
@@ -108,25 +108,25 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
       designatoryDetailsWillReturnErrorResponse(nino, 404)
       authRecordExists(nino)
 
-      val response = getRequestWithAcceptHeader(url)
+      val response = await(getRequestWithAcceptHeader(url))
 
       response.status shouldBe 404
-      response.json shouldBe parse("""{"code":"NOT_FOUND","message":"Resource was not found"}""")
+      response.json   shouldBe parse("""{"code":"NOT_FOUND","message":"Resource was not found"}""")
     }
 
     "return 406 if no request header is supplied" in {
-      wsUrl(url).get().status shouldBe 406
+      await(wsUrl(url).get()).status shouldBe 406
     }
 
     "propagate 401" in {
       authFailure()
-      getRequestWithAcceptHeader(url).status shouldBe 401
+      await(getRequestWithAcceptHeader(url)).status shouldBe 401
     }
   }
 
   "POST /profile/paperless-settings/opt-in" should {
-    val url = "/profile/preferences/paperless-settings/opt-in"
-    val entityId = "1098561938451038465138465"
+    val url       = "/profile/preferences/paperless-settings/opt-in"
+    val entityId  = "1098561938451038465138465"
     val paperless = toJson(Paperless(generic = TermsAccepted(true), email = EmailAddress("new-email@new-email.new.email")))
 
     "return a 200 response when successfully opting into paperless settings" in {
@@ -136,7 +136,7 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
       successPaperlessSettingsChange()
       accountsFound(nino)
 
-      postRequestWithAcceptHeader(url, paperless).status shouldBe 200
+      await(postRequestWithAcceptHeader(url, paperless)).status shouldBe 200
     }
 
     "return a 200 response when a pending email preference is successfully updated" in {
@@ -146,7 +146,7 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
       successfulPendingEmailUpdate(entityId)
       accountsFound(nino)
 
-      postRequestWithAcceptHeader(url, paperless).status shouldBe 200
+      await(postRequestWithAcceptHeader(url, paperless)).status shouldBe 200
     }
 
     "return a Conflict response when preferences has no existing verified or pending email" in {
@@ -158,9 +158,9 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
       conflictPendingEmailUpdate(entityId)
       accountsFound(nino)
 
-      val response = postRequestWithAcceptHeader(url, paperless)
+      val response = await(postRequestWithAcceptHeader(url, paperless))
       response.status shouldBe 409
-      response.json shouldBe expectedResponse
+      response.json   shouldBe expectedResponse
     }
 
     "return a Not Found response when unable to find a preference to update for an entity" in {
@@ -170,9 +170,9 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
       authRecordExists(nino)
       respondNoPreferences()
 
-      val response = postRequestWithAcceptHeader(url, paperless)
+      val response = await(postRequestWithAcceptHeader(url, paperless))
       response.status shouldBe 404
-      response.json shouldBe expectedResponse
+      response.json   shouldBe expectedResponse
     }
 
     "return a Internal Server Error response when unable update pending email preference for an entity" in {
@@ -184,18 +184,18 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
       errorPendingEmailUpdate(entityId)
       accountsFound(nino)
 
-      val response = postRequestWithAcceptHeader(url, paperless)
+      val response = await(postRequestWithAcceptHeader(url, paperless))
       response.status shouldBe 500
-      response.json shouldBe expectedResponse
+      response.json   shouldBe expectedResponse
     }
 
     "return 406 if no request header is supplied" in {
-      wsUrl(url).post(paperless).status shouldBe 406
+      await(wsUrl(url).post(paperless)).status shouldBe 406
     }
 
     "propagate 401" in {
       authFailure()
-      postRequestWithAcceptHeader(url, paperless).status shouldBe 401
+      await(postRequestWithAcceptHeader(url, paperless)).status shouldBe 401
     }
   }
 
@@ -206,16 +206,16 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
       authRecordExists(nino)
       successPaperlessSettingsChange()
 
-      postRequestWithAcceptHeader(url).status shouldBe 200
+      await(postRequestWithAcceptHeader(url)).status shouldBe 200
     }
 
     "return 406 if no request header is supplied" in {
-      wsUrl(url).post("").status shouldBe 406
+      await(wsUrl(url).post("")).status shouldBe 406
     }
 
     "propagate 401" in {
       authFailure()
-      postRequestWithAcceptHeader(url).status shouldBe 401
+      await(postRequestWithAcceptHeader(url)).status shouldBe 401
     }
   }
 
@@ -250,30 +250,31 @@ class CustomerProfileAllEnabledISpec extends CustomerProfileTests {
       designatoryDetailsForNinoAre(nino, resourceAsString("AA000006C-citizen-details.json").get)
       authRecordExists(nino)
 
-      val response = getRequestWithAcceptHeader(url)
+      val response = await(getRequestWithAcceptHeader(url))
 
       response.status shouldBe 200
-      response.json shouldBe getResourceAsJsValue("expected-AA000006C-personal-details.json")
+      response.json   shouldBe getResourceAsJsValue("expected-AA000006C-personal-details.json")
     }
 
     "return a 423 response status code when the NINO is locked due to Manual Correspondence Indicator flag being set in NPS" in {
       npsDataIsLockedDueToMciFlag(nino)
       authRecordExists(nino)
 
-      val response = getRequestWithAcceptHeader(url)
+      val response = await(getRequestWithAcceptHeader(url))
 
       response.status shouldBe 423
-      response.json shouldBe parse("""{"code":"MANUAL_CORRESPONDENCE_IND","message":"Data cannot be disclosed to the user because MCI flag is set in NPS"}""")
+      response.json shouldBe parse(
+        """{"code":"MANUAL_CORRESPONDENCE_IND","message":"Data cannot be disclosed to the user because MCI flag is set in NPS"}""")
     }
 
     "return 500 response status code when citizen-details returns 500 response status code." in {
       designatoryDetailsWillReturnErrorResponse(nino, 500)
       authRecordExists(nino)
 
-      val response = getRequestWithAcceptHeader(url)
+      val response = await(getRequestWithAcceptHeader(url))
 
       response.status shouldBe 500
-      response.json shouldBe parse("""{"code":"INTERNAL_SERVER_ERROR","message":"Internal server error"}""")
+      response.json   shouldBe parse("""{"code":"INTERNAL_SERVER_ERROR","message":"Internal server error"}""")
     }
   }
 
@@ -292,7 +293,7 @@ class CustomerProfileCitizenDetailsDisabledISpec extends CustomerProfileTests {
     "return 404 for disabled citizen-details" in {
       authRecordExists(nino)
 
-      val response = getRequestWithAcceptHeader(url)
+      val response = await(getRequestWithAcceptHeader(url))
 
       response.status shouldBe 404
     }

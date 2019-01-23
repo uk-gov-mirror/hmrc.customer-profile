@@ -70,7 +70,7 @@ class AccountAccessControl @Inject()(val authConnector: AuthConnector,
             throw new FailToMatchTaxIdOnAuth("The nino in the URL failed to match auth!")
           else if (serviceConfidenceLevel > foundConfidenceLevel.level)
             throw new AccountWithLowCL("The user does not have sufficient CL permissions to access this service")
-          else Future(Unit)
+          else Future.successful(())
         case None ~ _ ⇒
           throw ninoNotFoundOnAccount
       }

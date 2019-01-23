@@ -17,6 +17,7 @@
 package uk.gov.hmrc.customerprofile.stubs
 
 import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import play.api.libs.json.Json.obj
 import uk.gov.hmrc.auth.core.AuthenticateHeaderParser.{ENROLMENT, WWW_AUTHENTICATE}
 import uk.gov.hmrc.auth.core.ConfidenceLevel
@@ -32,27 +33,27 @@ object AuthStub {
   private val authorisationRequestJson: String = """{ "authorise": [], "retrieve": ["nino","confidenceLevel"] }""".stripMargin
   private val accountsRequestJson: String = """{ "authorise": [], "retrieve": ["nino","saUtr","credentialStrength","confidenceLevel"] }""".stripMargin
 
-  def authRecordExists(nino: Nino, confidenceLevel: ConfidenceLevel = L200): Unit = {
+  def authRecordExists(nino: Nino, confidenceLevel: ConfidenceLevel = L200): StubMapping = {
     stubFor(post(urlEqualTo(authUrl)).withRequestBody(equalToJson(
       authorisationRequestJson, true, false)).willReturn(
         aResponse().withStatus(200).withBody(obj("confidenceLevel" -> confidenceLevel.level, "nino" -> nino.nino).toString)))
   }
 
-  def authFailure(): Unit = {
+  def authFailure(): StubMapping = {
     stubFor(post(urlEqualTo(authUrl)).withRequestBody(equalToJson(
       authorisationRequestJson, true, false)).willReturn(
         aResponse().withStatus(401).withHeader(
           WWW_AUTHENTICATE,"""MDTP detail="BearerTokenExpired"""").withHeader(ENROLMENT, "")))
   }
 
-  def authRecordExistsWithoutNino(): Unit = {
+  def authRecordExistsWithoutNino(): StubMapping = {
     stubFor(post(urlEqualTo(authUrl)).withRequestBody(equalToJson(
       authorisationRequestJson, true, false)).willReturn(
         aResponse().withStatus(200).withBody(obj("confidenceLevel" -> L200.level).toString)))
   }
 
 
-  def accountsFound(nino: Nino, confidenceLevel: ConfidenceLevel = L200, credentialStrength: CredentialStrength = Strong, saUtr: SaUtr = utr): Unit = {
+  def accountsFound(nino: Nino, confidenceLevel: ConfidenceLevel = L200, credentialStrength: CredentialStrength = Strong, saUtr: SaUtr = utr): StubMapping = {
     stubFor(post(urlEqualTo(authUrl)).withRequestBody(equalToJson(
       accountsRequestJson, true, false)).willReturn(
         aResponse().withStatus(200).withBody(obj(
@@ -63,14 +64,14 @@ object AuthStub {
         ).toString)))
   }
 
-  def accountsFailure(): Unit = {
+  def accountsFailure(): StubMapping = {
     stubFor(post(urlEqualTo(authUrl)).withRequestBody(equalToJson(
       accountsRequestJson, true, false)).willReturn(
         aResponse().withStatus(401).withHeader(
           WWW_AUTHENTICATE,"""MDTP detail="BearerTokenExpired"""").withHeader(ENROLMENT, "")))
   }
 
-  def accountsFoundWithoutNino(confidenceLevel: ConfidenceLevel = L200, credentialStrength: CredentialStrength = Strong, saUtr: SaUtr = utr): Unit = {
+  def accountsFoundWithoutNino(confidenceLevel: ConfidenceLevel = L200, credentialStrength: CredentialStrength = Strong, saUtr: SaUtr = utr): StubMapping = {
     stubFor(post(urlEqualTo(authUrl)).withRequestBody(equalToJson(
       accountsRequestJson, true, false)).willReturn(
         aResponse().withStatus(200).withBody(obj(

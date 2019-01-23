@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.customerprofile
 
-import org.joda.time.DateTime.parse
+import java.time.{LocalDate, LocalDateTime, ZoneOffset}
+
 import play.api.libs.json.Json.toJson
 import play.api.libs.json.{JsValue, Json}
 import play.api.libs.ws.WSRequest
@@ -34,11 +35,11 @@ class SandboxCustomerProfileISpec extends BaseISpec {
 
   def request(url: String, sandboxControl: Option[String] = None, journeyId: Option[String] = None): WSRequest = {
     val urlMaybeId = journeyId.fold(url) { id => s"$url?journeyId=$id" }
-    wsUrl(urlMaybeId).withHeaders(acceptJsonHeader, "SANDBOX-CONTROL" -> s"${sandboxControl.getOrElse("")}", "X-MOBILE-USER-ID" -> "208606423740")
+    wsUrl(urlMaybeId).addHttpHeaders(acceptJsonHeader, "SANDBOX-CONTROL" -> s"${sandboxControl.getOrElse("")}", "X-MOBILE-USER-ID" -> "208606423740")
   }
 
   def requestWithoutAcceptHeader(url: String): WSRequest = {
-    wsUrl(url).withHeaders("X-MOBILE-USER-ID" -> "208606423740")
+    wsUrl(url).addHttpHeaders("X-MOBILE-USER-ID" -> "208606423740")
   }
 
   "GET /sandbox/profile/accounts  " should {
@@ -83,7 +84,7 @@ class SandboxCustomerProfileISpec extends BaseISpec {
     val expectedDetails =
       PersonDetails(
         "etag",
-        Person(Some("Jennifer"), None, Some("Thorsteinson"), None, Some("Ms"), None, Some("Female"), Some(parse("1999-01-31")), Some(nino)),
+        Person(Some("Jennifer"), None, Some("Thorsteinson"), None, Some("Ms"), None, Some("Female"), Option(LocalDate.parse("1999-01-31").atStartOfDay().toEpochSecond(ZoneOffset.UTC)), Some(nino)),
         Some(Address(Some("999 Big Street"), Some("Worthing"), Some("West Sussex"), None, None, Some("BN99 8IG"), None, None, None)))
 
     "return the default personal details without journey id" in {

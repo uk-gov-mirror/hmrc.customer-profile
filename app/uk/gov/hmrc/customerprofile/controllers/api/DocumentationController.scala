@@ -16,21 +16,22 @@
 
 package uk.gov.hmrc.customerprofile.controllers.api
 
+import controllers.Assets
 import javax.inject.{Inject, Singleton}
 import play.api.http.HttpErrorHandler
 import play.api.libs.json.{Json, OWrites}
-import play.api.mvc.{Action, AnyContent}
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.customerprofile.views.txt
 
-case class ApiAccess(`type`: String , whitelistedApplicationIds: Seq[String])
+case class ApiAccess(`type`: String, whitelistedApplicationIds: Seq[String])
 
 object ApiAccess {
   implicit val writes: OWrites[ApiAccess] = Json.writes[ApiAccess]
 }
 
 @Singleton
-class DocumentationController @Inject() (apiAccess: ApiAccess, errorHandler: HttpErrorHandler)
-  extends uk.gov.hmrc.api.controllers.DocumentationController(errorHandler) {
+class DocumentationController @Inject()(apiAccess: ApiAccess, cc: ControllerComponents, assets: Assets, errorHandler: HttpErrorHandler)
+    extends uk.gov.hmrc.api.controllers.DocumentationController(cc, assets, errorHandler) {
 
   override def definition(): Action[AnyContent] = Action {
     Ok(txt.definition(apiAccess)).withHeaders("Content-Type" -> "application/json")

@@ -30,59 +30,71 @@ import uk.gov.hmrc.customerprofile.services.CustomerProfileService
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{HeaderCarrier, NotFoundException, Upstream4xxResponse}
 import uk.gov.hmrc.play.HeaderCarrierConverter.fromHeadersAndSession
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class LiveCustomerProfileController @Inject()(service: CustomerProfileService,
-                                              accessControl: AccountAccessControl,
-                                              @Named("citizen-details.enabled") val citizenDetailsEnabled: Boolean) extends BaseController with CustomerProfileController {
+class LiveCustomerProfileController @Inject()(
+  service:                                                     CustomerProfileService,
+  accessControl:                                               AccountAccessControl,
+  @Named("citizen-details.enabled") val citizenDetailsEnabled: Boolean,
+  controllerComponents:                                        ControllerComponents
+)(
+  implicit val executionContext: ExecutionContext
+) extends BackendController(controllerComponents)
+    with CustomerProfileController {
+  outer =>
+  override def parser: BodyParser[AnyContent] = controllerComponents.parsers.anyContent
+
   val app = "Live-Customer-Profile"
 
   def invokeAuthBlock[A](request: Request[A], block: Request[A] => Future[Result], taxId: Option[Nino]): Future[Result] = {
     implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
 
-    accessControl.grantAccess(taxId).flatMap { _ =>
-      block(request)
-    }.recover {
-      case _: Upstream4xxResponse =>
-        Logger.info("Unauthorized! Failed to grant access since 4xx response!")
-        Unauthorized(toJson(ErrorUnauthorizedMicroService))
-
-      case _: NinoNotFoundOnAccount =>
-        Logger.info("Unauthorized! NINO not found on account!")
-        Forbidden(toJson(ErrorUnauthorizedNoNino))
-
-      case _: FailToMatchTaxIdOnAuth =>
-        Logger.info("Unauthorized! Failure to match URL NINO against Auth NINO")
-        Forbidden(toJson(ErrorUnauthorized))
-
-      case _: AccountWithLowCL =>
-        Logger.info("Unauthorized! Account with low CL!")
-        Forbidden(toJson(ErrorUnauthorizedLowCL))
-
-      case e: AuthorisationException =>
-        Unauthorized(obj("httpStatusCode" -> 401, "errorCode" -> "UNAUTHORIZED", "message" -> e.getMessage))
-    }
-  }
-
-  override def withAcceptHeaderValidationAndAuthIfLive(taxId: Option[Nino] = None): ActionBuilder[Request] = new ActionBuilder[Request] {
-    def invokeBlock[A](request: Request[A], block: Request[A] => Future[Result]): Future[Result] = {
-      if (acceptHeaderValidationRules(request.headers.get("Accept"))) {
-        invokeAuthBlock(request, block, taxId)
+    accessControl
+      .grantAccess(taxId)
+      .flatMap { _ =>
+        block(request)
       }
-      else Future.successful(Status(ErrorAcceptHeaderInvalid.httpStatusCode)(toJson(ErrorAcceptHeaderInvalid)))
-    }
+      .recover {
+        case _: Upstream4xxResponse =>
+          Logger.info("Unauthorized! Failed to grant access since 4xx response!")
+          Unauthorized(toJson(ErrorUnauthorizedMicroService))
+
+        case _: NinoNotFoundOnAccount =>
+          Logger.info("Unauthorized! NINO not found on account!")
+          Forbidden(toJson(ErrorUnauthorizedNoNino))
+
+        case _: FailToMatchTaxIdOnAuth =>
+          Logger.info("Unauthorized! Failure to match URL NINO against Auth NINO")
+          Forbidden(toJson(ErrorUnauthorized))
+
+        case _: AccountWithLowCL =>
+          Logger.info("Unauthorized! Account with low CL!")
+          Forbidden(toJson(ErrorUnauthorizedLowCL))
+
+        case e: AuthorisationException =>
+          Unauthorized(obj("httpStatusCode" -> 401, "errorCode" -> "UNAUTHORIZED", "message" -> e.getMessage))
+      }
   }
+
+  override def withAcceptHeaderValidationAndAuthIfLive(taxId: Option[Nino] = None): ActionBuilder[Request, AnyContent] =
+    new ActionBuilder[Request, AnyContent] {
+      def invokeBlock[A](request: Request[A], block: Request[A] => Future[Result]): Future[Result] =
+        if (acceptHeaderValidationRules(request.headers.get("Accept"))) {
+          invokeAuthBlock(request, block, taxId)
+        } else Future.successful(Status(ErrorAcceptHeaderInvalid.httpStatusCode)(toJson(ErrorAcceptHeaderInvalid)))
+      override def parser:                     BodyParser[AnyContent] = outer.parser
+      override protected def executionContext: ExecutionContext       = outer.executionContext
+    }
 
   def log(message: String): Unit = Logger.info(s"$app $message")
 
   def result(errorResponse: ErrorResponse): Result =
     Status(errorResponse.httpStatusCode)(toJson(errorResponse))
 
-  def errorWrapper(func: => Future[mvc.Result])(implicit hc: HeaderCarrier): Future[Result] = {
+  def errorWrapper(func: => Future[mvc.Result])(implicit hc: HeaderCarrier): Future[Result] =
     func.recover {
       case e: AuthorisationException =>
         Unauthorized(obj("httpStatusCode" -> 401, "errorCode" -> "UNAUTHORIZED", "message" -> e.getMessage))
@@ -99,70 +111,66 @@ class LiveCustomerProfileController @Inject()(service: CustomerProfileService,
         Logger.error(s"$app Internal server error: ${e.getMessage}", e)
         Status(ErrorInternalServerError.httpStatusCode)(toJson(ErrorInternalServerError))
     }
-  }
 
   override def getAccounts(journeyId: Option[String] = None): Action[AnyContent] =
-    validateAccept(acceptHeaderValidationRules).async {
-      implicit request =>
-        implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
+    validateAccept(acceptHeaderValidationRules).async { implicit request =>
+      implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
 
-        errorWrapper(
-          service.getAccounts().map(
+      errorWrapper(
+        service
+          .getAccounts()
+          .map(
             as => Ok(toJson(as))
           )
-        )
+      )
     }
 
   def getLogger: LoggerLike = Logger
 
   override def getPersonalDetails(nino: Nino, journeyId: Option[String] = None): Action[AnyContent] =
-    withAcceptHeaderValidationAndAuthIfLive(Some(nino)).async {
-      implicit request =>
-        implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
-        errorWrapper {
-          if (citizenDetailsEnabled) {
-            service.getPersonalDetails(nino)
-              .map(as => Ok(toJson(as)))
-              .recover {
-                case Upstream4xxResponse(_, LOCKED, _, _) =>
-                  result(ErrorManualCorrespondenceIndicator)
-              }
-          } else Future successful result(ErrorNotFound)
-        }
+    withAcceptHeaderValidationAndAuthIfLive(Some(nino)).async { implicit request =>
+      implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
+      errorWrapper {
+        if (citizenDetailsEnabled) {
+          service
+            .getPersonalDetails(nino)
+            .map(as => Ok(toJson(as)))
+            .recover {
+              case Upstream4xxResponse(_, LOCKED, _, _) =>
+                result(ErrorManualCorrespondenceIndicator)
+            }
+        } else Future successful result(ErrorNotFound)
+      }
     }
 
   override def getPreferences(journeyId: Option[String] = None): Action[AnyContent] =
-    withAcceptHeaderValidationAndAuthIfLive().async {
-      implicit request =>
-        implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
-        errorWrapper(
-          service.getPreferences().map {
-            case Some(response) => Ok(toJson(response))
-            case _ => NotFound
-          }
-        )
+    withAcceptHeaderValidationAndAuthIfLive().async { implicit request =>
+      implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
+      errorWrapper(
+        service.getPreferences().map {
+          case Some(response) => Ok(toJson(response))
+          case _              => NotFound
+        }
+      )
     }
 
-  override def optIn(settings: Paperless)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result] = {
+  override def optIn(settings: Paperless)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result] =
     errorWrapper(service.paperlessSettings(settings).map {
       case PreferencesExists | EmailUpdateOk => Ok
-      case PreferencesCreated => Created
-      case EmailNotExist => Conflict(toJson(ErrorPreferenceConflict))
-      case NoPreferenceExists => NotFound(toJson(ErrorNotFound))
-      case _ => InternalServerError(toJson(PreferencesSettingsError))
+      case PreferencesCreated                => Created
+      case EmailNotExist                     => Conflict(toJson(ErrorPreferenceConflict))
+      case NoPreferenceExists                => NotFound(toJson(ErrorNotFound))
+      case _                                 => InternalServerError(toJson(PreferencesSettingsError))
     })
-  }
 
   override def paperlessSettingsOptOut(journeyId: Option[String] = None): Action[AnyContent] =
-    withAcceptHeaderValidationAndAuthIfLive().async {
-      implicit request =>
-        implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
-        errorWrapper(service.paperlessSettingsOptOut().map {
-          case PreferencesExists => Ok
-          case PreferencesCreated => Created
-          case PreferencesDoesNotExist => NotFound
-          case PreferencesFailure => InternalServerError(toJson(PreferencesSettingsError))
-        })
+    withAcceptHeaderValidationAndAuthIfLive().async { implicit request =>
+      errorWrapper(service.paperlessSettingsOptOut().map {
+        case PreferencesExists       => Ok
+        case PreferencesCreated      => Created
+        case PreferencesDoesNotExist => NotFound
+        case _                       => InternalServerError(toJson(PreferencesSettingsError))
+      })
     }
 
 }

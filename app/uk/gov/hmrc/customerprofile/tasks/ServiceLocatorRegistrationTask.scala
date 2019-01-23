@@ -27,10 +27,15 @@ import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class ServiceLocatorRegistrationTask @Inject()(actorSystem: ActorSystem, connector: ServiceLocatorConnector)
-                                              (implicit executionContext: ExecutionContext) {
+class ServiceLocatorRegistrationTask @Inject()(
+  actorSystem: ActorSystem,
+  connector:   ServiceLocatorConnector
+)(
+  implicit executionContext: ExecutionContext
+) {
   actorSystem.scheduler.scheduleOnce(delay = FiniteDuration(10, SECONDS)) {
     register
+    ()
   }
 
   def register: Future[Boolean] = {

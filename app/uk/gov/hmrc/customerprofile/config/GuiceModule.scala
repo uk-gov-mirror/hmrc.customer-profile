@@ -16,26 +16,23 @@
 
 package uk.gov.hmrc.customerprofile.config
 
-import com.google.inject.name.Named
+import com.google.inject.AbstractModule
 import com.google.inject.name.Names.named
-import com.google.inject.{AbstractModule, Provides}
-import play.api.Mode.Mode
 import play.api.{Configuration, Environment}
 import uk.gov.hmrc.api.connector.{ApiServiceLocatorConnector, ServiceLocatorConnector}
 import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.customerprofile.controllers.api.ApiAccess
 import uk.gov.hmrc.customerprofile.tasks.ServiceLocatorRegistrationTask
 import uk.gov.hmrc.http.{CoreGet, CorePost, CorePut}
 import uk.gov.hmrc.play.bootstrap.auth.DefaultAuthConnector
+import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
-import uk.gov.hmrc.customerprofile.controllers.api.ApiAccess
-import uk.gov.hmrc.play.config.{AppName, ServicesConfig}
 
 import scala.collection.JavaConverters._
 
-class GuiceModule(environment: Environment, configuration: Configuration) extends AbstractModule with ServicesConfig {
+class GuiceModule(environment: Environment, configuration: Configuration) extends AbstractModule {
 
-  override protected lazy val mode: Mode = environment.mode
-  override protected lazy val runModeConfiguration: Configuration = configuration
+  val servicesConfig = new ServicesConfig(configuration, new RunMode(configuration, environment.mode))
 
   override def configure(): Unit = {
 
@@ -47,28 +44,24 @@ class GuiceModule(environment: Environment, configuration: Configuration) extend
     bind(classOf[AuthConnector]).to(classOf[DefaultAuthConnector])
     bind(classOf[ServiceLocatorRegistrationTask]).asEagerSingleton()
 
-    bind(classOf[ApiAccess]).toInstance(
-      ApiAccess("PRIVATE", configuration.underlying.getStringList("api.access.white-list.applicationIds").asScala))
+    bind(classOf[ApiAccess]).toInstance(ApiAccess("PRIVATE", configuration.underlying.getStringList("api.access.white-list.applicationIds").asScala))
 
     bindConfigBoolean("citizen-details.enabled", "microservice.services.citizen-details.enabled")
 
     bindConfigInt("controllers.confidenceLevel")
-    bind(classOf[String]).annotatedWith(named("auth")).toInstance(baseUrl("auth"))
-    bind(classOf[String]).annotatedWith(named("citizen-details")).toInstance(baseUrl("citizen-details"))
-    bind(classOf[String]).annotatedWith(named("entity-resolver")).toInstance(baseUrl("entity-resolver"))
-    bind(classOf[String]).annotatedWith(named("preferences")).toInstance(baseUrl("preferences"))
+    bind(classOf[String]).annotatedWith(named("auth")).toInstance(servicesConfig.baseUrl("auth"))
+    bind(classOf[String]).annotatedWith(named("citizen-details")).toInstance(servicesConfig.baseUrl("citizen-details"))
+    bind(classOf[String]).annotatedWith(named("entity-resolver")).toInstance(servicesConfig.baseUrl("entity-resolver"))
+    bind(classOf[String]).annotatedWith(named("preferences")).toInstance(servicesConfig.baseUrl("preferences"))
   }
-
-  @Provides
-  @Named("appName")
-  def appName: String = AppName(configuration).appName
 
   /**
     * Binds a configuration value using the `path` as the name for the binding.
     * Throws an exception if the configuration value does not exist or cannot be read as an Int.
     */
   private def bindConfigInt(path: String): Unit =
-    bindConstant().annotatedWith(named(path))
+    bindConstant()
+      .annotatedWith(named(path))
       .to(configuration.underlying.getInt(path))
 
   private def bindConfigBoolean(name: String, path: String): Unit =

@@ -17,34 +17,36 @@
 package uk.gov.hmrc.customerprofile.connector
 
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.{Matchers, WordSpecLike}
 import play.api.libs.json.Writes
+import play.api.test.{DefaultAwaitTimeout, FutureAwaits}
 import play.api.{Configuration, Environment}
 import uk.gov.hmrc.customerprofile.config.WSHttpImpl
 import uk.gov.hmrc.customerprofile.domain.ChangeEmail
 import uk.gov.hmrc.http._
-import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
-class PreferencesConnectorSpec extends UnitSpec with MockFactory {
+class PreferencesConnectorSpec extends WordSpecLike with Matchers with FutureAwaits with DefaultAwaitTimeout with MockFactory {
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  val http: WSHttpImpl = mock[WSHttpImpl]
-  val config: Configuration = mock[Configuration]
-  val environment: Environment = mock[Environment]
-  val baseUrl = "baseUrl"
+  val http:        WSHttpImpl    = mock[WSHttpImpl]
+  val config:      Configuration = mock[Configuration]
+  val environment: Environment   = mock[Environment]
+  val baseUrl             = "baseUrl"
   val externalServiceName = "externalServiceName"
-  val entityId = "entityId"
-  val changeEmailRequest = ChangeEmail(email = "some-new-email@newEmail.new.email")
+  val entityId            = "entityId"
+  val changeEmailRequest  = ChangeEmail(email = "some-new-email@newEmail.new.email")
 
   val connector: PreferencesConnector = new PreferencesConnector(http, baseUrl, externalServiceName, config, environment)
 
   "updatePendingEmail()" should {
-    def mockPUT(response: Future[HttpResponse]) : Unit = {
-      (http.PUT(_: String, _: ChangeEmail)(_: Writes[ChangeEmail], _: HttpReads[HttpResponse], _: HeaderCarrier, _: ExecutionContext))
-        .expects(s"$baseUrl/preferences/$entityId/pending-email", changeEmailRequest, *, *, *, *).returns(response)
-    }
+    def mockPUT(response: Future[HttpResponse]) =
+      (http
+        .PUT(_: String, _: ChangeEmail)(_: Writes[ChangeEmail], _: HttpReads[HttpResponse], _: HeaderCarrier, _: ExecutionContext))
+        .expects(s"$baseUrl/preferences/$entityId/pending-email", changeEmailRequest, *, *, *, *)
+        .returns(response)
 
     "return status EmailUpdateOk when the service returns an OK status" in {
       mockPUT(Future successful HttpResponse(200))
@@ -53,21 +55,21 @@ class PreferencesConnectorSpec extends UnitSpec with MockFactory {
       response shouldBe EmailUpdateOk
     }
 
-    "handle 404 NOT_FOUND response" in  {
+    "handle 404 NOT_FOUND response" in {
       mockPUT(Future failed new NotFoundException("not found"))
 
       val response = await(connector.updatePendingEmail(changeEmailRequest, entityId))
       response shouldBe NoPreferenceExists
     }
 
-    "handle 409 CONFLICT response" in  {
+    "handle 409 CONFLICT response" in {
       mockPUT(Future failed Upstream4xxResponse("not found", 409, 409))
 
       val response = await(connector.updatePendingEmail(changeEmailRequest, entityId))
       response shouldBe EmailNotExist
     }
 
-    "handles exceptions" in  {
+    "handles exceptions" in {
       mockPUT(Future failed Upstream4xxResponse("I'm a teapot", 418, 418))
 
       val response = await(connector.updatePendingEmail(changeEmailRequest, entityId))

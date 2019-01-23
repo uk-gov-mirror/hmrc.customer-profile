@@ -18,50 +18,54 @@ package uk.gov.hmrc.customerprofile.connector
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.{Matchers, WordSpecLike}
 import play.api.libs.json.Writes
-import play.api.{Configuration, Environment}
+import play.api.test.{DefaultAwaitTimeout, FutureAwaits}
+import play.api.{ConfigLoader, Configuration, Environment}
 import uk.gov.hmrc.circuitbreaker.UnhealthyServiceException
 import uk.gov.hmrc.customerprofile.config.WSHttpImpl
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status.Verified
 import uk.gov.hmrc.customerprofile.domain._
-import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.emailaddress.EmailAddress
 import uk.gov.hmrc.http.{NotFoundException, _}
-import uk.gov.hmrc.play.test.UnitSpec
 
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 
-class EntityResolverConnectorSpec extends UnitSpec with ScalaFutures with MockFactory {
+class EntityResolverConnectorSpec extends WordSpecLike with Matchers with FutureAwaits with DefaultAwaitTimeout with ScalaFutures with MockFactory {
   implicit val hc: HeaderCarrier = new HeaderCarrier
 
-  val http: WSHttpImpl = mock[WSHttpImpl]
-  val config: Configuration = mock[Configuration]
-  val environment: Environment = mock[Environment]
+  val http:        WSHttpImpl    = mock[WSHttpImpl]
+  val config:      Configuration = mock[Configuration]
+  val environment: Environment   = mock[Environment]
 
-  val baseUrl = "http://entity-resolver.service"
-  val termsAndCondtionssPostUrl = s"$baseUrl/preferences/terms-and-conditions"
+  val baseUrl                                         = "http://entity-resolver.service"
+  val termsAndCondtionssPostUrl                       = s"$baseUrl/preferences/terms-and-conditions"
   val circuitBreakerNumberOfCallsToTriggerStateChange = 5
 
   // create a new connectopr each time because the circuit breaker is stateful
   def preferenceConnector: EntityResolverConnector = {
-    def mockCircuitBreakerConfig(): Unit = {
-      (config.getConfig(_:String)).expects("microservice.services.entity-resolver").returns(Some(config)).anyNumberOfTimes()
-      (config.getInt(_:String)).expects("circuitBreaker.numberOfCallsToTriggerStateChange").returns(
-        Some(circuitBreakerNumberOfCallsToTriggerStateChange)).anyNumberOfTimes()
-      (config.getInt(_:String)).expects("circuitBreaker.unavailablePeriodDurationInSeconds").returns(Some(2000)).anyNumberOfTimes()
-      (config.getInt(_:String)).expects("circuitBreaker.unstablePeriodDurationInSeconds").returns(Some(2000)).anyNumberOfTimes()
+    def mockCircuitBreakerConfig() = {
+      (config.getOptional[Configuration](_: String)(_: ConfigLoader[Configuration])).expects("microservice.services.entity-resolver", *).returns(Some(config)).anyNumberOfTimes()
+      (config
+        .getOptional[Int](_: String)(_: ConfigLoader[Int]))
+        .expects("circuitBreaker.numberOfCallsToTriggerStateChange", *)
+        .returns(Some(circuitBreakerNumberOfCallsToTriggerStateChange))
+        .anyNumberOfTimes()
+      (config.getOptional[Int](_: String)(_: ConfigLoader[Int])).expects("circuitBreaker.unavailablePeriodDurationInSeconds", *).returns(Some(2000)).anyNumberOfTimes()
+      (config.getOptional[Int](_: String)(_: ConfigLoader[Int])).expects("circuitBreaker.unstablePeriodDurationInSeconds", *).returns(Some(2000)).anyNumberOfTimes()
     }
 
     mockCircuitBreakerConfig()
-    new EntityResolverConnector(baseUrl, http, config, environment )
+    new EntityResolverConnector(baseUrl, http, config, environment)
   }
 
   "getPreferences()" should {
-    def mockHttpGET(preferences: Future[Option[Preference]]): Unit = {
-      (http.GET(_: String)(_: HttpReads[Option[Preference]], _: HeaderCarrier, _: ExecutionContext)).expects(
-        s"$baseUrl/preferences",*,*,*).returns(preferences)
-    }
+    def mockHttpGET(preferences: Future[Option[Preference]]) =
+      (http
+        .GET(_: String)(_: HttpReads[Option[Preference]], _: HeaderCarrier, _: ExecutionContext))
+        .expects(s"$baseUrl/preferences", *, *, *)
+        .returns(preferences)
 
     "return the preferences for utr only" in {
       val preferences = Some(Preference(digital = true, Some(EmailPreference(EmailAddress("test@mail.com"), Verified))))
@@ -101,15 +105,19 @@ class EntityResolverConnectorSpec extends UnitSpec with ScalaFutures with MockFa
   }
 
   "paperlessSettings()" should {
-    val email = EmailAddress("me@mine.com")
+    val email                     = EmailAddress("me@mine.com")
     val paperlessSettingsAccepted = Paperless(TermsAccepted(true), email)
     val paperlessSettingsRejected = Paperless(TermsAccepted(false), email)
 
-    def mockHttpPOST(paperlessSettings: Paperless, response: Future[HttpResponse]): Unit = {
-      (http.POST(_: String, _: Paperless, _: Seq[(String, String)])
-      (_: Writes[Paperless], _: HttpReads[HttpResponse], _: HeaderCarrier, _: ExecutionContext)).expects(
-        termsAndCondtionssPostUrl, paperlessSettings, *, *, *, *, *).returning(response)
-    }
+    def mockHttpPOST(paperlessSettings: Paperless, response: Future[HttpResponse]) =
+      (http
+        .POST(_: String, _: Paperless, _: Seq[(String, String)])(
+          _: Writes[Paperless],
+          _: HttpReads[HttpResponse],
+          _: HeaderCarrier,
+          _: ExecutionContext))
+        .expects(termsAndCondtionssPostUrl, paperlessSettings, *, *, *, *, *)
+        .returning(response)
 
     "update record to opted in when terms are accepted" in {
       mockHttpPOST(paperlessSettingsAccepted, Future successful HttpResponse(200, None))
@@ -157,11 +165,15 @@ class EntityResolverConnectorSpec extends UnitSpec with ScalaFutures with MockFa
   }
 
   "paperlessOptOut()" should {
-    def mockHttpPOST(response: Future[HttpResponse]): Unit = {
-      (http.POST(_: String, _: PaperlessOptOut, _: Seq[(String, String)])
-      (_: Writes[PaperlessOptOut], _: HttpReads[HttpResponse], _: HeaderCarrier, _: ExecutionContext)).expects(
-        termsAndCondtionssPostUrl, PaperlessOptOut(TermsAccepted(false)), *, *, *, *, *).returning(response)
-    }
+    def mockHttpPOST(response: Future[HttpResponse]) =
+      (http
+        .POST(_: String, _: PaperlessOptOut, _: Seq[(String, String)])(
+          _: Writes[PaperlessOptOut],
+          _: HttpReads[HttpResponse],
+          _: HeaderCarrier,
+          _: ExecutionContext))
+        .expects(termsAndCondtionssPostUrl, PaperlessOptOut(TermsAccepted(false)), *, *, *, *, *)
+        .returning(response)
 
     "update record to opted out" in {
       mockHttpPOST(Future successful HttpResponse(200, None))
