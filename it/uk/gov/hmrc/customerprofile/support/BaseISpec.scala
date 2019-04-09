@@ -41,11 +41,9 @@ class BaseISpec
 
   def config: Map[String, Any] = Map(
     "auditing.enabled"                              -> false,
-    "microservice.services.service-locator.enabled" -> false,
     "microservice.services.auth.port"               -> wireMockPort,
     "microservice.services.citizen-details.port"    -> wireMockPort,
     "microservice.services.entity-resolver.port"    -> wireMockPort,
-    "microservice.services.service-locator.port"    -> wireMockPort,
     "microservice.services.preferences.port"        -> wireMockPort,
     "play.ws.timeout.connection"                    -> "6000 seconds",
     "play.ws.timeout.request"                       -> "20000 seconds"
