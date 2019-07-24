@@ -112,7 +112,7 @@ class LiveCustomerProfileController @Inject()(
         Status(ErrorInternalServerError.httpStatusCode)(toJson(ErrorInternalServerError))
     }
 
-  override def getAccounts(journeyId: Option[String] = None): Action[AnyContent] =
+  override def getAccounts(journeyId: String): Action[AnyContent] =
     validateAccept(acceptHeaderValidationRules).async { implicit request =>
       implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
 
@@ -127,7 +127,7 @@ class LiveCustomerProfileController @Inject()(
 
   def getLogger: LoggerLike = Logger
 
-  override def getPersonalDetails(nino: Nino, journeyId: Option[String] = None): Action[AnyContent] =
+  override def getPersonalDetails(nino: Nino, journeyId: String): Action[AnyContent] =
     withAcceptHeaderValidationAndAuthIfLive(Some(nino)).async { implicit request =>
       implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
       errorWrapper {
@@ -143,7 +143,7 @@ class LiveCustomerProfileController @Inject()(
       }
     }
 
-  override def getPreferences(journeyId: Option[String] = None): Action[AnyContent] =
+  override def getPreferences(journeyId: String): Action[AnyContent] =
     withAcceptHeaderValidationAndAuthIfLive().async { implicit request =>
       implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
       errorWrapper(
@@ -163,7 +163,7 @@ class LiveCustomerProfileController @Inject()(
       case _                                 => InternalServerError(toJson(PreferencesSettingsError))
     })
 
-  override def paperlessSettingsOptOut(journeyId: Option[String] = None): Action[AnyContent] =
+  override def paperlessSettingsOptOut(journeyId: String): Action[AnyContent] =
     withAcceptHeaderValidationAndAuthIfLive().async { implicit request =>
       errorWrapper(service.paperlessSettingsOptOut().map {
         case PreferencesExists       => Ok

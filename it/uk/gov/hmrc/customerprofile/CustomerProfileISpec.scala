@@ -48,7 +48,7 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
     wsUrl(url).addHttpHeaders(acceptJsonHeader).post("")
 
   "GET /profile/accounts" should {
-    val url: String = "/profile/accounts"
+    val url: String = "/profile/accounts?journeyId=journeyId"
 
     "return account details" in {
       accountsFound(nino)
@@ -79,7 +79,7 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
   }
 
   "GET /profile/preferences" should {
-    val url = "/profile/preferences"
+    val url = "/profile/preferences?journeyId=journeyId"
 
     "return preferences" in {
       authRecordExists(nino)
@@ -102,7 +102,7 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
   }
 
   "GET /profile/personal-details/:nino" should {
-    val url = s"/profile/personal-details/${nino.value}"
+    val url = s"/profile/personal-details/${nino.value}?journeyId=journeyId"
 
     "return 404 response status code when citizen-details returns 404 response status code." in {
       designatoryDetailsWillReturnErrorResponse(nino, 404)
@@ -125,7 +125,7 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
   }
 
   "POST /profile/paperless-settings/opt-in" should {
-    val url       = "/profile/preferences/paperless-settings/opt-in"
+    val url       = "/profile/preferences/paperless-settings/opt-in?journeyId=journeyId"
     val entityId  = "1098561938451038465138465"
     val paperless = toJson(Paperless(generic = TermsAccepted(true), email = EmailAddress("new-email@new-email.new.email")))
 
@@ -200,7 +200,7 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
   }
 
   "POST /profile/paperless-settings/opt-out" should {
-    val url = "/profile/preferences/paperless-settings/opt-out"
+    val url = "/profile/preferences/paperless-settings/opt-out?journeyId=journeyId"
 
     "return a 200 response when successful" in {
       authRecordExists(nino)
@@ -245,7 +245,7 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
 
 class CustomerProfileAllEnabledISpec extends CustomerProfileTests {
   "GET /profile/personal-details/:nino - Citizen Details Enabled" should {
-    val url = s"/profile/personal-details/${nino.value}"
+    val url = s"/profile/personal-details/${nino.value}?journeyId=journeyId"
     "return personal details for the given NINO from citizen-details" in {
       designatoryDetailsForNinoAre(nino, resourceAsString("AA000006C-citizen-details.json").get)
       authRecordExists(nino)
@@ -289,7 +289,7 @@ class CustomerProfileCitizenDetailsDisabledISpec extends CustomerProfileTests {
   )
 
   "GET /profile/personal-details/:nino - Citizen Details Disabled" should {
-    val url = s"/profile/personal-details/${nino.value}"
+    val url = s"/profile/personal-details/${nino.value}?journeyId=journeyId"
     "return 404 for disabled citizen-details" in {
       authRecordExists(nino)
 
