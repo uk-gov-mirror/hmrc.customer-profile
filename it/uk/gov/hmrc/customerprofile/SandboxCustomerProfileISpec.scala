@@ -117,12 +117,6 @@ class SandboxCustomerProfileISpec extends BaseISpec {
     val url = "/profile/preferences"
     val expectedPreference = Preference(digital = true, Some(EmailPreference(EmailAddress("name@email.co.uk"), Verified)))
 
-    "return the default personal details without a journeyId" in {
-      val response = await(request(url, None, journeyId).get)
-      response.status shouldBe 200
-      response.json shouldBe toJson(expectedPreference)
-    }
-
     "return the default personal details with a journeyId" in {
       val response = await(request(url, None, journeyId).get)
       response.status shouldBe 200
@@ -158,11 +152,6 @@ class SandboxCustomerProfileISpec extends BaseISpec {
   "POST /sandbox/preferences/profile/paperless-settings/opt-in" should {
     val url = "/profile/preferences/paperless-settings/opt-in"
     val paperlessSettings = toJson(Paperless(generic = TermsAccepted(true), email = EmailAddress("new-email@new-email.new.email")))
-
-    "return a 200 response without a journeyId by default" in {
-      val response = await(request(url, None, journeyId).post(paperlessSettings))
-      response.status shouldBe 200
-    }
 
     "return a 200 response with a journeyId by default" in {
       val response = await(request(url, None, journeyId).post(paperlessSettings))
