@@ -60,15 +60,15 @@ class SandboxCustomerProfileController @Inject()(cc: ControllerComponents)(impli
       Some(Address(Some("999 Big Street"), Some("Worthing"), Some("West Sussex"), None, None, Some("BN99 8IG"), None, None, None))
     )
 
-  private def accounts(journeyId: Option[String]) =
-    Accounts(Some(nino), None, routeToIV = false, routeToTwoFactor = false, journeyId.getOrElse(""))
+  private def accounts(journeyId: String) =
+    Accounts(Some(nino), None, routeToIV = false, routeToTwoFactor = false, journeyId)
 
   private val email = EmailAddress("name@email.co.uk")
 
   override def withAcceptHeaderValidationAndAuthIfLive(taxId: Option[Nino] = None): ActionBuilder[Request, AnyContent] =
     validateAccept(acceptHeaderValidationRules)
 
-  override def getAccounts(journeyId: Option[String]): Action[AnyContent] =
+  override def getAccounts(journeyId: String): Action[AnyContent] =
     validateAccept(acceptHeaderValidationRules).async { implicit request =>
       Future successful (request.headers.get(SANDBOX_CONTROL_HEADER) match {
         case Some("ERROR-401") => Unauthorized
@@ -78,7 +78,7 @@ class SandboxCustomerProfileController @Inject()(cc: ControllerComponents)(impli
       })
     }
 
-  override def getPersonalDetails(nino: Nino, journeyId: Option[String]): Action[AnyContent] =
+  override def getPersonalDetails(nino: Nino, journeyId: String): Action[AnyContent] =
     validateAccept(acceptHeaderValidationRules).async { implicit request =>
       Future successful (request.headers.get(SANDBOX_CONTROL_HEADER) match {
         case Some("ERROR-401") => Unauthorized
@@ -88,7 +88,7 @@ class SandboxCustomerProfileController @Inject()(cc: ControllerComponents)(impli
       })
     }
 
-  override def getPreferences(journeyId: Option[String]): Action[AnyContent] =
+  override def getPreferences(journeyId: String): Action[AnyContent] =
     validateAccept(acceptHeaderValidationRules).async { implicit request =>
       Future successful (request.headers.get(SANDBOX_CONTROL_HEADER) match {
         case Some("ERROR-401") => Unauthorized
@@ -99,7 +99,7 @@ class SandboxCustomerProfileController @Inject()(cc: ControllerComponents)(impli
       })
     }
 
-  override def paperlessSettingsOptOut(journeyId: Option[String]): Action[AnyContent] =
+  override def paperlessSettingsOptOut(journeyId: String): Action[AnyContent] =
     validateAccept(acceptHeaderValidationRules).async { implicit request =>
       Future successful (request.headers.get(SANDBOX_CONTROL_HEADER) match {
         case Some("ERROR-401")          => Unauthorized

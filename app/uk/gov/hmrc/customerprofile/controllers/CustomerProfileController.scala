@@ -30,15 +30,15 @@ import scala.concurrent.Future
 trait CustomerProfileController extends HeaderValidator {
   def controllerComponents: ControllerComponents
 
-  def getAccounts(journeyId: Option[String] = None): Action[AnyContent]
+  def getAccounts(journeyId: String): Action[AnyContent]
 
-  def getPersonalDetails(nino: Nino, journeyId: Option[String] = None): Action[AnyContent]
+  def getPersonalDetails(nino: Nino, journeyId: String): Action[AnyContent]
 
-  def getPreferences(journeyId: Option[String] = None): Action[AnyContent]
+  def getPreferences(journeyId: String): Action[AnyContent]
 
-  def paperlessSettingsOptOut(journeyId: Option[String] = None): Action[AnyContent]
+  def paperlessSettingsOptOut(journeyId: String): Action[AnyContent]
 
-  final def paperlessSettingsOptIn(journeyId: Option[String] = None): Action[JsValue] =
+  final def paperlessSettingsOptIn(journeyId: String): Action[JsValue] =
     withAcceptHeaderValidationAndAuthIfLive().async(controllerComponents.parsers.json) { implicit request =>
       implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
       request.body

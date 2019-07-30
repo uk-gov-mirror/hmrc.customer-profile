@@ -70,7 +70,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
       val accounts: Accounts = Accounts(Some(nino), None, routeToIV = false, routeToTwoFactor = false, "102030394AAA")
       mockGetAccounts(Future successful accounts)
 
-      val result = controller.getAccounts()(requestWithAcceptHeader)
+      val result = controller.getAccounts(journeyId)(requestWithAcceptHeader)
 
       status(result)        shouldBe 200
       contentAsJson(result) shouldBe toJson(accounts)
@@ -80,7 +80,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
       val accounts: Accounts = Accounts(Some(nino), None, routeToIV = false, routeToTwoFactor = false, "102030394AAA")
       mockGetAccounts(Future successful accounts)
 
-      val result = controller.getAccounts(Some(journeyId))(requestWithAcceptHeader)
+      val result = controller.getAccounts(journeyId)(requestWithAcceptHeader)
 
       status(result)        shouldBe 200
       contentAsJson(result) shouldBe toJson(accounts)
@@ -89,26 +89,26 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
     "propagate 401" in {
       mockGetAccounts(Future failed new SessionRecordNotFound)
 
-      val result = controller.getAccounts()(requestWithAcceptHeader)
+      val result = controller.getAccounts(journeyId)(requestWithAcceptHeader)
       status(result) shouldBe 401
     }
 
     "return 403 if the user has no nino" in {
       mockGetAccounts(Future failed new NinoNotFoundOnAccount("no nino"))
 
-      val result = controller.getAccounts()(requestWithAcceptHeader)
+      val result = controller.getAccounts(journeyId)(requestWithAcceptHeader)
       status(result) shouldBe 403
     }
 
     "return status code 406 when the headers are invalid" in {
-      val result = controller.getAccounts()(requestWithoutAcceptHeader)
+      val result = controller.getAccounts(journeyId)(requestWithoutAcceptHeader)
       status(result) shouldBe 406
     }
 
     "return 500 for an unexpected error" in {
       mockGetAccounts(Future failed new RuntimeException())
 
-      val result = controller.getAccounts()(requestWithAcceptHeader)
+      val result = controller.getAccounts(journeyId)(requestWithAcceptHeader)
       status(result) shouldBe 500
     }
   }
@@ -126,7 +126,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
       authSuccess(Some(nino))
       mockGetAccounts(Future successful person)
 
-      val result = controller.getPersonalDetails(nino)(requestWithAcceptHeader)
+      val result = controller.getPersonalDetails(nino, journeyId)(requestWithAcceptHeader)
 
       status(result)        shouldBe 200
       contentAsJson(result) shouldBe toJson(person)
@@ -141,7 +141,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
       authSuccess(Some(nino))
       mockGetAccounts(Future successful person)
 
-      val result = controller.getPersonalDetails(nino, Some(journeyId))(requestWithAcceptHeader)
+      val result = controller.getPersonalDetails(nino, journeyId)(requestWithAcceptHeader)
 
       status(result)        shouldBe 200
       contentAsJson(result) shouldBe toJson(person)
@@ -150,19 +150,19 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
     "propagate 401" in {
       authError(new SessionRecordNotFound, Some(nino))
 
-      val result = controller.getPersonalDetails(nino)(requestWithAcceptHeader)
+      val result = controller.getPersonalDetails(nino, journeyId)(requestWithAcceptHeader)
       status(result) shouldBe 401
     }
 
     "return 403 if the user has no nino" in {
       authError(new NinoNotFoundOnAccount("no nino"), Some(nino))
 
-      val result = controller.getPersonalDetails(nino)(requestWithAcceptHeader)
+      val result = controller.getPersonalDetails(nino, journeyId)(requestWithAcceptHeader)
       status(result) shouldBe 403
     }
 
     "return status code 406 when the headers are invalid" in {
-      val result = controller.getPersonalDetails(nino)(requestWithoutAcceptHeader)
+      val result = controller.getPersonalDetails(nino, journeyId)(requestWithoutAcceptHeader)
       status(result) shouldBe 406
     }
 
@@ -170,7 +170,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
       authSuccess(Some(nino))
       mockGetAccounts(Future failed new RuntimeException())
 
-      val result = controller.getPersonalDetails(nino)(requestWithAcceptHeader)
+      val result = controller.getPersonalDetails(nino, journeyId)(requestWithAcceptHeader)
       status(result) shouldBe 500
     }
   }
@@ -185,7 +185,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
       authSuccess()
       mockGetPreferences(Future successful Some(preference))
 
-      val result = controller.getPreferences()(requestWithAcceptHeader)
+      val result = controller.getPreferences(journeyId)(requestWithAcceptHeader)
 
       status(result)        shouldBe 200
       contentAsJson(result) shouldBe toJson(preference)
@@ -197,7 +197,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
       authSuccess()
       mockGetPreferences(Future successful Some(preference))
 
-      val result = controller.getPreferences(Some(journeyId))(requestWithAcceptHeader)
+      val result = controller.getPreferences(journeyId)(requestWithAcceptHeader)
 
       status(result)        shouldBe 200
       contentAsJson(result) shouldBe toJson(preference)
@@ -207,7 +207,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
       authSuccess()
       mockGetPreferences(Future successful None)
 
-      val result = controller.getPreferences()(requestWithAcceptHeader)
+      val result = controller.getPreferences(journeyId)(requestWithAcceptHeader)
 
       status(result) shouldBe 404
     }
@@ -215,19 +215,19 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
     "propagate 401" in {
       authError(new SessionRecordNotFound)
 
-      val result = controller.getPreferences()(requestWithAcceptHeader)
+      val result = controller.getPreferences(journeyId)(requestWithAcceptHeader)
       status(result) shouldBe 401
     }
 
     "return 403 if the user has no nino" in {
       authError(new NinoNotFoundOnAccount("no nino"))
 
-      val result = controller.getPreferences()(requestWithAcceptHeader)
+      val result = controller.getPreferences(journeyId)(requestWithAcceptHeader)
       status(result) shouldBe 403
     }
 
     "return status code 406 when the headers are invalid" in {
-      val result = controller.getPreferences()(requestWithoutAcceptHeader)
+      val result = controller.getPreferences(journeyId)(requestWithoutAcceptHeader)
       status(result) shouldBe 406
     }
 
@@ -235,7 +235,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
       authSuccess()
       mockGetPreferences(Future failed new RuntimeException())
 
-      val result = controller.getPreferences()(requestWithAcceptHeader)
+      val result = controller.getPreferences(journeyId)(requestWithAcceptHeader)
       status(result) shouldBe 500
     }
   }
@@ -255,7 +255,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
       authSuccess()
       mockPaperlessSettings(paperlessSettings, Future successful PreferencesCreated)
 
-      val result = controller.paperlessSettingsOptIn()(validPaperlessSettingsRequest)
+      val result = controller.paperlessSettingsOptIn(journeyId)(validPaperlessSettingsRequest)
 
       status(result) shouldBe 201
     }
@@ -264,7 +264,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
       authSuccess()
       mockPaperlessSettings(paperlessSettings, Future successful PreferencesCreated)
 
-      val result = controller.paperlessSettingsOptIn(Some(journeyId))(validPaperlessSettingsRequest)
+      val result = controller.paperlessSettingsOptIn(journeyId)(validPaperlessSettingsRequest)
 
       status(result) shouldBe 201
     }
@@ -273,7 +273,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
       authSuccess()
       mockPaperlessSettings(paperlessSettings, Future successful PreferencesExists)
 
-      val result = controller.paperlessSettingsOptIn()(validPaperlessSettingsRequest)
+      val result = controller.paperlessSettingsOptIn(journeyId)(validPaperlessSettingsRequest)
 
       status(result) shouldBe 200
     }
@@ -282,7 +282,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
       authSuccess()
       mockPaperlessSettings(paperlessSettings, Future successful NoPreferenceExists)
 
-      val result = controller.paperlessSettingsOptIn()(validPaperlessSettingsRequest)
+      val result = controller.paperlessSettingsOptIn(journeyId)(validPaperlessSettingsRequest)
 
       status(result) shouldBe 404
     }
@@ -291,7 +291,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
       authSuccess()
       mockPaperlessSettings(paperlessSettings, Future successful EmailNotExist)
 
-      val result = controller.paperlessSettingsOptIn()(validPaperlessSettingsRequest)
+      val result = controller.paperlessSettingsOptIn(journeyId)(validPaperlessSettingsRequest)
 
       status(result) shouldBe 409
     }
@@ -300,7 +300,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
       authSuccess()
       mockPaperlessSettings(paperlessSettings, Future successful PreferencesFailure)
 
-      val result = controller.paperlessSettingsOptIn()(validPaperlessSettingsRequest)
+      val result = controller.paperlessSettingsOptIn(journeyId)(validPaperlessSettingsRequest)
 
       status(result) shouldBe 500
     }
@@ -308,25 +308,25 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
     "propagate 401 for auth failure" in {
       authError(new SessionRecordNotFound)
 
-      val result = controller.paperlessSettingsOptIn()(validPaperlessSettingsRequest)
+      val result = controller.paperlessSettingsOptIn(journeyId)(validPaperlessSettingsRequest)
       status(result) shouldBe 401
     }
 
     "return 403 if the user has no nino" in {
       authError(new NinoNotFoundOnAccount("no nino"))
 
-      val result = controller.paperlessSettingsOptIn()(validPaperlessSettingsRequest)
+      val result = controller.paperlessSettingsOptIn(journeyId)(validPaperlessSettingsRequest)
       status(result) shouldBe 403
     }
 
     "return status code 406 when no accept header is provided" in {
-      val result = controller.paperlessSettingsOptIn()(paperlessSettingsRequestWithoutAcceptHeader)
+      val result = controller.paperlessSettingsOptIn(journeyId)(paperlessSettingsRequestWithoutAcceptHeader)
       status(result) shouldBe 406
     }
 
     "return 400 for an invalid form" in {
       authSuccess()
-      val result = controller.paperlessSettingsOptIn()(invalidPostRequest)
+      val result = controller.paperlessSettingsOptIn(journeyId)(invalidPostRequest)
       status(result) shouldBe 400
     }
 
@@ -334,7 +334,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
       authSuccess()
       mockPaperlessSettings(paperlessSettings, Future failed new RuntimeException())
 
-      val result = controller.paperlessSettingsOptIn()(validPaperlessSettingsRequest)
+      val result = controller.paperlessSettingsOptIn(journeyId)(validPaperlessSettingsRequest)
       status(result) shouldBe 500
     }
   }
@@ -347,7 +347,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
       authSuccess()
       mockPaperlessSettingsOptOut(Future successful PreferencesExists)
 
-      val result = controller.paperlessSettingsOptOut()(requestWithAcceptHeader)
+      val result = controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
 
       status(result) shouldBe 200
     }
@@ -356,7 +356,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
       authSuccess()
       mockPaperlessSettingsOptOut(Future successful PreferencesExists)
 
-      val result = controller.paperlessSettingsOptOut(Some(journeyId))(requestWithAcceptHeader)
+      val result = controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
 
       status(result) shouldBe 200
     }
@@ -365,7 +365,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
       authSuccess()
       mockPaperlessSettingsOptOut(Future successful PreferencesCreated)
 
-      val result = controller.paperlessSettingsOptOut()(requestWithAcceptHeader)
+      val result = controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
 
       status(result) shouldBe 201
     }
@@ -374,7 +374,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
       authSuccess()
       mockPaperlessSettingsOptOut(Future successful PreferencesDoesNotExist)
 
-      val result = controller.paperlessSettingsOptOut()(requestWithAcceptHeader)
+      val result = controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
 
       status(result) shouldBe 404
     }
@@ -383,7 +383,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
       authSuccess()
       mockPaperlessSettingsOptOut(Future successful PreferencesFailure)
 
-      val result = controller.paperlessSettingsOptOut()(requestWithAcceptHeader)
+      val result = controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
 
       status(result) shouldBe 500
     }
@@ -391,19 +391,19 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
     "propagate 401 for auth failure" in {
       authError(new SessionRecordNotFound)
 
-      val result = controller.paperlessSettingsOptOut()(requestWithAcceptHeader)
+      val result = controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
       status(result) shouldBe 401
     }
 
     "return 403 if the user has no nino" in {
       authError(new NinoNotFoundOnAccount("no nino"))
 
-      val result = controller.paperlessSettingsOptOut()(requestWithAcceptHeader)
+      val result = controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
       status(result) shouldBe 403
     }
 
     "return status code 406 when no accept header is provided" in {
-      val result = controller.paperlessSettingsOptOut()(requestWithoutAcceptHeader)
+      val result = controller.paperlessSettingsOptOut(journeyId)(requestWithoutAcceptHeader)
       status(result) shouldBe 406
     }
 
@@ -411,7 +411,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
       authSuccess()
       mockPaperlessSettingsOptOut(Future failed new RuntimeException())
 
-      val result = controller.paperlessSettingsOptOut()(requestWithAcceptHeader)
+      val result = controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
       status(result) shouldBe 500
     }
   }

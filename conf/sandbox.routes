@@ -1,11 +1,11 @@
 # microservice specific routes
 
-GET         /profile/accounts                                      uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getAccounts(journeyId: Option[String])
+GET         /profile/accounts                                      uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getAccounts(journeyId: String)
 
-GET         /profile/personal-details/:nino                        uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getPersonalDetails(nino : uk.gov.hmrc.domain.Nino, journeyId: Option[String])
+GET         /profile/personal-details/:nino                        uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getPersonalDetails(nino : uk.gov.hmrc.domain.Nino, journeyId: String)
 
-GET         /profile/preferences                                   uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getPreferences(journeyId: Option[String])
+GET         /profile/preferences                                   uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getPreferences(journeyId: String)
 
-POST        /profile/preferences/paperless-settings/opt-in         uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.paperlessSettingsOptIn(journeyId: Option[String])
+POST        /profile/preferences/paperless-settings/opt-in         uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.paperlessSettingsOptIn(journeyId: String)
 
-POST        /profile/preferences/paperless-settings/opt-out        uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.paperlessSettingsOptOut(journeyId: Option[String])
+POST        /profile/preferences/paperless-settings/opt-out        uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.paperlessSettingsOptOut(journeyId: String)
