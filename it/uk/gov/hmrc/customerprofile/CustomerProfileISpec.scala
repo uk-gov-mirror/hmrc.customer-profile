@@ -76,6 +76,10 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
       accountsFailure()
       await(getRequestWithAcceptHeader(url)).status shouldBe 401
     }
+
+    "return 400 if no journeyId is supplied" in {
+      await(wsUrl("/profile/accounts").get()).status shouldBe 400
+    }
   }
 
   "GET /profile/preferences" should {
@@ -99,6 +103,10 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
       authFailure()
       await(getRequestWithAcceptHeader(url)).status shouldBe 401
     }
+
+    "return 400 if no journeyId is supplied" in {
+      await(wsUrl("/profile/preferences").get()).status shouldBe 400
+    }
   }
 
   "GET /profile/personal-details/:nino" should {
@@ -121,6 +129,10 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
     "propagate 401" in {
       authFailure()
       await(getRequestWithAcceptHeader(url)).status shouldBe 401
+    }
+
+    "return 400 if no journeyId is supplied" in {
+      await(wsUrl(s"/profile/personal-details/${nino.value}").get()).status shouldBe 400
     }
   }
 
@@ -197,6 +209,10 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
       authFailure()
       await(postRequestWithAcceptHeader(url, paperless)).status shouldBe 401
     }
+
+    "return 400 if no journeyId is supplied" in {
+      await(wsUrl("/profile/preferences/paperless-settings/opt-in").post(paperless)).status shouldBe 400
+    }
   }
 
   "POST /profile/paperless-settings/opt-out" should {
@@ -216,6 +232,10 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
     "propagate 401" in {
       authFailure()
       await(postRequestWithAcceptHeader(url)).status shouldBe 401
+    }
+
+    "return 400 if no journeyId is supplied" in {
+      await(wsUrl("/profile/preferences/paperless-settings/opt-out").post("")).status shouldBe 400
     }
   }
 

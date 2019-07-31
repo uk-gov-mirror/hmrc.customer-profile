@@ -41,6 +41,10 @@ class SandboxCustomerProfileISpec extends BaseISpec {
     wsUrl(s"$url?journeyId=$journeyId").addHttpHeaders("X-MOBILE-USER-ID" -> "208606423740")
   }
 
+  def requestWithoutJourneyId(url: String, sandboxControl: Option[String] = None): WSRequest = {
+    wsUrl(s"$url").addHttpHeaders(acceptJsonHeader, "SANDBOX-CONTROL" -> s"${sandboxControl.getOrElse("")}", "X-MOBILE-USER-ID" -> "208606423740")
+  }
+
   "GET /sandbox/profile/accounts  " should {
     val url = "/profile/accounts"
 
@@ -69,6 +73,11 @@ class SandboxCustomerProfileISpec extends BaseISpec {
       val response = await(request(url, Some("ERROR-500"), journeyId).get())
       response.status shouldBe 500
     }
+
+    "return 400 if no journeyId is supplied" in {
+      val response = await(requestWithoutJourneyId("/profile/accounts", None).get())
+      response.status shouldBe 400
+    }
   }
 
   "GET /sandbox/profile/personal-details/:nino" should {
@@ -79,12 +88,6 @@ class SandboxCustomerProfileISpec extends BaseISpec {
         "etag",
         Person(Some("Jennifer"), None, Some("Thorsteinson"), None, Some("Ms"), None, Some("Female"), Option(LocalDate.parse("1999-01-31")), Some(nino)),
         Some(Address(Some("999 Big Street"), Some("Worthing"), Some("West Sussex"), None, None, Some("BN99 8IG"), None, None, None)))
-
-    "return the default personal details without journey id" in {
-      val response = await(request(url, None, journeyId).get())
-      response.status shouldBe 200
-      response.json shouldBe toJson(expectedDetails)
-    }
 
     "return the default personal details with journey id" in {
       val response = await(request(url, None, journeyId).get())
@@ -110,6 +113,11 @@ class SandboxCustomerProfileISpec extends BaseISpec {
     "return 500 for ERROR-401" in {
       val response = await(request(url, Some("ERROR-500"), journeyId).get())
       response.status shouldBe 500
+    }
+
+    "return 400 if no journeyId is supplied" in {
+      val response = await(requestWithoutJourneyId(s"/profile/personal-details/${nino.value}", None).get())
+      response.status shouldBe 400
     }
   }
 
@@ -146,6 +154,11 @@ class SandboxCustomerProfileISpec extends BaseISpec {
     "return 500 for ERROR-401" in {
       val response = await(request(url, Some("ERROR-500"), journeyId).get())
       response.status shouldBe 500
+    }
+
+    "return 400 if no journeyId is supplied" in {
+      val response = await(requestWithoutJourneyId("/profile/preferences", None).get())
+      response.status shouldBe 400
     }
   }
 
@@ -197,16 +210,16 @@ class SandboxCustomerProfileISpec extends BaseISpec {
       val response = await(request(url, Some("ERROR-500"), journeyId).post(paperlessSettings))
       response.status shouldBe 500
     }
+
+    "return 400 if no journeyId is supplied" in {
+      val response = await(requestWithoutJourneyId("/profile/preferences/paperless-settings/opt-in", None).post(paperlessSettings))
+      response.status shouldBe 400
+    }
   }
 
   "POST /sandbox/preferences/profile/paperless-settings/opt-out" should {
     val url = "/profile/preferences/paperless-settings/opt-out"
     val emptyBody = ""
-
-    "return a 200 response by default without journeyId" in {
-      val response = await(request(url, None, journeyId).post(emptyBody))
-      response.status shouldBe 200
-    }
 
     "return a 200 response by default with journeyId" in {
       val response = await(request(url, None, journeyId).post(emptyBody))
@@ -236,6 +249,11 @@ class SandboxCustomerProfileISpec extends BaseISpec {
     "return a 500 response for ERROR-500" in {
       val response = await(request(url, Some("ERROR-500"), journeyId).post(emptyBody))
       response.status shouldBe 500
+    }
+
+    "return 400 if no journeyId is supplied" in {
+      val response = await(requestWithoutJourneyId("/profile/preferences/paperless-settings/opt-out", None).post(emptyBody))
+      response.status shouldBe 400
     }
   }
 
