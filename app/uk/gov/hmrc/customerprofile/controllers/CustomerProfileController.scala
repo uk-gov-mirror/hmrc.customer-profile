@@ -38,6 +38,22 @@ trait CustomerProfileController extends HeaderValidator {
 
   def paperlessSettingsOptOut(journeyId: String): Action[AnyContent]
 
+  def preferencesPendingEmail(journeyId: String): Action[JsValue] =
+    withAcceptHeaderValidationAndAuthIfLive().async(controllerComponents.parsers.json) { implicit request =>
+      implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
+      request.body
+        .validate[ChangeEmail]
+        .fold(
+          errors => {
+            Logger.warn("Errors validating request body: " + errors)
+            Future successful BadRequest
+          },
+          changeEmail => {
+            pendingEmail(changeEmail)
+          }
+        )
+    }
+
   final def paperlessSettingsOptIn(journeyId: String): Action[JsValue] =
     withAcceptHeaderValidationAndAuthIfLive().async(controllerComponents.parsers.json) { implicit request =>
       implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
@@ -57,4 +73,6 @@ trait CustomerProfileController extends HeaderValidator {
   def withAcceptHeaderValidationAndAuthIfLive(taxId: Option[Nino] = None): ActionBuilder[Request, AnyContent]
 
   def optIn(settings: Paperless)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result]
+
+  def pendingEmail(changeEmail: ChangeEmail)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result]
 }

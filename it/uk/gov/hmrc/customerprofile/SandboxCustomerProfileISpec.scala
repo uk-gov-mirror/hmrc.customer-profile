@@ -162,7 +162,7 @@ class SandboxCustomerProfileISpec extends BaseISpec {
     }
   }
 
-  "POST /sandbox/preferences/profile/paperless-settings/opt-in" should {
+   "POST /sandbox/preferences/profile/paperless-settings/opt-in" should {
     val url = "/profile/preferences/paperless-settings/opt-in"
     val paperlessSettings = toJson(Paperless(generic = TermsAccepted(true), email = EmailAddress("new-email@new-email.new.email")))
 
@@ -253,6 +253,51 @@ class SandboxCustomerProfileISpec extends BaseISpec {
 
     "return 400 if no journeyId is supplied" in {
       val response = await(requestWithoutJourneyId("/profile/preferences/paperless-settings/opt-out", None).post(emptyBody))
+      response.status shouldBe 400
+    }
+  }
+
+  "POST /sandbox/profile/preferences/pending-email" should {
+    val url = "/profile/preferences/pending-email"
+    val changeEmail = toJson(ChangeEmail(email = EmailAddress("new-email@new-email.new.email")))
+
+    "return a 200 response with a journeyId by default" in {
+      val response = await(request(url, None, journeyId).post(changeEmail))
+      response.status shouldBe 200
+    }
+
+    "return 400 for invalid form" in {
+      val response = await(request(url, None, journeyId).post(invalidJsonBody))
+      response.status shouldBe 400
+    }
+
+    "return 401 for ERROR-401" in {
+      val response = await(request(url, Some("ERROR-401"), journeyId).post(changeEmail))
+      response.status shouldBe 401
+    }
+
+    "return 403 for ERROR-403" in {
+      val response = await(request(url, Some("ERROR-403"), journeyId).post(changeEmail))
+      response.status shouldBe 403
+    }
+
+    "return a 404 response for ERROR-404" in {
+      val response = await(request(url, Some("ERROR-404"), journeyId).post(changeEmail))
+      response.status shouldBe 404
+    }
+
+    "return a 409 response for ERROR-409" in {
+      val response = await(request(url, Some("ERROR-409"), journeyId).post(changeEmail))
+      response.status shouldBe 409
+    }
+
+    "return a 500 response for ERROR-500" in {
+      val response = await(request(url, Some("ERROR-500"), journeyId).post(changeEmail))
+      response.status shouldBe 500
+    }
+
+    "return 400 if no journeyId is supplied" in {
+      val response = await(requestWithoutJourneyId("/profile/preferences/paperless-settings/opt-in", None).post(changeEmail))
       response.status shouldBe 400
     }
   }

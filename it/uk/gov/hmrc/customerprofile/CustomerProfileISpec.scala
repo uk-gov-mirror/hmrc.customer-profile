@@ -23,7 +23,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json.{parse, toJson}
 import play.api.libs.json.{JsValue, Json}
 import play.api.libs.ws.WSResponse
-import uk.gov.hmrc.customerprofile.domain.{Paperless, TermsAccepted}
+import uk.gov.hmrc.customerprofile.domain.{ChangeEmail, Paperless, TermsAccepted}
 import uk.gov.hmrc.customerprofile.stubs.AuthStub._
 import uk.gov.hmrc.customerprofile.stubs.CitizenDetailsStub.{designatoryDetailsForNinoAre, designatoryDetailsWillReturnErrorResponse, npsDataIsLockedDueToMciFlag}
 import uk.gov.hmrc.customerprofile.stubs.EntityResolverStub._
@@ -236,6 +236,75 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
 
     "return 400 if no journeyId is supplied" in {
       await(wsUrl("/profile/preferences/paperless-settings/opt-out").post("")).status shouldBe 400
+    }
+  }
+
+  "POST /profile/preferences/pending-email" should {
+    val url       = "/profile/preferences/pending-email?journeyId=journeyId"
+    val entityId  = "1098561938451038465138465"
+    val changeEmail = toJson(ChangeEmail(email = EmailAddress("new-email@new-email.new.email")))
+
+    "return a 200 response when a pending email address is successfully updated" in {
+      respondWithEntityDetailsByNino(nino.value, entityId)
+      respondPreferencesWithPaperlessOptedIn()
+      authRecordExists(nino)
+      successfulPendingEmailUpdate(entityId)
+      accountsFound(nino)
+
+      await(postRequestWithAcceptHeader(url, changeEmail)).status shouldBe 200
+    }
+
+    "return a Conflict response when preferences has no existing verified or pending email" in {
+      val expectedResponse = parse("""{"code":"CONFLICT","message":"No existing verified or pending data"}""")
+
+
+      respondWithEntityDetailsByNino(nino.value, entityId)
+      respondPreferencesWithPaperlessOptedIn()
+      authRecordExists(nino)
+      conflictPendingEmailUpdate(entityId)
+      accountsFound(nino)
+
+      val response = await(postRequestWithAcceptHeader(url, changeEmail))
+      response.status shouldBe 409
+    }
+
+    "return a Not Found response when unable to find a preference to update for an entity" in {
+      val expectedResponse = parse("""{"code":"NOT_FOUND","message":"Resource was not found"}""")
+
+      respondWithEntityDetailsByNino(nino.value, entityId)
+      authRecordExists(nino)
+      respondNoPreferences()
+
+      val response = await(postRequestWithAcceptHeader(url, changeEmail))
+      response.status shouldBe 404
+      response.json   shouldBe expectedResponse
+    }
+
+    "return a Internal Server Error response when unable update pending email preference for an entity" in {
+      val expectedResponse = parse("""{"code":"PREFERENCE_SETTINGS_ERROR","message":"Failed to set preferences"}""")
+
+      respondWithEntityDetailsByNino(nino.value, entityId)
+      authRecordExists(nino)
+      respondPreferencesWithPaperlessOptedIn()
+      errorPendingEmailUpdate(entityId)
+      accountsFound(nino)
+
+      val response = await(postRequestWithAcceptHeader(url, changeEmail))
+      response.status shouldBe 500
+      response.json   shouldBe expectedResponse
+    }
+
+    "return 406 if no request header is supplied" in {
+      await(wsUrl(url).post(changeEmail)).status shouldBe 406
+    }
+
+    "propagate 401" in {
+      authFailure()
+      await(postRequestWithAcceptHeader(url, changeEmail)).status shouldBe 401
+    }
+
+    "return 400 if no journeyId is supplied" in {
+      await(wsUrl("/profile/preferences/pending-email").post(changeEmail)).status shouldBe 400
     }
   }
 

@@ -70,7 +70,7 @@ class CustomerProfileService @Inject()(
       entityResolver.getPreferences()
     }
 
-  private def setPreferencesPendingEmail(changeEmail: ChangeEmail)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] =
+  def setPreferencesPendingEmail(changeEmail: ChangeEmail)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] =
     withAudit("updatePendingEmailPreference", Map("email" → changeEmail.email)) {
       for {
         account ← getAccounts()

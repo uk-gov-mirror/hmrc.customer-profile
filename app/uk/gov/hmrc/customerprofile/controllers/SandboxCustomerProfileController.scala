@@ -122,4 +122,14 @@ class SandboxCustomerProfileController @Inject()(cc: ControllerComponents)(impli
       case _                          => Ok
     })
 
+  override def pendingEmail(changeEmail: ChangeEmail)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result] =
+    Future successful (request.headers.get(SANDBOX_CONTROL_HEADER) match {
+      case Some("ERROR-401")          => Unauthorized
+      case Some("ERROR-403")          => Forbidden
+      case Some("ERROR-404")          => NotFound
+      case Some("ERROR-409")          => Conflict
+      case Some("ERROR-500")          => InternalServerError
+      case _                          => Ok
+    })
+
 }

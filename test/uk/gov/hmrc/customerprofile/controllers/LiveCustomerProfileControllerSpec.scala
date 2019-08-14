@@ -416,4 +416,86 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
     }
   }
 
+  "preferencesPendingEmail" should {
+
+    def mockPendingEmail(changeEmail: ChangeEmail, result: Future[PreferencesStatus]) =
+      (service.setPreferencesPendingEmail(_: ChangeEmail)(_: HeaderCarrier, _: ExecutionContext)).expects(changeEmail, *, *).returns(result)
+
+    val newEmail          = EmailAddress("new@new.com")
+    val changeEmail = ChangeEmail(newEmail)
+
+    val validPendingEmailRequest: FakeRequest[JsValue] =
+      FakeRequest().withBody(toJson(changeEmail)).withHeaders(HeaderNames.ACCEPT → acceptheader)
+    val changeEmailRequestWithoutAcceptHeader: FakeRequest[JsValue] = FakeRequest().withBody(toJson(changeEmail))
+
+    "successful pending email change" in {
+      authSuccess()
+      mockPendingEmail(changeEmail, Future successful EmailUpdateOk)
+
+      val result = controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
+
+      status(result) shouldBe 200
+    }
+
+    "return 404 where preferences do not exist" in {
+      authSuccess()
+      mockPendingEmail(changeEmail, Future successful NoPreferenceExists)
+
+      val result = controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
+
+      status(result) shouldBe 404
+    }
+
+    "return 409 for request without email" in {
+      authSuccess()
+      mockPendingEmail(changeEmail, Future successful EmailNotExist)
+
+      val result = controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
+
+      status(result) shouldBe 409
+    }
+
+    "propagate errors from the service" in {
+      authSuccess()
+      mockPendingEmail(changeEmail, Future successful PreferencesFailure)
+
+      val result = controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
+
+      status(result) shouldBe 500
+    }
+
+    "propagate 401 for auth failure" in {
+      authError(new SessionRecordNotFound)
+
+      val result = controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
+      status(result) shouldBe 401
+    }
+
+    "return 403 if the user has no nino" in {
+      authError(new NinoNotFoundOnAccount("no nino"))
+
+      val result = controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
+      status(result) shouldBe 403
+    }
+
+    "return status code 406 when no accept header is provided" in {
+      val result = controller.preferencesPendingEmail(journeyId)(changeEmailRequestWithoutAcceptHeader)
+      status(result) shouldBe 406
+    }
+
+    "return 400 for an invalid form" in {
+      authSuccess()
+      val result = controller.preferencesPendingEmail(journeyId)(invalidPostRequest)
+      status(result) shouldBe 400
+    }
+
+    "return 500 for an unexpected error" in {
+      authSuccess()
+      mockPendingEmail(changeEmail, Future failed new RuntimeException())
+
+      val result = controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
+      status(result) shouldBe 500
+    }
+  }
+
 }

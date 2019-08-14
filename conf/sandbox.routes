@@ -9,3 +9,5 @@ GET         /profile/preferences                                   uk.gov.hmrc.c
 POST        /profile/preferences/paperless-settings/opt-in         uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.paperlessSettingsOptIn(journeyId: String)
 
 POST        /profile/preferences/paperless-settings/opt-out        uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.paperlessSettingsOptOut(journeyId: String)
+
+POST        /profile/preferences/pending-email                     uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.preferencesPendingEmail(journeyId: String)

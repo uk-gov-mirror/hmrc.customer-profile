@@ -1,0 +1,18 @@
+{
+  "type": "object",
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "description": "The pending email to resend a verification link for",
+  "properties": {
+    "email": {
+      "type": "string",
+      "description": "The pending email to resend a verification link for. This user must already have this preference set.",
+      "examples": [
+        "test@example.com",
+        "me@me.co.uk"
+      ]
+    }
+  },
+  "required": [
+    "email"
+  ]
+}

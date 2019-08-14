@@ -25,7 +25,7 @@ import uk.gov.hmrc.api.controllers._
 import uk.gov.hmrc.auth.core.AuthorisationException
 import uk.gov.hmrc.customerprofile.auth._
 import uk.gov.hmrc.customerprofile.connector._
-import uk.gov.hmrc.customerprofile.domain.Paperless
+import uk.gov.hmrc.customerprofile.domain.{ChangeEmail, Paperless}
 import uk.gov.hmrc.customerprofile.services.CustomerProfileService
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{HeaderCarrier, NotFoundException, Upstream4xxResponse}
@@ -172,5 +172,13 @@ class LiveCustomerProfileController @Inject()(
         case _                       => InternalServerError(toJson(PreferencesSettingsError))
       })
     }
+
+  override def pendingEmail(changeEmail: ChangeEmail)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result] =
+      errorWrapper(service.setPreferencesPendingEmail(changeEmail).map {
+        case EmailUpdateOk           => Ok
+        case EmailNotExist           => Conflict
+        case NoPreferenceExists      => NotFound
+        case _                       => InternalServerError(toJson(PreferencesSettingsError))
+      })
 
 }
