@@ -1,6 +1,7 @@
 {
   "definitions": {
     "generic": {
+      "type": "object",
       "properties": {
         "accepted": {
           "type": "boolean",
