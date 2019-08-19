@@ -87,6 +87,10 @@ uses:
       /paperless-settings:
         /opt-in:
           post:
+            body:
+              application/json:
+                type: !include schemas/opt-in.json
+                example: !include examples/opt-in-example.json
             displayName: Opt in paperless preferences
             description: This endpoint sets or updates the user's paperless opt-in preference settings.
             is: [headers.acceptHeader]
@@ -97,7 +101,8 @@ uses:
                 type: string
                 required: true
             responses:
-              200:
+              201:
+              204:
         /opt-out:
           post:
             displayName: Opt out paperless preferences
@@ -110,7 +115,8 @@ uses:
                 type: string
                 required: true
             responses:
-              200:
+              201:
+              204:
       /pending-email:
         post:
           body:
@@ -127,4 +133,4 @@ uses:
               type: string
               required: true
           responses:
-            200:
+            204:

@@ -107,7 +107,7 @@ class SandboxCustomerProfileController @Inject()(cc: ControllerComponents)(impli
         case Some("ERROR-404")          => NotFound
         case Some("ERROR-500")          => InternalServerError
         case Some("PREFERENCE-CREATED") => Created
-        case _                          => Ok
+        case _                          => NoContent
       })
     }
 
@@ -119,7 +119,7 @@ class SandboxCustomerProfileController @Inject()(cc: ControllerComponents)(impli
       case Some("ERROR-409")          => Conflict
       case Some("ERROR-500")          => InternalServerError
       case Some("PREFERENCE-CREATED") => Created
-      case _                          => Ok
+      case _                          => NoContent
     })
 
   override def pendingEmail(changeEmail: ChangeEmail)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result] =
@@ -129,7 +129,7 @@ class SandboxCustomerProfileController @Inject()(cc: ControllerComponents)(impli
       case Some("ERROR-404")          => NotFound
       case Some("ERROR-409")          => Conflict
       case Some("ERROR-500")          => InternalServerError
-      case _                          => Ok
+      case _                          => NoContent
     })
 
 }

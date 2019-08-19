@@ -141,24 +141,24 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
     val entityId  = "1098561938451038465138465"
     val paperless = toJson(Paperless(generic = TermsAccepted(true), email = EmailAddress("new-email@new-email.new.email")))
 
-    "return a 200 response when successfully opting into paperless settings" in {
+    "return a 204 response when successfully opting into paperless settings" in {
       respondWithEntityDetailsByNino(nino.value, entityId)
       respondPreferencesNoPaperlessSet()
       authRecordExists(nino)
       successPaperlessSettingsChange()
       accountsFound(nino)
 
-      await(postRequestWithAcceptHeader(url, paperless)).status shouldBe 200
+      await(postRequestWithAcceptHeader(url, paperless)).status shouldBe 204
     }
 
-    "return a 200 response when a pending email preference is successfully updated" in {
+    "return a 204 response when a pending email preference is successfully updated" in {
       respondWithEntityDetailsByNino(nino.value, entityId)
       respondPreferencesWithPaperlessOptedIn()
       authRecordExists(nino)
       successfulPendingEmailUpdate(entityId)
       accountsFound(nino)
 
-      await(postRequestWithAcceptHeader(url, paperless)).status shouldBe 200
+      await(postRequestWithAcceptHeader(url, paperless)).status shouldBe 204
     }
 
     "return a Conflict response when preferences has no existing verified or pending email" in {
@@ -218,11 +218,11 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
   "POST /profile/paperless-settings/opt-out" should {
     val url = "/profile/preferences/paperless-settings/opt-out?journeyId=journeyId"
 
-    "return a 200 response when successful" in {
+    "return a 204 response when successful" in {
       authRecordExists(nino)
       successPaperlessSettingsChange()
 
-      await(postRequestWithAcceptHeader(url)).status shouldBe 200
+      await(postRequestWithAcceptHeader(url)).status shouldBe 204
     }
 
     "return 406 if no request header is supplied" in {
@@ -244,14 +244,14 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
     val entityId  = "1098561938451038465138465"
     val changeEmail = toJson(ChangeEmail(email = EmailAddress("new-email@new-email.new.email")))
 
-    "return a 200 response when a pending email address is successfully updated" in {
+    "return a 204 response when a pending email address is successfully updated" in {
       respondWithEntityDetailsByNino(nino.value, entityId)
       respondPreferencesWithPaperlessOptedIn()
       authRecordExists(nino)
       successfulPendingEmailUpdate(entityId)
       accountsFound(nino)
 
-      await(postRequestWithAcceptHeader(url, changeEmail)).status shouldBe 200
+      await(postRequestWithAcceptHeader(url, changeEmail)).status shouldBe 204
     }
 
     "return a Conflict response when preferences has no existing verified or pending email" in {

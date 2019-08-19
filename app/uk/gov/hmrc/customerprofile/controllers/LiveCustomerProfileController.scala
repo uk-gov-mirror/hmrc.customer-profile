@@ -156,7 +156,7 @@ class LiveCustomerProfileController @Inject()(
 
   override def optIn(settings: Paperless)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result] =
     errorWrapper(service.paperlessSettings(settings).map {
-      case PreferencesExists | EmailUpdateOk => Ok
+      case PreferencesExists | EmailUpdateOk => NoContent
       case PreferencesCreated                => Created
       case EmailNotExist                     => Conflict(toJson(ErrorPreferenceConflict))
       case NoPreferenceExists                => NotFound(toJson(ErrorNotFound))
@@ -166,7 +166,7 @@ class LiveCustomerProfileController @Inject()(
   override def paperlessSettingsOptOut(journeyId: String): Action[AnyContent] =
     withAcceptHeaderValidationAndAuthIfLive().async { implicit request =>
       errorWrapper(service.paperlessSettingsOptOut().map {
-        case PreferencesExists       => Ok
+        case PreferencesExists       => NoContent
         case PreferencesCreated      => Created
         case PreferencesDoesNotExist => NotFound
         case _                       => InternalServerError(toJson(PreferencesSettingsError))
@@ -175,7 +175,7 @@ class LiveCustomerProfileController @Inject()(
 
   override def pendingEmail(changeEmail: ChangeEmail)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result] =
       errorWrapper(service.setPreferencesPendingEmail(changeEmail).map {
-        case EmailUpdateOk           => Ok
+        case EmailUpdateOk           => NoContent
         case EmailNotExist           => Conflict
         case NoPreferenceExists      => NotFound
         case _                       => InternalServerError(toJson(PreferencesSettingsError))

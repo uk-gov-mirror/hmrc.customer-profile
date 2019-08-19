@@ -275,7 +275,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
 
       val result = controller.paperlessSettingsOptIn(journeyId)(validPaperlessSettingsRequest)
 
-      status(result) shouldBe 200
+      status(result) shouldBe 204
     }
 
     "return 404 where preferences do not exist" in {
@@ -349,7 +349,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
 
       val result = controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
 
-      status(result) shouldBe 200
+      status(result) shouldBe 204
     }
 
     "opt out for existing preferences with journey id" in {
@@ -358,7 +358,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
 
       val result = controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
 
-      status(result) shouldBe 200
+      status(result) shouldBe 204
     }
 
     "opt out without existing preferences and journey id" in {
@@ -434,7 +434,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
 
       val result = controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
 
-      status(result) shouldBe 200
+      status(result) shouldBe 204
     }
 
     "return 404 where preferences do not exist" in {

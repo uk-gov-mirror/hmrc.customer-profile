@@ -1,0 +1,34 @@
+{
+  "definitions": {
+    "generic": {
+      "properties": {
+        "accepted": {
+          "type": "boolean",
+          "description": "If the user accepts Ts & Cs to opt-in to paperless communication.",
+          "examples": [
+            true
+          ]
+        },
+        "email": {
+          "type": "string",
+          "description": "The email to be used for paperless communication.",
+          "examples": [
+            "test@example.com"
+          ]
+        }
+      },
+      "required": ["accepted", "email"]
+    }
+  },
+  "type": "object",
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "description": "Enable paperless settings for a given email",
+  "properties": {
+    "generic": {
+      "$ref": "#/definitions/generic"
+    }
+  },
+  "required": [
+    "generic"
+  ]
+}

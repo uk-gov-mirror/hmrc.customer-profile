@@ -166,9 +166,9 @@ class SandboxCustomerProfileISpec extends BaseISpec {
     val url = "/profile/preferences/paperless-settings/opt-in"
     val paperlessSettings = toJson(Paperless(generic = TermsAccepted(true), email = EmailAddress("new-email@new-email.new.email")))
 
-    "return a 200 response with a journeyId by default" in {
+    "return a 204 response with a journeyId by default" in {
       val response = await(request(url, None, journeyId).post(paperlessSettings))
-      response.status shouldBe 200
+      response.status shouldBe 204
     }
 
     "return a 201 response for PREFERENCE-CREATED" in {
@@ -221,9 +221,9 @@ class SandboxCustomerProfileISpec extends BaseISpec {
     val url = "/profile/preferences/paperless-settings/opt-out"
     val emptyBody = ""
 
-    "return a 200 response by default with journeyId" in {
+    "return a 204 response by default with journeyId" in {
       val response = await(request(url, None, journeyId).post(emptyBody))
-      response.status shouldBe 200
+      response.status shouldBe 204
     }
 
     "return 401 for ERROR-401" in {
@@ -261,9 +261,9 @@ class SandboxCustomerProfileISpec extends BaseISpec {
     val url = "/profile/preferences/pending-email"
     val changeEmail = toJson(ChangeEmail(email = EmailAddress("new-email@new-email.new.email")))
 
-    "return a 200 response with a journeyId by default" in {
+    "return a 204 response with a journeyId by default" in {
       val response = await(request(url, None, journeyId).post(changeEmail))
-      response.status shouldBe 200
+      response.status shouldBe 204
     }
 
     "return 400 for invalid form" in {
