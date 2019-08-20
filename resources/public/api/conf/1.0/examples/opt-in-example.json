@@ -1,6 +1,6 @@
 {
   "generic": {
-    "accepted": true,
-    "email": "test@example.com"
-  }
+    "accepted": true
+  },
+  "email": "test@example.com"
 }

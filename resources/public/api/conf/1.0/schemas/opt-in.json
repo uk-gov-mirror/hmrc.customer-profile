@@ -1,5 +1,8 @@
 {
-  "definitions": {
+  "type": "object",
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "description": "Enable paperless settings for a given email",
+  "properties": {
     "generic": {
       "type": "object",
       "properties": {
@@ -9,27 +12,17 @@
           "examples": [
             true
           ]
-        },
-        "email": {
-          "type": "string",
-          "description": "The email to be used for paperless communication.",
-          "examples": [
-            "test@example.com"
-          ]
         }
       },
-      "required": ["accepted", "email"]
+      "required": ["accepted"]
+    },
+    "email": {
+      "type": "string",
+      "description": "The email to be used for paperless communication.",
+      "examples": [
+        "test@example.com"
+      ]
     }
   },
-  "type": "object",
-  "$schema": "http://json-schema.org/draft-06/schema#",
-  "description": "Enable paperless settings for a given email",
-  "properties": {
-    "generic": {
-      "$ref": "#/definitions/generic"
-    }
-  },
-  "required": [
-    "generic"
-  ]
+  "required": ["generic", "email"]
 }
