@@ -76,6 +76,7 @@ class AccountAccessControlISpec extends BaseISpec with Eventually {
       accounts.routeToIV shouldBe false
       accounts.routeToTwoFactor shouldBe false
     }
+
   }
 
   "grantAccess" should {

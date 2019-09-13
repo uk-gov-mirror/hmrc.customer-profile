@@ -39,20 +39,20 @@ import scala.concurrent.{ExecutionContext, Future}
 class CustomerProfileServiceSpec extends WordSpecLike with Matchers with FutureAwaits with DefaultAwaitTimeout with MockFactory {
   implicit lazy val hc: HeaderCarrier = HeaderCarrier()
 
-  val appNameConfiguration: Configuration  = mock[Configuration]
-  val auditConnector:       AuditConnector = mock[AuditConnector]
+  val appNameConfiguration: Configuration = mock[Configuration]
+  val auditConnector: AuditConnector = mock[AuditConnector]
 
   val appName = "customer-profile"
 
   def mockAudit(
-    transactionName: String,
-    detail:          Map[String, String] = Map.empty): CallHandler3[DataEvent, HeaderCarrier, ExecutionContext, Future[AuditResult]] = {
+                 transactionName: String,
+                 detail: Map[String, String] = Map.empty): CallHandler3[DataEvent, HeaderCarrier, ExecutionContext, Future[AuditResult]] = {
     def dataEventWith(auditSource: String, auditType: String, tags: Map[String, String]): MatcherBase =
       argThat((dataEvent: DataEvent) => {
         dataEvent.auditSource.equals(auditSource) &&
-        dataEvent.auditType.equals(auditType) &&
-        dataEvent.tags.equals(tags) &&
-        dataEvent.detail.equals(detail)
+          dataEvent.auditType.equals(auditType) &&
+          dataEvent.tags.equals(tags) &&
+          dataEvent.detail.equals(detail)
       })
 
     (appNameConfiguration.getString(_: String, _: Option[Set[String]])).expects("appName", None).returns(Some(appName)).anyNumberOfTimes()
@@ -64,9 +64,9 @@ class CustomerProfileServiceSpec extends WordSpecLike with Matchers with FutureA
   }
 
   val citizenDetailsConnector: CitizenDetailsConnector = mock[CitizenDetailsConnector]
-  val preferencesConnector:    PreferencesConnector    = mock[PreferencesConnector]
-  val entityResolver:          EntityResolverConnector = mock[EntityResolverConnector]
-  val accountAccessControl:    AccountAccessControl    = mock[AccountAccessControl]
+  val preferencesConnector: PreferencesConnector = mock[PreferencesConnector]
+  val entityResolver: EntityResolverConnector = mock[EntityResolverConnector]
+  val accountAccessControl: AccountAccessControl = mock[AccountAccessControl]
 
   val service =
     new CustomerProfileService(
@@ -78,10 +78,10 @@ class CustomerProfileServiceSpec extends WordSpecLike with Matchers with FutureA
       auditConnector,
       "customer-profile")
 
-  val existingDigitalPreference:    Preference = existingPreferences(digital = true)
+  val existingDigitalPreference: Preference = existingPreferences(digital = true)
   val existingNonDigitalPreference: Preference = existingPreferences(digital = false)
 
-  val newEmail             = EmailAddress("new@new.com")
+  val newEmail = EmailAddress("new@new.com")
   val newPaperlessSettings = Paperless(TermsAccepted(true), newEmail)
 
   val nino = Nino("CS700100A")
@@ -135,8 +135,11 @@ class CustomerProfileServiceSpec extends WordSpecLike with Matchers with FutureA
 
       mockAudit(transactionName = "getPersonalDetails", detail = Map("nino" -> nino.value))
       (citizenDetailsConnector.personDetails(_: Nino)(_: HeaderCarrier, _: ExecutionContext)).expects(nino, *, *).returns(Future successful person)
+      val personalDetails = await(service.getPersonalDetails(nino))
 
-      await(service.getPersonalDetails(nino)) shouldBe person
+      personalDetails shouldBe person
+      personalDetails.person.shortName shouldBe Some("Firstname Middle")
+      personalDetails.person.fullName shouldBe "Title Firstname Lastname Middle Honours"
     }
   }
 

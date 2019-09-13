@@ -27,21 +27,21 @@ import play.api.mvc.AnyContentAsEmpty
 import play.api.test.Helpers._
 import play.api.test.{DefaultAwaitTimeout, FakeRequest, FutureAwaits}
 import uk.gov.hmrc.auth.core.SessionRecordNotFound
-import uk.gov.hmrc.customerprofile.auth.{AccountAccessControl, NinoNotFoundOnAccount}
+import uk.gov.hmrc.customerprofile.auth.{AccountAccessControl, AccountWithLowCL, FailToMatchTaxIdOnAuth, NinoNotFoundOnAccount}
 import uk.gov.hmrc.customerprofile.connector.{PreferencesDoesNotExist, PreferencesFailure, _}
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status.Verified
 import uk.gov.hmrc.customerprofile.domain.{Paperless, _}
 import uk.gov.hmrc.customerprofile.services.CustomerProfileService
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.emailaddress.EmailAddress
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{HeaderCarrier, Upstream4xxResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
 class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with FutureAwaits with DefaultAwaitTimeout with MockFactory {
-  val service:       CustomerProfileService = mock[CustomerProfileService]
-  val accessControl: AccountAccessControl   = mock[AccountAccessControl]
+  val service: CustomerProfileService = mock[CustomerProfileService]
+  val accessControl: AccountAccessControl = mock[AccountAccessControl]
 
   val controller: LiveCustomerProfileController =
     new LiveCustomerProfileController(service, accessControl, citizenDetailsEnabled = true, stubControllerComponents())
@@ -49,8 +49,8 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
   val nino = Nino("CS700100A")
   val journeyId: String = randomUUID().toString
   val emptyRequest = FakeRequest()
-  val acceptheader:               String                              = "application/vnd.hmrc.1.0+json"
-  val requestWithAcceptHeader:    FakeRequest[AnyContentAsEmpty.type] = FakeRequest().withHeaders("Accept" -> acceptheader)
+  val acceptheader: String = "application/vnd.hmrc.1.0+json"
+  val requestWithAcceptHeader: FakeRequest[AnyContentAsEmpty.type] = FakeRequest().withHeaders("Accept" -> acceptheader)
   val requestWithoutAcceptHeader: FakeRequest[AnyContentAsEmpty.type] = FakeRequest().withHeaders("Authorization" -> "Some Header")
 
   val invalidPostRequest: FakeRequest[JsValue] =
@@ -72,7 +72,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
 
       val result = controller.getAccounts(journeyId)(requestWithAcceptHeader)
 
-      status(result)        shouldBe 200
+      status(result) shouldBe 200
       contentAsJson(result) shouldBe toJson(accounts)
     }
 
@@ -82,7 +82,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
 
       val result = controller.getAccounts(journeyId)(requestWithAcceptHeader)
 
-      status(result)        shouldBe 200
+      status(result) shouldBe 200
       contentAsJson(result) shouldBe toJson(accounts)
     }
 
@@ -128,7 +128,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
 
       val result = controller.getPersonalDetails(nino, journeyId)(requestWithAcceptHeader)
 
-      status(result)        shouldBe 200
+      status(result) shouldBe 200
       contentAsJson(result) shouldBe toJson(person)
     }
 
@@ -143,7 +143,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
 
       val result = controller.getPersonalDetails(nino, journeyId)(requestWithAcceptHeader)
 
-      status(result)        shouldBe 200
+      status(result) shouldBe 200
       contentAsJson(result) shouldBe toJson(person)
     }
 
@@ -187,7 +187,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
 
       val result = controller.getPreferences(journeyId)(requestWithAcceptHeader)
 
-      status(result)        shouldBe 200
+      status(result) shouldBe 200
       contentAsJson(result) shouldBe toJson(preference)
     }
 
@@ -199,7 +199,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
 
       val result = controller.getPreferences(journeyId)(requestWithAcceptHeader)
 
-      status(result)        shouldBe 200
+      status(result) shouldBe 200
       contentAsJson(result) shouldBe toJson(preference)
     }
 
@@ -217,6 +217,27 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
 
       val result = controller.getPreferences(journeyId)(requestWithAcceptHeader)
       status(result) shouldBe 401
+    }
+
+    "return Unauthorized if failed to grant access" in {
+      authError(new Upstream4xxResponse("ERROR", 403, 403))
+
+      val result = controller.getPreferences(journeyId)(requestWithAcceptHeader)
+      status(result) shouldBe 401
+    }
+
+    "return Forbidden if failed to match URL NINO against Auth NINO" in {
+      authError(new FailToMatchTaxIdOnAuth("ERROR"))
+
+      val result = controller.getPreferences(journeyId)(requestWithAcceptHeader)
+      status(result) shouldBe 403
+    }
+
+    "return Forbidden if Account with low CL" in {
+      authError(new AccountWithLowCL("ERROR"))
+
+      val result = controller.getPreferences(journeyId)(requestWithAcceptHeader)
+      status(result) shouldBe 403
     }
 
     "return 403 if the user has no nino" in {
@@ -244,7 +265,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
     def mockPaperlessSettings(settings: Paperless, result: Future[PreferencesStatus]) =
       (service.paperlessSettings(_: Paperless)(_: HeaderCarrier, _: ExecutionContext)).expects(settings, *, *).returns(result)
 
-    val newEmail          = EmailAddress("new@new.com")
+    val newEmail = EmailAddress("new@new.com")
     val paperlessSettings = Paperless(TermsAccepted(true), newEmail)
 
     val validPaperlessSettingsRequest: FakeRequest[JsValue] =
@@ -421,7 +442,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
     def mockPendingEmail(changeEmail: ChangeEmail, result: Future[PreferencesStatus]) =
       (service.setPreferencesPendingEmail(_: ChangeEmail)(_: HeaderCarrier, _: ExecutionContext)).expects(changeEmail, *, *).returns(result)
 
-    val newEmail          = EmailAddress("new@new.com")
+    val newEmail = EmailAddress("new@new.com")
     val changeEmail = ChangeEmail(newEmail)
 
     val validPendingEmailRequest: FakeRequest[JsValue] =
