@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.customerprofile.auth
 
-import java.util.UUID.randomUUID
-
 import com.google.inject.Inject
 import javax.inject.Named
 import play.api.mvc.Results
@@ -26,6 +24,7 @@ import uk.gov.hmrc.auth.core.retrieve.Retrievals.{nino, _}
 import uk.gov.hmrc.auth.core.retrieve.~
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
 import uk.gov.hmrc.customerprofile.domain.Accounts
+import uk.gov.hmrc.customerprofile.domain.types.ModelTypes.JourneyId
 import uk.gov.hmrc.domain.{Nino, SaUtr}
 import uk.gov.hmrc.http._
 
@@ -40,14 +39,17 @@ class NinoNotFoundOnAccount(message: String) extends HttpException(message, 403)
 
 class AccountWithLowCL(message: String) extends HttpException(message, 403)
 
-class AccountAccessControl @Inject()(val authConnector: AuthConnector,
-                                     val http: CoreGet,
-                                     @Named("auth") val authUrl: String,
-                                     @Named("controllers.confidenceLevel") val serviceConfidenceLevel: Int) extends Results with AuthorisedFunctions {
+class AccountAccessControl @Inject()(
+  val authConnector:                                                AuthConnector,
+  val http:                                                         CoreGet,
+  @Named("auth") val authUrl:                                       String,
+  @Named("controllers.confidenceLevel") val serviceConfidenceLevel: Int)
+    extends Results
+    with AuthorisedFunctions {
 
   val ninoNotFoundOnAccount = new NinoNotFoundOnAccount("The user must have a National Insurance Number")
 
-  def accounts(implicit hc: HeaderCarrier): Future[Accounts] = {
+  def accounts(journeyId: JourneyId)(implicit hc: HeaderCarrier): Future[Accounts] =
     authorised()
       .retrieve(nino and saUtr and credentialStrength and confidenceLevel) {
         case foundNino ~ foundSaUtr ~ foundCredentialStrength ~ foundConfidenceLevel ⇒
@@ -56,12 +58,11 @@ class AccountAccessControl @Inject()(val authConnector: AuthConnector,
             foundSaUtr.map(SaUtr(_)),
             serviceConfidenceLevel > foundConfidenceLevel.level,
             foundCredentialStrength.orNull != "strong",
-            journeyId = randomUUID().toString)
+            journeyId.value
+          )
       }
-  }
 
-
-  def grantAccess(taxId: Option[Nino])(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] = {
+  def grantAccess(taxId: Option[Nino])(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] =
     authorised()
       .retrieve(nino and confidenceLevel) {
         case Some(foundNino) ~ foundConfidenceLevel ⇒
@@ -74,5 +75,4 @@ class AccountAccessControl @Inject()(val authConnector: AuthConnector,
         case None ~ _ ⇒
           throw ninoNotFoundOnAccount
       }
-  }
 }

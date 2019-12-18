@@ -22,6 +22,7 @@ import play.api.Configuration
 import uk.gov.hmrc.customerprofile.auth.{AccountAccessControl, NinoNotFoundOnAccount}
 import uk.gov.hmrc.customerprofile.connector._
 import uk.gov.hmrc.customerprofile.domain._
+import uk.gov.hmrc.customerprofile.domain.types.ModelTypes.JourneyId
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -39,9 +40,9 @@ class CustomerProfileService @Inject()(
   val auditConnector:            AuditConnector,
   @Named("appName") val appName: String
 ) extends Auditor {
-  def getAccounts()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Accounts] =
+  def getAccounts(journeyId: JourneyId)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Accounts] =
     withAudit("getAccounts", Map.empty) {
-      accountAccessControl.accounts
+      accountAccessControl.accounts(journeyId)
     }
 
   def getPersonalDetails(nino: Nino)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PersonDetails] =
@@ -49,12 +50,12 @@ class CustomerProfileService @Inject()(
       citizenDetailsConnector.personDetails(nino)
     }
 
-  def paperlessSettings(settings: Paperless)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] =
+  def paperlessSettings(settings: Paperless, journeyId: JourneyId)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] =
     withAudit("paperlessSettings", Map("accepted" -> settings.generic.accepted.toString)) {
       for {
         preferences ← entityResolver.getPreferences()
         status ← preferences.fold(entityResolver.paperlessSettings(settings)) { preference =>
-                  if (preference.digital) setPreferencesPendingEmail(ChangeEmail(settings.email.value))
+                  if (preference.digital) setPreferencesPendingEmail(ChangeEmail(settings.email.value), journeyId)
                   else entityResolver.paperlessSettings(settings)
                 }
       } yield status
@@ -70,10 +71,10 @@ class CustomerProfileService @Inject()(
       entityResolver.getPreferences()
     }
 
-  def setPreferencesPendingEmail(changeEmail: ChangeEmail)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] =
+  def setPreferencesPendingEmail(changeEmail: ChangeEmail, journeyId: JourneyId)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] =
     withAudit("updatePendingEmailPreference", Map("email" → changeEmail.email)) {
       for {
-        account ← getAccounts()
+        account ← getAccounts(journeyId)
         entity ← entityResolver.getEntityIdByNino(account.nino.getOrElse(throw new NinoNotFoundOnAccount("")))
         response ← preferencesConnector.updatePendingEmail(changeEmail, entity._id)
       } yield response

@@ -26,6 +26,8 @@ import uk.gov.hmrc.domain.{Nino, SaUtr}
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import eu.timepit.refined.auto._
+import uk.gov.hmrc.customerprofile.domain.types.ModelTypes.JourneyId
 
 class AccountAccessControlISpec extends BaseISpec with Eventually {
 
@@ -33,14 +35,14 @@ class AccountAccessControlISpec extends BaseISpec with Eventually {
 
   val saUtr = SaUtr("1872796160")
   val nino = Nino("CS100700A")
-
+  val journeyId: JourneyId = "b6ef25bc-8f5e-49c8-98c5-f039f39e4557"
   val testAccountAccessControl: AccountAccessControl = app.injector.instanceOf[AccountAccessControl]
 
   "Returning the accounts" should {
     "be found and routeToIV and routeToTwoFactor should be true" in {
       accountsFound(nino, L50, Weak, saUtr)
 
-      val accounts: Accounts = await(testAccountAccessControl.accounts(hc))
+      val accounts: Accounts = await(testAccountAccessControl.accounts(journeyId)(hc))
       accounts.nino.get shouldBe nino
       accounts.saUtr.get shouldBe saUtr
       accounts.routeToIV shouldBe true
@@ -50,7 +52,7 @@ class AccountAccessControlISpec extends BaseISpec with Eventually {
     "be found and routeToIV is false and routeToTwoFactor is true" in {
       accountsFound(nino, L50, Strong, saUtr)
 
-      val accounts: Accounts = await(testAccountAccessControl.accounts(hc))
+      val accounts: Accounts = await(testAccountAccessControl.accounts(journeyId)(hc))
       accounts.nino.get shouldBe nino
       accounts.saUtr.get shouldBe saUtr
       accounts.routeToIV shouldBe true
@@ -60,7 +62,7 @@ class AccountAccessControlISpec extends BaseISpec with Eventually {
     "be found and routeToIV and routeToTwoFactor should be false" in {
       accountsFound(nino, L200, Strong, saUtr)
 
-      val accounts: Accounts = await(testAccountAccessControl.accounts(hc))
+      val accounts: Accounts = await(testAccountAccessControl.accounts(journeyId)(hc))
       accounts.nino.get shouldBe nino
       accounts.saUtr.get shouldBe saUtr
       accounts.routeToIV shouldBe false
@@ -70,7 +72,7 @@ class AccountAccessControlISpec extends BaseISpec with Eventually {
     "be found when the users account does not have a NINO" in {
       accountsFoundWithoutNino(L200, Strong, saUtr)
 
-      val accounts: Accounts = await(testAccountAccessControl.accounts(hc))
+      val accounts: Accounts = await(testAccountAccessControl.accounts(journeyId)(hc))
       accounts.nino shouldBe None
       accounts.saUtr.get shouldBe saUtr
       accounts.routeToIV shouldBe false

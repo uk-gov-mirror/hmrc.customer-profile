@@ -1,13 +1,13 @@
 # microservice specific routes
 
-GET         /profile/accounts                                      uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getAccounts(journeyId: String)
+GET         /profile/accounts                                      uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getAccounts(journeyId: JourneyId)
 
-GET         /profile/personal-details/:nino                        uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getPersonalDetails(nino : uk.gov.hmrc.domain.Nino, journeyId: String)
+GET         /profile/personal-details/:nino                        uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getPersonalDetails(nino : uk.gov.hmrc.domain.Nino, journeyId: JourneyId)
 
-GET         /profile/preferences                                   uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getPreferences(journeyId: String)
+GET         /profile/preferences                                   uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.getPreferences(journeyId: JourneyId)
 
-POST        /profile/preferences/paperless-settings/opt-in         uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.paperlessSettingsOptIn(journeyId: String)
+POST        /profile/preferences/paperless-settings/opt-in         uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.paperlessSettingsOptIn(journeyId: JourneyId)
 
-POST        /profile/preferences/paperless-settings/opt-out        uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.paperlessSettingsOptOut(journeyId: String)
+POST        /profile/preferences/paperless-settings/opt-out        uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.paperlessSettingsOptOut(journeyId: JourneyId)
 
-POST        /profile/preferences/pending-email                     uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.preferencesPendingEmail(journeyId: String)
+POST        /profile/preferences/pending-email                     uk.gov.hmrc.customerprofile.controllers.SandboxCustomerProfileController.preferencesPendingEmail(journeyId: JourneyId)

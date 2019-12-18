@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.customerprofile.controllers
 
-import java.time.{LocalDate, ZoneOffset}
+import java.time.LocalDate
 
 import com.google.inject.Singleton
 import javax.inject.Inject
@@ -25,6 +25,7 @@ import play.api.mvc._
 import uk.gov.hmrc.api.controllers.HeaderValidator
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status.Verified
 import uk.gov.hmrc.customerprofile.domain._
+import uk.gov.hmrc.customerprofile.domain.types.ModelTypes.JourneyId
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.emailaddress.EmailAddress
 import uk.gov.hmrc.http.HeaderCarrier
@@ -60,15 +61,15 @@ class SandboxCustomerProfileController @Inject()(cc: ControllerComponents)(impli
       Some(Address(Some("999 Big Street"), Some("Worthing"), Some("West Sussex"), None, None, Some("BN99 8IG"), None, None, None))
     )
 
-  private def accounts(journeyId: String) =
-    Accounts(Some(nino), None, routeToIV = false, routeToTwoFactor = false, journeyId)
+  private def accounts(journeyId: JourneyId) =
+    Accounts(Some(nino), None, routeToIV = false, routeToTwoFactor = false, journeyId.value)
 
   private val email = EmailAddress("name@email.co.uk")
 
   override def withAcceptHeaderValidationAndAuthIfLive(taxId: Option[Nino] = None): ActionBuilder[Request, AnyContent] =
     validateAccept(acceptHeaderValidationRules)
 
-  override def getAccounts(journeyId: String): Action[AnyContent] =
+  override def getAccounts(journeyId: JourneyId): Action[AnyContent] =
     validateAccept(acceptHeaderValidationRules).async { implicit request =>
       Future successful (request.headers.get(SANDBOX_CONTROL_HEADER) match {
         case Some("ERROR-401") => Unauthorized
@@ -78,7 +79,7 @@ class SandboxCustomerProfileController @Inject()(cc: ControllerComponents)(impli
       })
     }
 
-  override def getPersonalDetails(nino: Nino, journeyId: String): Action[AnyContent] =
+  override def getPersonalDetails(nino: Nino, journeyId: JourneyId): Action[AnyContent] =
     validateAccept(acceptHeaderValidationRules).async { implicit request =>
       Future successful (request.headers.get(SANDBOX_CONTROL_HEADER) match {
         case Some("ERROR-401") => Unauthorized
@@ -88,7 +89,7 @@ class SandboxCustomerProfileController @Inject()(cc: ControllerComponents)(impli
       })
     }
 
-  override def getPreferences(journeyId: String): Action[AnyContent] =
+  override def getPreferences(journeyId: JourneyId): Action[AnyContent] =
     validateAccept(acceptHeaderValidationRules).async { implicit request =>
       Future successful (request.headers.get(SANDBOX_CONTROL_HEADER) match {
         case Some("ERROR-401") => Unauthorized
@@ -99,7 +100,7 @@ class SandboxCustomerProfileController @Inject()(cc: ControllerComponents)(impli
       })
     }
 
-  override def paperlessSettingsOptOut(journeyId: String): Action[AnyContent] =
+  override def paperlessSettingsOptOut(journeyId: JourneyId): Action[AnyContent] =
     validateAccept(acceptHeaderValidationRules).async { implicit request =>
       Future successful (request.headers.get(SANDBOX_CONTROL_HEADER) match {
         case Some("ERROR-401")          => Unauthorized
@@ -111,7 +112,7 @@ class SandboxCustomerProfileController @Inject()(cc: ControllerComponents)(impli
       })
     }
 
-  override def optIn(settings: Paperless)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result] =
+  override def optIn(settings: Paperless, journeyId: JourneyId)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result] =
     Future successful (request.headers.get(SANDBOX_CONTROL_HEADER) match {
       case Some("ERROR-401")          => Unauthorized
       case Some("ERROR-403")          => Forbidden
@@ -122,14 +123,14 @@ class SandboxCustomerProfileController @Inject()(cc: ControllerComponents)(impli
       case _                          => NoContent
     })
 
-  override def pendingEmail(changeEmail: ChangeEmail)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result] =
+  override def pendingEmail(changeEmail: ChangeEmail, journeyId: JourneyId)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result] =
     Future successful (request.headers.get(SANDBOX_CONTROL_HEADER) match {
-      case Some("ERROR-401")          => Unauthorized
-      case Some("ERROR-403")          => Forbidden
-      case Some("ERROR-404")          => NotFound
-      case Some("ERROR-409")          => Conflict
-      case Some("ERROR-500")          => InternalServerError
-      case _                          => NoContent
+      case Some("ERROR-401") => Unauthorized
+      case Some("ERROR-403") => Forbidden
+      case Some("ERROR-404") => NotFound
+      case Some("ERROR-409") => Conflict
+      case Some("ERROR-500") => InternalServerError
+      case _                 => NoContent
     })
 
 }

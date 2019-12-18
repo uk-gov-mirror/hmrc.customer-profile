@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.customerprofile.services
 
+import eu.timepit.refined.auto._
 import org.scalamock.handlers.CallHandler3
 import org.scalamock.matchers.MatcherBase
 import org.scalamock.scalatest.MockFactory
@@ -26,6 +27,7 @@ import uk.gov.hmrc.customerprofile.auth.AccountAccessControl
 import uk.gov.hmrc.customerprofile.connector._
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status.Verified
 import uk.gov.hmrc.customerprofile.domain._
+import uk.gov.hmrc.customerprofile.domain.types.ModelTypes.JourneyId
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.emailaddress.EmailAddress
 import uk.gov.hmrc.http.HeaderCarrier
@@ -39,20 +41,20 @@ import scala.concurrent.{ExecutionContext, Future}
 class CustomerProfileServiceSpec extends WordSpecLike with Matchers with FutureAwaits with DefaultAwaitTimeout with MockFactory {
   implicit lazy val hc: HeaderCarrier = HeaderCarrier()
 
-  val appNameConfiguration: Configuration = mock[Configuration]
-  val auditConnector: AuditConnector = mock[AuditConnector]
-
+  val appNameConfiguration: Configuration  = mock[Configuration]
+  val auditConnector:       AuditConnector = mock[AuditConnector]
+  val journeyId:            JourneyId      = "b6ef25bc-8f5e-49c8-98c5-f039f39e4557"
   val appName = "customer-profile"
 
   def mockAudit(
-                 transactionName: String,
-                 detail: Map[String, String] = Map.empty): CallHandler3[DataEvent, HeaderCarrier, ExecutionContext, Future[AuditResult]] = {
+    transactionName: String,
+    detail:          Map[String, String] = Map.empty): CallHandler3[DataEvent, HeaderCarrier, ExecutionContext, Future[AuditResult]] = {
     def dataEventWith(auditSource: String, auditType: String, tags: Map[String, String]): MatcherBase =
       argThat((dataEvent: DataEvent) => {
         dataEvent.auditSource.equals(auditSource) &&
-          dataEvent.auditType.equals(auditType) &&
-          dataEvent.tags.equals(tags) &&
-          dataEvent.detail.equals(detail)
+        dataEvent.auditType.equals(auditType) &&
+        dataEvent.tags.equals(tags) &&
+        dataEvent.detail.equals(detail)
       })
 
     (appNameConfiguration.getString(_: String, _: Option[Set[String]])).expects("appName", None).returns(Some(appName)).anyNumberOfTimes()
@@ -64,9 +66,9 @@ class CustomerProfileServiceSpec extends WordSpecLike with Matchers with FutureA
   }
 
   val citizenDetailsConnector: CitizenDetailsConnector = mock[CitizenDetailsConnector]
-  val preferencesConnector: PreferencesConnector = mock[PreferencesConnector]
-  val entityResolver: EntityResolverConnector = mock[EntityResolverConnector]
-  val accountAccessControl: AccountAccessControl = mock[AccountAccessControl]
+  val preferencesConnector:    PreferencesConnector    = mock[PreferencesConnector]
+  val entityResolver:          EntityResolverConnector = mock[EntityResolverConnector]
+  val accountAccessControl:    AccountAccessControl    = mock[AccountAccessControl]
 
   val service =
     new CustomerProfileService(
@@ -78,10 +80,10 @@ class CustomerProfileServiceSpec extends WordSpecLike with Matchers with FutureA
       auditConnector,
       "customer-profile")
 
-  val existingDigitalPreference: Preference = existingPreferences(digital = true)
+  val existingDigitalPreference:    Preference = existingPreferences(digital = true)
   val existingNonDigitalPreference: Preference = existingPreferences(digital = false)
 
-  val newEmail = EmailAddress("new@new.com")
+  val newEmail             = EmailAddress("new@new.com")
   val newPaperlessSettings = Paperless(TermsAccepted(true), newEmail)
 
   val nino = Nino("CS700100A")
@@ -92,7 +94,7 @@ class CustomerProfileServiceSpec extends WordSpecLike with Matchers with FutureA
 
   def mockGetAccounts() = {
     mockAudit(transactionName = "getAccounts")
-    (accountAccessControl.accounts(_: HeaderCarrier)).expects(*).returns(Future successful accounts)
+    (accountAccessControl.accounts(_: JourneyId)(_: HeaderCarrier)).expects(*, *).returns(Future successful accounts)
   }
 
   def mockGetPreferences(maybeExistingPreferences: Option[Preference]) =
@@ -122,7 +124,7 @@ class CustomerProfileServiceSpec extends WordSpecLike with Matchers with FutureA
   "getAccounts" should {
     "audit and return accounts" in {
       mockGetAccounts()
-      await(service.getAccounts()) shouldBe accounts
+      await(service.getAccounts(journeyId)) shouldBe accounts
     }
   }
 
@@ -137,9 +139,9 @@ class CustomerProfileServiceSpec extends WordSpecLike with Matchers with FutureA
       (citizenDetailsConnector.personDetails(_: Nino)(_: HeaderCarrier, _: ExecutionContext)).expects(nino, *, *).returns(Future successful person)
       val personalDetails = await(service.getPersonalDetails(nino))
 
-      personalDetails shouldBe person
+      personalDetails                  shouldBe person
       personalDetails.person.shortName shouldBe Some("Firstname Middle")
-      personalDetails.person.fullName shouldBe "Title Firstname Lastname Middle Honours"
+      personalDetails.person.fullName  shouldBe "Title Firstname Lastname Middle Honours"
     }
   }
 
@@ -159,7 +161,7 @@ class CustomerProfileServiceSpec extends WordSpecLike with Matchers with FutureA
       mockGetAccounts()
       mockGetEntityIdAndUpdatePendingEmailWithAudit()
 
-      await(service.paperlessSettings(newPaperlessSettings)) shouldBe EmailUpdateOk
+      await(service.paperlessSettings(newPaperlessSettings, journeyId)) shouldBe EmailUpdateOk
     }
 
     "set the digital preference to true and update the email for a user who already has a defined non-digital preference" in {
@@ -167,7 +169,7 @@ class CustomerProfileServiceSpec extends WordSpecLike with Matchers with FutureA
       mockGetPreferences(Some(existingNonDigitalPreference))
       mockPaperlessSettings(PreferencesExists)
 
-      await(service.paperlessSettings(newPaperlessSettings)) shouldBe PreferencesExists
+      await(service.paperlessSettings(newPaperlessSettings, journeyId)) shouldBe PreferencesExists
     }
 
     "set the digital preference to true and set the email for a user who has no defined preference" in {
@@ -175,7 +177,7 @@ class CustomerProfileServiceSpec extends WordSpecLike with Matchers with FutureA
       mockGetPreferences(None)
       mockPaperlessSettings(PreferencesCreated)
 
-      await(service.paperlessSettings(newPaperlessSettings)) shouldBe PreferencesCreated
+      await(service.paperlessSettings(newPaperlessSettings, journeyId)) shouldBe PreferencesCreated
     }
   }
 

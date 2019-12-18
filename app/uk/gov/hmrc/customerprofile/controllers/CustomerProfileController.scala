@@ -21,6 +21,7 @@ import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.api.controllers._
 import uk.gov.hmrc.customerprofile.domain._
+import uk.gov.hmrc.customerprofile.domain.types.ModelTypes.JourneyId
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.HeaderCarrierConverter.fromHeadersAndSession
@@ -30,15 +31,15 @@ import scala.concurrent.Future
 trait CustomerProfileController extends HeaderValidator {
   def controllerComponents: ControllerComponents
 
-  def getAccounts(journeyId: String): Action[AnyContent]
+  def getAccounts(journeyId: JourneyId): Action[AnyContent]
 
-  def getPersonalDetails(nino: Nino, journeyId: String): Action[AnyContent]
+  def getPersonalDetails(nino: Nino, journeyId: JourneyId): Action[AnyContent]
 
-  def getPreferences(journeyId: String): Action[AnyContent]
+  def getPreferences(journeyId: JourneyId): Action[AnyContent]
 
-  def paperlessSettingsOptOut(journeyId: String): Action[AnyContent]
+  def paperlessSettingsOptOut(journeyId: JourneyId): Action[AnyContent]
 
-  def preferencesPendingEmail(journeyId: String): Action[JsValue] =
+  def preferencesPendingEmail(journeyId: JourneyId): Action[JsValue] =
     withAcceptHeaderValidationAndAuthIfLive().async(controllerComponents.parsers.json) { implicit request =>
       implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
       request.body
@@ -49,12 +50,12 @@ trait CustomerProfileController extends HeaderValidator {
             Future successful BadRequest
           },
           changeEmail => {
-            pendingEmail(changeEmail)
+            pendingEmail(changeEmail, journeyId)
           }
         )
     }
 
-  final def paperlessSettingsOptIn(journeyId: String): Action[JsValue] =
+  final def paperlessSettingsOptIn(journeyId: JourneyId): Action[JsValue] =
     withAcceptHeaderValidationAndAuthIfLive().async(controllerComponents.parsers.json) { implicit request =>
       implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
       request.body
@@ -65,14 +66,14 @@ trait CustomerProfileController extends HeaderValidator {
             Future successful BadRequest
           },
           settings => {
-            optIn(settings)
+            optIn(settings, journeyId)
           }
         )
     }
 
   def withAcceptHeaderValidationAndAuthIfLive(taxId: Option[Nino] = None): ActionBuilder[Request, AnyContent]
 
-  def optIn(settings: Paperless)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result]
+  def optIn(settings: Paperless, journeyId: JourneyId)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result]
 
-  def pendingEmail(changeEmail: ChangeEmail)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result]
+  def pendingEmail(changeEmail: ChangeEmail, journeyId: JourneyId)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result]
 }

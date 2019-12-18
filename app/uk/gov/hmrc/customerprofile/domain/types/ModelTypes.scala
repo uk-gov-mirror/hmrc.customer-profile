@@ -14,13 +14,16 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.customerprofile.domain
+package uk.gov.hmrc.customerprofile.domain.types
 
-import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.domain.{Nino, SaUtr}
+import eu.timepit.refined.W
+import eu.timepit.refined.api.Refined
+import eu.timepit.refined.string.MatchesRegex
 
-case class Accounts(nino: Option[Nino], saUtr: Option[SaUtr], routeToIV: Boolean, routeToTwoFactor: Boolean, journeyId: String)
+object ModelTypes {
 
-object Accounts {
-  implicit val format: OFormat[Accounts] = Json.format[Accounts]
+  type JourneyId = String Refined ValidJourneyId
+
+  private type ValidJourneyId = MatchesRegex[W.`"""[A-Fa-f0-9]{8}\\-[A-Fa-f0-9]{4}\\-[A-Fa-f0-9]{4}\\-[A-Fa-f0-9]{4}\\-[A-Fa-f0-9]{12}"""`.T]
+
 }

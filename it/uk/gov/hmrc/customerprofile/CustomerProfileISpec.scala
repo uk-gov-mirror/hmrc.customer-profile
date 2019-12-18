@@ -38,6 +38,7 @@ import scala.io.Source.fromInputStream
 trait CustomerProfileTests extends BaseISpec with Eventually {
   val nino = Nino("AA000006C")
   val acceptJsonHeader: (String, String) = "Accept" -> "application/vnd.hmrc.1.0+json"
+  val journeyId = "b6ef25bc-8f5e-49c8-98c5-f039f39e4557"
 
   def getRequestWithAcceptHeader(url: String): Future[WSResponse] = wsUrl(url).addHttpHeaders(acceptJsonHeader).get()
 
@@ -48,7 +49,7 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
     wsUrl(url).addHttpHeaders(acceptJsonHeader).post("")
 
   "GET /profile/accounts" should {
-    val url: String = "/profile/accounts?journeyId=journeyId"
+    val url: String = s"/profile/accounts?journeyId=$journeyId"
 
     "return account details" in {
       accountsFound(nino)
@@ -80,10 +81,14 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
     "return 400 if no journeyId is supplied" in {
       await(wsUrl("/profile/accounts").get()).status shouldBe 400
     }
+
+    "return 400 if invalid journeyId is supplied" in {
+      await(wsUrl("/profile/accounts?journeyId=ThisIsAnInvalidJourneyId").get()).status shouldBe 400
+    }
   }
 
   "GET /profile/preferences" should {
-    val url = "/profile/preferences?journeyId=journeyId"
+    val url = s"/profile/preferences?journeyId=$journeyId"
 
     "return preferences" in {
       authRecordExists(nino)
@@ -107,10 +112,14 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
     "return 400 if no journeyId is supplied" in {
       await(wsUrl("/profile/preferences").get()).status shouldBe 400
     }
+
+    "return 400 if invalid journeyId is supplied" in {
+      await(wsUrl("/profile/preferences?journeyId=ThisIsAnInvalidJourneyId").get()).status shouldBe 400
+    }
   }
 
   "GET /profile/personal-details/:nino" should {
-    val url = s"/profile/personal-details/${nino.value}?journeyId=journeyId"
+    val url = s"/profile/personal-details/${nino.value}?journeyId=$journeyId"
 
     "return 404 response status code when citizen-details returns 404 response status code." in {
       designatoryDetailsWillReturnErrorResponse(nino, 404)
@@ -134,10 +143,14 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
     "return 400 if no journeyId is supplied" in {
       await(wsUrl(s"/profile/personal-details/${nino.value}").get()).status shouldBe 400
     }
+
+    "return 400 if invalid journeyId is supplied" in {
+      await(wsUrl(s"/profile/personal-details/${nino.value}?journeyId=ThisIsAnInvalidJourneyId").get()).status shouldBe 400
+    }
   }
 
   "POST /profile/paperless-settings/opt-in" should {
-    val url       = "/profile/preferences/paperless-settings/opt-in?journeyId=journeyId"
+    val url       = s"/profile/preferences/paperless-settings/opt-in?journeyId=$journeyId"
     val entityId  = "1098561938451038465138465"
     val paperless = toJson(Paperless(generic = TermsAccepted(true), email = EmailAddress("new-email@new-email.new.email")))
 
@@ -213,10 +226,14 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
     "return 400 if no journeyId is supplied" in {
       await(wsUrl("/profile/preferences/paperless-settings/opt-in").post(paperless)).status shouldBe 400
     }
+
+    "return 400 if invalid journeyId is supplied" in {
+      await(wsUrl("/profile/preferences/paperless-settings/opt-in?journeyId=ThisIsAnInvalidJourneyId").post(paperless)).status shouldBe 400
+    }
   }
 
   "POST /profile/paperless-settings/opt-out" should {
-    val url = "/profile/preferences/paperless-settings/opt-out?journeyId=journeyId"
+    val url = s"/profile/preferences/paperless-settings/opt-out?journeyId=$journeyId"
 
     "return a 204 response when successful" in {
       authRecordExists(nino)
@@ -237,10 +254,14 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
     "return 400 if no journeyId is supplied" in {
       await(wsUrl("/profile/preferences/paperless-settings/opt-out").post("")).status shouldBe 400
     }
+
+    "return 400 if invalid journeyId is supplied" in {
+      await(wsUrl("/profile/preferences/paperless-settings/opt-out?journeyId=ThisIsAnInvalidJourneyId").post("")).status shouldBe 400
+    }
   }
 
   "POST /profile/preferences/pending-email" should {
-    val url       = "/profile/preferences/pending-email?journeyId=journeyId"
+    val url       = s"/profile/preferences/pending-email?journeyId=$journeyId"
     val entityId  = "1098561938451038465138465"
     val changeEmail = toJson(ChangeEmail(email = EmailAddress("new-email@new-email.new.email")))
 
@@ -306,6 +327,10 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
     "return 400 if no journeyId is supplied" in {
       await(wsUrl("/profile/preferences/pending-email").post(changeEmail)).status shouldBe 400
     }
+
+    "return 400 if invalid journeyId is supplied" in {
+      await(wsUrl("/profile/preferences/pending-email?journeyId=ThisIsAnInvalidJourneyId").post(changeEmail)).status shouldBe 400
+    }
   }
 
   protected def resourceAsString(resourcePath: String): Option[String] =
@@ -334,7 +359,7 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
 
 class CustomerProfileAllEnabledISpec extends CustomerProfileTests {
   "GET /profile/personal-details/:nino - Citizen Details Enabled" should {
-    val url = s"/profile/personal-details/${nino.value}?journeyId=journeyId"
+    val url = s"/profile/personal-details/${nino.value}?journeyId=$journeyId"
     "return personal details for the given NINO from citizen-details" in {
       designatoryDetailsForNinoAre(nino, resourceAsString("AA000006C-citizen-details.json").get)
       authRecordExists(nino)
@@ -378,7 +403,7 @@ class CustomerProfileCitizenDetailsDisabledISpec extends CustomerProfileTests {
   )
 
   "GET /profile/personal-details/:nino - Citizen Details Disabled" should {
-    val url = s"/profile/personal-details/${nino.value}?journeyId=journeyId"
+    val url = s"/profile/personal-details/${nino.value}?journeyId=$journeyId"
     "return 404 for disabled citizen-details" in {
       authRecordExists(nino)
 

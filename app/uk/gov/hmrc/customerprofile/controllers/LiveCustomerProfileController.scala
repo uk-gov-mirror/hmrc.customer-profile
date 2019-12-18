@@ -25,6 +25,7 @@ import uk.gov.hmrc.api.controllers._
 import uk.gov.hmrc.auth.core.AuthorisationException
 import uk.gov.hmrc.customerprofile.auth._
 import uk.gov.hmrc.customerprofile.connector._
+import uk.gov.hmrc.customerprofile.domain.types.ModelTypes.JourneyId
 import uk.gov.hmrc.customerprofile.domain.{ChangeEmail, Paperless}
 import uk.gov.hmrc.customerprofile.services.CustomerProfileService
 import uk.gov.hmrc.domain.Nino
@@ -112,13 +113,13 @@ class LiveCustomerProfileController @Inject()(
         Status(ErrorInternalServerError.httpStatusCode)(toJson(ErrorInternalServerError))
     }
 
-  override def getAccounts(journeyId: String): Action[AnyContent] =
+  override def getAccounts(journeyId: JourneyId): Action[AnyContent] =
     validateAccept(acceptHeaderValidationRules).async { implicit request =>
       implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
 
       errorWrapper(
         service
-          .getAccounts()
+          .getAccounts(journeyId)
           .map(
             as => Ok(toJson(as))
           )
@@ -127,7 +128,7 @@ class LiveCustomerProfileController @Inject()(
 
   def getLogger: LoggerLike = Logger
 
-  override def getPersonalDetails(nino: Nino, journeyId: String): Action[AnyContent] =
+  override def getPersonalDetails(nino: Nino, journeyId: JourneyId): Action[AnyContent] =
     withAcceptHeaderValidationAndAuthIfLive(Some(nino)).async { implicit request =>
       implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
       errorWrapper {
@@ -143,7 +144,7 @@ class LiveCustomerProfileController @Inject()(
       }
     }
 
-  override def getPreferences(journeyId: String): Action[AnyContent] =
+  override def getPreferences(journeyId: JourneyId): Action[AnyContent] =
     withAcceptHeaderValidationAndAuthIfLive().async { implicit request =>
       implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
       errorWrapper(
@@ -154,8 +155,8 @@ class LiveCustomerProfileController @Inject()(
       )
     }
 
-  override def optIn(settings: Paperless)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result] =
-    errorWrapper(service.paperlessSettings(settings).map {
+  override def optIn(settings: Paperless, journeyId: JourneyId)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result] =
+    errorWrapper(service.paperlessSettings(settings, journeyId).map {
       case PreferencesExists | EmailUpdateOk => NoContent
       case PreferencesCreated                => Created
       case EmailNotExist                     => Conflict(toJson(ErrorPreferenceConflict))
@@ -163,7 +164,7 @@ class LiveCustomerProfileController @Inject()(
       case _                                 => InternalServerError(toJson(PreferencesSettingsError))
     })
 
-  override def paperlessSettingsOptOut(journeyId: String): Action[AnyContent] =
+  override def paperlessSettingsOptOut(journeyId: JourneyId): Action[AnyContent] =
     withAcceptHeaderValidationAndAuthIfLive().async { implicit request =>
       errorWrapper(service.paperlessSettingsOptOut().map {
         case PreferencesExists       => NoContent
@@ -173,8 +174,8 @@ class LiveCustomerProfileController @Inject()(
       })
     }
 
-  override def pendingEmail(changeEmail: ChangeEmail)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result] =
-      errorWrapper(service.setPreferencesPendingEmail(changeEmail).map {
+  override def pendingEmail(changeEmail: ChangeEmail, journeyId: JourneyId)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result] =
+      errorWrapper(service.setPreferencesPendingEmail(changeEmail, journeyId).map {
         case EmailUpdateOk           => NoContent
         case EmailNotExist           => Conflict
         case NoPreferenceExists      => NotFound
