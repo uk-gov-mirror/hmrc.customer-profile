@@ -28,55 +28,98 @@ import uk.gov.hmrc.domain.{Nino, SaUtr}
 
 object AuthStub {
   private val authUrl: String = "/auth/authorise"
-  private val utr = SaUtr("1872796160")
+  private val utr:     SaUtr  = SaUtr("1872796160")
 
-  private val authorisationRequestJson: String = """{ "authorise": [], "retrieve": ["nino","confidenceLevel"] }""".stripMargin
-  private val accountsRequestJson: String = """{ "authorise": [], "retrieve": ["nino","saUtr","credentialStrength","confidenceLevel"] }""".stripMargin
+  private val authorisationRequestJson: String =
+    """{ "authorise": [], "retrieve": ["nino","confidenceLevel"] }""".stripMargin
 
-  def authRecordExists(nino: Nino, confidenceLevel: ConfidenceLevel = L200): StubMapping = {
-    stubFor(post(urlEqualTo(authUrl)).withRequestBody(equalToJson(
-      authorisationRequestJson, true, false)).willReturn(
-        aResponse().withStatus(200).withBody(obj("confidenceLevel" -> confidenceLevel.level, "nino" -> nino.nino).toString)))
-  }
+  private val accountsRequestJson: String =
+    """{ "authorise": [], "retrieve": ["nino","saUtr","credentialStrength","confidenceLevel"] }""".stripMargin
 
-  def authFailure(): StubMapping = {
-    stubFor(post(urlEqualTo(authUrl)).withRequestBody(equalToJson(
-      authorisationRequestJson, true, false)).willReturn(
-        aResponse().withStatus(401).withHeader(
-          WWW_AUTHENTICATE,"""MDTP detail="BearerTokenExpired"""").withHeader(ENROLMENT, "")))
-  }
+  def authRecordExists(
+    nino:            Nino,
+    confidenceLevel: ConfidenceLevel = L200
+  ): StubMapping =
+    stubFor(
+      post(urlEqualTo(authUrl))
+        .withRequestBody(equalToJson(authorisationRequestJson, true, false))
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+            .withBody(obj("confidenceLevel" -> confidenceLevel.level, "nino" -> nino.nino).toString)
+        )
+    )
 
-  def authRecordExistsWithoutNino(): StubMapping = {
-    stubFor(post(urlEqualTo(authUrl)).withRequestBody(equalToJson(
-      authorisationRequestJson, true, false)).willReturn(
-        aResponse().withStatus(200).withBody(obj("confidenceLevel" -> L200.level).toString)))
-  }
+  def authFailure(): StubMapping =
+    stubFor(
+      post(urlEqualTo(authUrl))
+        .withRequestBody(equalToJson(authorisationRequestJson, true, false))
+        .willReturn(
+          aResponse()
+            .withStatus(401)
+            .withHeader(WWW_AUTHENTICATE, """MDTP detail="BearerTokenExpired"""")
+            .withHeader(ENROLMENT, "")
+        )
+    )
 
+  def authRecordExistsWithoutNino(): StubMapping =
+    stubFor(
+      post(urlEqualTo(authUrl))
+        .withRequestBody(equalToJson(authorisationRequestJson, true, false))
+        .willReturn(aResponse().withStatus(200).withBody(obj("confidenceLevel" -> L200.level).toString))
+    )
 
-  def accountsFound(nino: Nino, confidenceLevel: ConfidenceLevel = L200, credentialStrength: CredentialStrength = Strong, saUtr: SaUtr = utr): StubMapping = {
-    stubFor(post(urlEqualTo(authUrl)).withRequestBody(equalToJson(
-      accountsRequestJson, true, false)).willReturn(
-        aResponse().withStatus(200).withBody(obj(
-          "confidenceLevel" -> confidenceLevel.level,
-          "nino" -> nino.nino,
-          "credentialStrength" -> credentialStrength.name,
-          "saUtr" -> saUtr.utr
-        ).toString)))
-  }
+  def accountsFound(
+    nino:               Nino,
+    confidenceLevel:    ConfidenceLevel = L200,
+    credentialStrength: CredentialStrength = Strong,
+    saUtr:              SaUtr = utr
+  ): StubMapping =
+    stubFor(
+      post(urlEqualTo(authUrl))
+        .withRequestBody(equalToJson(accountsRequestJson, true, false))
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+            .withBody(
+              obj(
+                "confidenceLevel"    -> confidenceLevel.level,
+                "nino"               -> nino.nino,
+                "credentialStrength" -> credentialStrength.name,
+                "saUtr"              -> saUtr.utr
+              ).toString
+            )
+        )
+    )
 
-  def accountsFailure(): StubMapping = {
-    stubFor(post(urlEqualTo(authUrl)).withRequestBody(equalToJson(
-      accountsRequestJson, true, false)).willReturn(
-        aResponse().withStatus(401).withHeader(
-          WWW_AUTHENTICATE,"""MDTP detail="BearerTokenExpired"""").withHeader(ENROLMENT, "")))
-  }
+  def accountsFailure(): StubMapping =
+    stubFor(
+      post(urlEqualTo(authUrl))
+        .withRequestBody(equalToJson(accountsRequestJson, true, false))
+        .willReturn(
+          aResponse()
+            .withStatus(401)
+            .withHeader(WWW_AUTHENTICATE, """MDTP detail="BearerTokenExpired"""")
+            .withHeader(ENROLMENT, "")
+        )
+    )
 
-  def accountsFoundWithoutNino(confidenceLevel: ConfidenceLevel = L200, credentialStrength: CredentialStrength = Strong, saUtr: SaUtr = utr): StubMapping = {
-    stubFor(post(urlEqualTo(authUrl)).withRequestBody(equalToJson(
-      accountsRequestJson, true, false)).willReturn(
-        aResponse().withStatus(200).withBody(obj(
-          "confidenceLevel" -> confidenceLevel.level,
-          "credentialStrength" -> credentialStrength.name,
-          "saUtr" -> saUtr.utr).toString)))
-  }
+  def accountsFoundWithoutNino(
+    confidenceLevel:    ConfidenceLevel    = L200,
+    credentialStrength: CredentialStrength = Strong,
+    saUtr:              SaUtr              = utr
+  ): StubMapping =
+    stubFor(
+      post(urlEqualTo(authUrl))
+        .withRequestBody(equalToJson(accountsRequestJson, true, false))
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+            .withBody(
+              obj("confidenceLevel"    -> confidenceLevel.level,
+                  "credentialStrength" -> credentialStrength.name,
+                  "saUtr"              -> saUtr.utr).toString
+            )
+        )
+    )
 }

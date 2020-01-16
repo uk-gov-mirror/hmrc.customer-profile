@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ case object EmailNotExist extends PreferencesStatus
 case object NoPreferenceExists extends PreferencesStatus
 
 @Singleton
-class EntityResolverConnector @Inject()(
+class EntityResolverConnector @Inject() (
   @Named("entity-resolver") serviceUrl: String,
   http:                                 CoreGet with CorePost,
   val configuration:                    Configuration,
@@ -60,14 +60,21 @@ class EntityResolverConnector @Inject()(
 
   def url(path: String) = s"$serviceUrl$path"
 
-  def getPreferences()(implicit headerCarrier: HeaderCarrier, ex: ExecutionContext): Future[Option[Preference]] =
+  def getPreferences(
+  )(implicit headerCarrier: HeaderCarrier,
+    ex:                     ExecutionContext
+  ): Future[Option[Preference]] =
     withCircuitBreaker(http.GET[Option[Preference]](url(s"/preferences")))
       .recover {
         case response: Upstream4xxResponse if response.upstreamResponseCode == GONE => None
         case _:        NotFoundException                                            => None
       }
 
-  def paperlessSettings(paperless: Paperless)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] =
+  def paperlessSettings(
+    paperless:   Paperless
+  )(implicit hc: HeaderCarrier,
+    ex:          ExecutionContext
+  ): Future[PreferencesStatus] =
     withCircuitBreaker(http.POST(url(s"/preferences/terms-and-conditions"), paperless)).map(_.status).map {
       case OK      => PreferencesExists
       case CREATED => PreferencesCreated
@@ -76,22 +83,31 @@ class EntityResolverConnector @Inject()(
         PreferencesFailure
     }
 
-  def paperlessOptOut()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] =
-    withCircuitBreaker(http.POST(url(s"/preferences/terms-and-conditions"), PaperlessOptOut(TermsAccepted(false)))).map(_.status).map {
-      case OK      => PreferencesExists
-      case CREATED =>
-        //how could you create an opt-out paperless setting prior to opting-in??
-        Logger.warn("Unexpected behaviour : creating paperless setting opt-out")
-        PreferencesCreated
-      case NOT_FOUND =>
-        Logger.warn("Failed to find a record to apply request to opt-out of paperless settings")
-        PreferencesDoesNotExist
-      case _ =>
-        Logger.warn("Failed to apply request to opt-out of paperless settings")
-        PreferencesFailure
-    }
+  def paperlessOptOut(
+  )(implicit hc: HeaderCarrier,
+    ex:          ExecutionContext
+  ): Future[PreferencesStatus] =
+    withCircuitBreaker(http.POST(url(s"/preferences/terms-and-conditions"), PaperlessOptOut(TermsAccepted(false))))
+      .map(_.status)
+      .map {
+        case OK      => PreferencesExists
+        case CREATED =>
+          //how could you create an opt-out paperless setting prior to opting-in??
+          Logger.warn("Unexpected behaviour : creating paperless setting opt-out")
+          PreferencesCreated
+        case NOT_FOUND =>
+          Logger.warn("Failed to find a record to apply request to opt-out of paperless settings")
+          PreferencesDoesNotExist
+        case _ =>
+          Logger.warn("Failed to apply request to opt-out of paperless settings")
+          PreferencesFailure
+      }
 
-  def getEntityIdByNino(nino: Nino)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Entity] =
+  def getEntityIdByNino(
+    nino:        Nino
+  )(implicit hc: HeaderCarrier,
+    ex:          ExecutionContext
+  ): Future[Entity] =
     withCircuitBreaker {
       http.GET[Entity](url(s"/entity-resolver/paye/${nino.nino}"))
     }

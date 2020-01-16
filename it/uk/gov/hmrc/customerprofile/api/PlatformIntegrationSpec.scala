@@ -1,8 +1,6 @@
 package uk.gov.hmrc.customerprofile.api
 
 import org.scalatest.concurrent.Eventually
-import org.scalatest.concurrent.PatienceConfiguration.Timeout
-import org.scalatest.time.{Millis, Span}
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsArray, JsValue}
 import play.api.libs.ws.WSResponse
@@ -25,9 +23,9 @@ class PlatformIntegrationSpec extends BaseISpec with Eventually with PlayRunners
 
   override protected def appBuilder: GuiceApplicationBuilder = new GuiceApplicationBuilder().configure(
     config ++
-      Map(
-        "api.access.white-list.applicationIds" -> Seq(appId1, appId2)
-      )
+    Map(
+      "api.access.white-list.applicationIds" -> Seq(appId1, appId2)
+    )
   )
 
   "microservice" should {
@@ -35,17 +33,17 @@ class PlatformIntegrationSpec extends BaseISpec with Eventually with PlayRunners
       val result: WSResponse = await(wsUrl("/api/definition").get())
       result.status shouldBe 200
 
-      val definition: JsValue = result.json
-      val versions: Seq[JsValue] = (definition \ "api" \\ "versions").head.as[JsArray].value
+      val definition: JsValue      = result.json
+      val versions:   Seq[JsValue] = (definition \ "api" \\ "versions").head.as[JsArray].value
       versions.length shouldBe 1
 
       val versionJson: JsValue = versions.head
       (versionJson \ "version").as[String] shouldBe "1.0"
 
       val accessDetails: JsValue = (versionJson \\ "access").head
-      (accessDetails \ "type").as[String] shouldBe "PRIVATE"
+      (accessDetails \ "type").as[String]                           shouldBe "PRIVATE"
       (accessDetails \ "whitelistedApplicationIds").head.as[String] shouldBe appId1
-      (accessDetails \ "whitelistedApplicationIds") (1).as[String] shouldBe appId2
+      (accessDetails \ "whitelistedApplicationIds")(1).as[String]   shouldBe appId2
     }
 
     "provide RAML conf endpoint" in {

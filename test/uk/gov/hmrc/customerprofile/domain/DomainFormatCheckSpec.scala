@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,11 +29,7 @@ import uk.gov.hmrc.emailaddress.EmailAddress
 
 import scala.util.Random
 
-class DomainFormatCheckSpec
-    extends WordSpecLike
-    with Matchers
-    with FutureAwaits
-    with DefaultAwaitTimeout {
+class DomainFormatCheckSpec extends WordSpecLike with Matchers with FutureAwaits with DefaultAwaitTimeout {
 
   import DomainGenerator._
 
@@ -70,16 +66,17 @@ object DomainGenerator {
 
   import uk.gov.hmrc.domain.Generator
 
-  val nino: Nino = new Generator().nextNino
+  val nino:  Nino  = new Generator().nextNino
   val saUtr: SaUtr = new SaUtrGenerator().nextSaUtr
 
   val accountsWithNinoAndSaUtr = Accounts(
     Some(nino),
     Some(saUtr),
-    routeToIV = false,
+    routeToIV        = false,
     routeToTwoFactor = false,
     "102030394AAA"
   )
+
   lazy val accountsWithNinoAndSaUtrAsJson: JsValue = toJson(
     accountsWithNinoAndSaUtr
   )
@@ -94,11 +91,13 @@ object DomainGenerator {
 
   val verifiedEmailPreference =
     Preference(digital = true, Some(EmailPreference(email, Status.Verified)))
+
   lazy val verifiedEmailPreferenceAsJson: JsValue = toJson(
     verifiedEmailPreference
   )
 
   val etag = "etag12345"
+
   val person =
     Person(
       Some("John"),

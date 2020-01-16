@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,9 +25,15 @@ object Binders {
 
   implicit def ninoBinder(implicit stringBinder: PathBindable[String]): PathBindable[Nino] = new PathBindable[Nino] {
 
-    def unbind(key: String, nino: Nino): String = stringBinder.unbind(key, nino.value)
+    def unbind(
+      key:  String,
+      nino: Nino
+    ): String = stringBinder.unbind(key, nino.value)
 
-    def bind(key: String, value: String): Either[String, Nino] =
+    def bind(
+      key:   String,
+      value: String
+    ): Either[String, Nino] =
       if (isValid(value)) {
         Right(Nino(value))
       } else {

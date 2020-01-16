@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,15 +25,23 @@ import uk.gov.hmrc.http._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
-class CitizenDetailsConnectorSpec extends WordSpecLike with Matchers with FutureAwaits with DefaultAwaitTimeout with MockFactory {
+class CitizenDetailsConnectorSpec
+    extends WordSpecLike
+    with Matchers
+    with FutureAwaits
+    with DefaultAwaitTimeout
+    with MockFactory {
   implicit lazy val hc: HeaderCarrier = HeaderCarrier()
 
-  val nino = Nino("CS700100A")
-  val http: CoreGet = mock[CoreGet]
-  val connector = new CitizenDetailsConnector("someUrl", http)
+  val nino:      Nino                    = Nino("CS700100A")
+  val http:      CoreGet                 = mock[CoreGet]
+  val connector: CitizenDetailsConnector = new CitizenDetailsConnector("someUrl", http)
 
   def mockHttpGet(exception: Exception) =
-    (http.GET(_: String)(_: HttpReads[HttpResponse], _: HeaderCarrier, _: ExecutionContext)).expects(*, *, *, *).returns(Future failed exception)
+    (http
+      .GET(_: String)(_: HttpReads[HttpResponse], _: HeaderCarrier, _: ExecutionContext))
+      .expects(*, *, *, *)
+      .returns(Future failed exception)
 
   "citizenDetailsConnector" should {
     "throw BadRequestException when a 400 response is returned" in {

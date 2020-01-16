@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package uk.gov.hmrc.customerprofile.controllers
 
 import com.google.inject.{Inject, Singleton}
 import javax.inject.Named
+import play.api.libs.json.Json
 import play.api.libs.json.Json.{obj, toJson}
 import play.api.mvc._
 import play.api.{Logger, LoggerLike, mvc}
@@ -26,7 +27,7 @@ import uk.gov.hmrc.auth.core.AuthorisationException
 import uk.gov.hmrc.customerprofile.auth._
 import uk.gov.hmrc.customerprofile.connector._
 import uk.gov.hmrc.customerprofile.domain.types.ModelTypes.JourneyId
-import uk.gov.hmrc.customerprofile.domain.{ChangeEmail, Paperless}
+import uk.gov.hmrc.customerprofile.domain.{ChangeEmail, Paperless, Shuttering}
 import uk.gov.hmrc.customerprofile.services.CustomerProfileService
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{HeaderCarrier, NotFoundException, Upstream4xxResponse}
@@ -36,21 +37,26 @@ import uk.gov.hmrc.play.bootstrap.controller.BackendController
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class LiveCustomerProfileController @Inject()(
+class LiveCustomerProfileController @Inject() (
   service:                                                     CustomerProfileService,
   accessControl:                                               AccountAccessControl,
   @Named("citizen-details.enabled") val citizenDetailsEnabled: Boolean,
-  controllerComponents:                                        ControllerComponents
-)(
-  implicit val executionContext: ExecutionContext
-) extends BackendController(controllerComponents)
+  controllerComponents:                                        ControllerComponents,
+  shutteringConnector:                                         ShutteringConnector
+)(implicit val executionContext:                               ExecutionContext)
+    extends BackendController(controllerComponents)
     with CustomerProfileController {
   outer =>
   override def parser: BodyParser[AnyContent] = controllerComponents.parsers.anyContent
 
-  val app = "Live-Customer-Profile"
+  private final val WebServerIsDown = new Status(521)
+  val app                           = "Live-Customer-Profile"
 
-  def invokeAuthBlock[A](request: Request[A], block: Request[A] => Future[Result], taxId: Option[Nino]): Future[Result] = {
+  def invokeAuthBlock[A](
+    request: Request[A],
+    block:   Request[A] => Future[Result],
+    taxId:   Option[Nino]
+  ): Future[Result] = {
     implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
 
     accessControl
@@ -82,13 +88,20 @@ class LiveCustomerProfileController @Inject()(
 
   override def withAcceptHeaderValidationAndAuthIfLive(taxId: Option[Nino] = None): ActionBuilder[Request, AnyContent] =
     new ActionBuilder[Request, AnyContent] {
-      def invokeBlock[A](request: Request[A], block: Request[A] => Future[Result]): Future[Result] =
+
+      def invokeBlock[A](
+        request: Request[A],
+        block:   Request[A] => Future[Result]
+      ): Future[Result] =
         if (acceptHeaderValidationRules(request.headers.get("Accept"))) {
           invokeAuthBlock(request, block, taxId)
         } else Future.successful(Status(ErrorAcceptHeaderInvalid.httpStatusCode)(toJson(ErrorAcceptHeaderInvalid)))
       override def parser:                     BodyParser[AnyContent] = outer.parser
       override protected def executionContext: ExecutionContext       = outer.executionContext
     }
+
+  override def withShuttering(shuttering: Shuttering)(fn: => Future[Result]): Future[Result] =
+    if (shuttering.shuttered) Future.successful(WebServerIsDown(Json.toJson(shuttering))) else fn
 
   def log(message: String): Unit = Logger.info(s"$app $message")
 
@@ -116,70 +129,104 @@ class LiveCustomerProfileController @Inject()(
   override def getAccounts(journeyId: JourneyId): Action[AnyContent] =
     validateAccept(acceptHeaderValidationRules).async { implicit request =>
       implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
-
-      errorWrapper(
-        service
-          .getAccounts(journeyId)
-          .map(
-            as => Ok(toJson(as))
+      shutteringConnector.getShutteringStatus(journeyId).flatMap { shuttered =>
+        withShuttering(shuttered) {
+          errorWrapper(
+            service
+              .getAccounts(journeyId)
+              .map(as => Ok(toJson(as)))
           )
-      )
+        }
+      }
     }
 
   def getLogger: LoggerLike = Logger
 
-  override def getPersonalDetails(nino: Nino, journeyId: JourneyId): Action[AnyContent] =
+  override def getPersonalDetails(
+    nino:      Nino,
+    journeyId: JourneyId
+  ): Action[AnyContent] =
     withAcceptHeaderValidationAndAuthIfLive(Some(nino)).async { implicit request =>
       implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
-      errorWrapper {
-        if (citizenDetailsEnabled) {
-          service
-            .getPersonalDetails(nino)
-            .map(as => Ok(toJson(as)))
-            .recover {
-              case Upstream4xxResponse(_, LOCKED, _, _) =>
-                result(ErrorManualCorrespondenceIndicator)
-            }
-        } else Future successful result(ErrorNotFound)
+      shutteringConnector.getShutteringStatus(journeyId).flatMap { shuttered =>
+        withShuttering(shuttered) {
+          errorWrapper {
+            if (citizenDetailsEnabled) {
+              service
+                .getPersonalDetails(nino)
+                .map(as => Ok(toJson(as)))
+                .recover {
+                  case Upstream4xxResponse(_, LOCKED, _, _) =>
+                    result(ErrorManualCorrespondenceIndicator)
+                }
+            } else Future successful result(ErrorNotFound)
+          }
+        }
       }
     }
 
   override def getPreferences(journeyId: JourneyId): Action[AnyContent] =
     withAcceptHeaderValidationAndAuthIfLive().async { implicit request =>
       implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
-      errorWrapper(
-        service.getPreferences().map {
-          case Some(response) => Ok(toJson(response))
-          case _              => NotFound
+      shutteringConnector.getShutteringStatus(journeyId).flatMap { shuttered =>
+        withShuttering(shuttered) {
+          errorWrapper(
+            service.getPreferences().map {
+              case Some(response) => Ok(toJson(response))
+              case _              => NotFound
+            }
+          )
         }
-      )
+      }
     }
 
-  override def optIn(settings: Paperless, journeyId: JourneyId)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result] =
-    errorWrapper(service.paperlessSettings(settings, journeyId).map {
-      case PreferencesExists | EmailUpdateOk => NoContent
-      case PreferencesCreated                => Created
-      case EmailNotExist                     => Conflict(toJson(ErrorPreferenceConflict))
-      case NoPreferenceExists                => NotFound(toJson(ErrorNotFound))
-      case _                                 => InternalServerError(toJson(PreferencesSettingsError))
-    })
+  override def optIn(
+    settings:    Paperless,
+    journeyId:   JourneyId
+  )(implicit hc: HeaderCarrier,
+    request:     Request[_]
+  ): Future[Result] =
+    shutteringConnector.getShutteringStatus(journeyId).flatMap { shuttered =>
+      withShuttering(shuttered) {
+        errorWrapper(service.paperlessSettings(settings, journeyId).map {
+          case PreferencesExists | EmailUpdateOk => NoContent
+          case PreferencesCreated                => Created
+          case EmailNotExist                     => Conflict(toJson(ErrorPreferenceConflict))
+          case NoPreferenceExists                => NotFound(toJson(ErrorNotFound))
+          case _                                 => InternalServerError(toJson(PreferencesSettingsError))
+        })
+      }
+    }
 
   override def paperlessSettingsOptOut(journeyId: JourneyId): Action[AnyContent] =
     withAcceptHeaderValidationAndAuthIfLive().async { implicit request =>
-      errorWrapper(service.paperlessSettingsOptOut().map {
-        case PreferencesExists       => NoContent
-        case PreferencesCreated      => Created
-        case PreferencesDoesNotExist => NotFound
-        case _                       => InternalServerError(toJson(PreferencesSettingsError))
-      })
+      shutteringConnector.getShutteringStatus(journeyId).flatMap { shuttered =>
+        withShuttering(shuttered) {
+          errorWrapper(service.paperlessSettingsOptOut().map {
+            case PreferencesExists       => NoContent
+            case PreferencesCreated      => Created
+            case PreferencesDoesNotExist => NotFound
+            case _                       => InternalServerError(toJson(PreferencesSettingsError))
+          })
+        }
+      }
     }
 
-  override def pendingEmail(changeEmail: ChangeEmail, journeyId: JourneyId)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result] =
-      errorWrapper(service.setPreferencesPendingEmail(changeEmail, journeyId).map {
-        case EmailUpdateOk           => NoContent
-        case EmailNotExist           => Conflict
-        case NoPreferenceExists      => NotFound
-        case _                       => InternalServerError(toJson(PreferencesSettingsError))
-      })
+  override def pendingEmail(
+    changeEmail: ChangeEmail,
+    journeyId:   JourneyId
+  )(implicit hc: HeaderCarrier,
+    request:     Request[_]
+  ): Future[Result] =
+    shutteringConnector.getShutteringStatus(journeyId).flatMap { shuttered =>
+      withShuttering(shuttered) {
+        errorWrapper(service.setPreferencesPendingEmail(changeEmail, journeyId).map {
+          case EmailUpdateOk      => NoContent
+          case EmailNotExist      => Conflict
+          case NoPreferenceExists => NotFound
+          case _                  => InternalServerError(toJson(PreferencesSettingsError))
+        })
+      }
+    }
 
 }

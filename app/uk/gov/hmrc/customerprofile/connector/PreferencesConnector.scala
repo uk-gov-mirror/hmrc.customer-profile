@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,17 +34,22 @@ object Entity {
 }
 
 @Singleton
-class PreferencesConnector @Inject()(
+class PreferencesConnector @Inject() (
   http:                             CorePut with CoreGet,
   @Named("preferences") serviceUrl: String,
   override val externalServiceName: String,
   val configuration:                Configuration,
-  val environment:                  Environment
-) extends ServicesCircuitBreaker {
+  val environment:                  Environment)
+    extends ServicesCircuitBreaker {
 
   def url(path: String): String = s"$serviceUrl$path"
 
-  def updatePendingEmail(changeEmail: ChangeEmail, entityId: String)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] =
+  def updatePendingEmail(
+    changeEmail: ChangeEmail,
+    entityId:    String
+  )(implicit hc: HeaderCarrier,
+    ex:          ExecutionContext
+  ): Future[PreferencesStatus] =
     http.PUT(url(s"/preferences/$entityId/pending-email"), changeEmail).map(_ => EmailUpdateOk).recoverWith {
       case e: NotFoundException ⇒ log(e.message, entityId); Future(NoPreferenceExists)
       case e: Upstream4xxResponse ⇒
@@ -56,6 +61,9 @@ class PreferencesConnector @Inject()(
       case _ ⇒ log("Failed to update preferences email", entityId); Future(EmailUpdateFailed)
     }
 
-  def log(msg: String, entityId: String): Unit =
+  def log(
+    msg:      String,
+    entityId: String
+  ): Unit =
     Logger.warn(msg + s" for entity $entityId")
 }

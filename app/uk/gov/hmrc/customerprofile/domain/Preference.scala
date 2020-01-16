@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,32 +19,36 @@ package uk.gov.hmrc.customerprofile.domain
 import play.api.libs.json.{JsError, Json, _}
 import uk.gov.hmrc.emailaddress.EmailAddress
 
-
-case class EmailPreference(email: EmailAddress, status: EmailPreference.Status)
+case class EmailPreference(
+  email:  EmailAddress,
+  status: EmailPreference.Status)
 
 object EmailPreference {
 
   import uk.gov.hmrc.emailaddress.PlayJsonFormats.{emailAddressReads, emailAddressWrites}
 
   sealed trait Status
+
   object Status {
     case object Pending extends Status
     case object Bounced extends Status
     case object Verified extends Status
 
     val reads: Reads[Status] = new Reads[Status] {
+
       override def reads(json: JsValue): JsResult[Status] = json match {
-        case JsString("pending") => JsSuccess(Pending)
-        case JsString("bounced") => JsSuccess(Bounced)
+        case JsString("pending")  => JsSuccess(Pending)
+        case JsString("bounced")  => JsSuccess(Bounced)
         case JsString("verified") => JsSuccess(Verified)
-        case _ => JsError()
+        case _                    => JsError()
       }
     }
 
     val writes: Writes[Status] = new Writes[Status] {
+
       override def writes(status: Status) = status match {
-        case Pending => JsString("pending")
-        case Bounced => JsString("bounced")
+        case Pending  => JsString("pending")
+        case Bounced  => JsString("bounced")
         case Verified => JsString("verified")
       }
     }
@@ -55,11 +59,13 @@ object EmailPreference {
   implicit val formats: OFormat[EmailPreference] = Json.format[EmailPreference]
 }
 
-case class Preference(digital: Boolean, email: Option[EmailPreference] = None)
+case class Preference(
+  digital: Boolean,
+  email:   Option[EmailPreference] = None)
 
 object Preference {
+
   implicit val format: OFormat[Preference] = {
-    import EmailPreference.formats
     Json.format[Preference]
   }
 }

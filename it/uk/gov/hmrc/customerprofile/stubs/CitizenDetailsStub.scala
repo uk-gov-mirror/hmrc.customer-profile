@@ -23,19 +23,30 @@ import uk.gov.hmrc.domain.Nino
 
 object CitizenDetailsStub {
 
-  def designatoryDetailsForNinoAre(nino: Nino, detailsJson: String): StubMapping =
+  def designatoryDetailsForNinoAre(
+    nino:        Nino,
+    detailsJson: String
+  ): StubMapping =
     stubFor(
       get(urlEqualToDesignatoryDetails(nino))
         .willReturn(
           aResponse()
             .withStatus(200)
-            .withBody(detailsJson)))
+            .withBody(detailsJson)
+        )
+    )
 
-  def designatoryDetailsWillReturnErrorResponse(nino: Nino, responseStatusCode: Int): StubMapping =
+  def designatoryDetailsWillReturnErrorResponse(
+    nino:               Nino,
+    responseStatusCode: Int
+  ): StubMapping =
     stubFor(
       get(urlEqualToDesignatoryDetails(nino))
-        .willReturn(aResponse()
-          .withStatus(responseStatusCode)))
+        .willReturn(
+          aResponse()
+            .withStatus(responseStatusCode)
+        )
+    )
 
   def npsDataIsLockedDueToMciFlag(nino: Nino): StubMapping =
     designatoryDetailsWillReturnErrorResponse(nino, 423)

@@ -7,27 +7,42 @@ import com.github.tomakehurst.wiremock.stubbing.StubMapping
 object PreferencesStub {
 
   def successfulPendingEmailUpdate(entityId: String): StubMapping =
-    stubFor(put(urlEqualToPreferencesPendingEmail(entityId))
-      .willReturn(aResponse()
-        .withStatus(200)))
+    stubFor(
+      put(urlEqualToPreferencesPendingEmail(entityId))
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+        )
+    )
 
   def conflictPendingEmailUpdate(entityId: String): StubMapping =
-    stubFor(put(urlEqualToPreferencesPendingEmail(entityId))
-      .willReturn(aResponse()
-        .withStatus(409)))
+    stubFor(
+      put(urlEqualToPreferencesPendingEmail(entityId))
+        .willReturn(
+          aResponse()
+            .withStatus(409)
+        )
+    )
 
   def notFoundPendingEmailUpdate(entityId: String): StubMapping =
-    stubFor(put(urlEqualToPreferencesPendingEmail(entityId))
-      .willReturn(aResponse()
-        .withStatus(404)))
+    stubFor(
+      put(urlEqualToPreferencesPendingEmail(entityId))
+        .willReturn(
+          aResponse()
+            .withStatus(404)
+        )
+    )
 
   def errorPendingEmailUpdate(entityId: String): StubMapping =
-    stubFor(put(urlEqualToPreferencesPendingEmail(entityId))
-      .willReturn(aResponse()
-        .withStatus(500)))
+    stubFor(
+      put(urlEqualToPreferencesPendingEmail(entityId))
+        .willReturn(
+          aResponse()
+            .withStatus(500)
+        )
+    )
 
-  private def urlEqualToPreferencesPendingEmail(entityId: String): UrlPattern = {
+  private def urlEqualToPreferencesPendingEmail(entityId: String): UrlPattern =
     urlEqualTo(s"/preferences/$entityId/pending-email")
-  }
 
 }

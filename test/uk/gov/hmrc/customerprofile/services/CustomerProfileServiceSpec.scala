@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,30 +38,48 @@ import uk.gov.hmrc.play.audit.model.DataEvent
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
-class CustomerProfileServiceSpec extends WordSpecLike with Matchers with FutureAwaits with DefaultAwaitTimeout with MockFactory {
+class CustomerProfileServiceSpec
+    extends WordSpecLike
+    with Matchers
+    with FutureAwaits
+    with DefaultAwaitTimeout
+    with MockFactory {
   implicit lazy val hc: HeaderCarrier = HeaderCarrier()
 
   val appNameConfiguration: Configuration  = mock[Configuration]
   val auditConnector:       AuditConnector = mock[AuditConnector]
   val journeyId:            JourneyId      = "b6ef25bc-8f5e-49c8-98c5-f039f39e4557"
-  val appName = "customer-profile"
+  val appName:              String         = "customer-profile"
 
   def mockAudit(
     transactionName: String,
-    detail:          Map[String, String] = Map.empty): CallHandler3[DataEvent, HeaderCarrier, ExecutionContext, Future[AuditResult]] = {
-    def dataEventWith(auditSource: String, auditType: String, tags: Map[String, String]): MatcherBase =
-      argThat((dataEvent: DataEvent) => {
+    detail:          Map[String, String] = Map.empty
+  ): CallHandler3[DataEvent, HeaderCarrier, ExecutionContext, Future[AuditResult]] = {
+    def dataEventWith(
+      auditSource: String,
+      auditType:   String,
+      tags:        Map[String, String]
+    ): MatcherBase =
+      argThat { (dataEvent: DataEvent) =>
         dataEvent.auditSource.equals(auditSource) &&
         dataEvent.auditType.equals(auditType) &&
         dataEvent.tags.equals(tags) &&
         dataEvent.detail.equals(detail)
-      })
+      }
 
-    (appNameConfiguration.getString(_: String, _: Option[Set[String]])).expects("appName", None).returns(Some(appName)).anyNumberOfTimes()
+    (appNameConfiguration
+      .getString(_: String, _: Option[Set[String]]))
+      .expects("appName", None)
+      .returns(Some(appName))
+      .anyNumberOfTimes()
 
     (auditConnector
       .sendEvent(_: DataEvent)(_: HeaderCarrier, _: ExecutionContext))
-      .expects(dataEventWith(appName, auditType = "ServiceResponseSent", tags = Map("transactionName" -> transactionName)), *, *)
+      .expects(
+        dataEventWith(appName, auditType = "ServiceResponseSent", tags = Map("transactionName" -> transactionName)),
+        *,
+        *
+      )
       .returns(Future successful Success)
   }
 
@@ -71,14 +89,13 @@ class CustomerProfileServiceSpec extends WordSpecLike with Matchers with FutureA
   val accountAccessControl:    AccountAccessControl    = mock[AccountAccessControl]
 
   val service =
-    new CustomerProfileService(
-      citizenDetailsConnector,
-      preferencesConnector,
-      entityResolver,
-      accountAccessControl,
-      appNameConfiguration,
-      auditConnector,
-      "customer-profile")
+    new CustomerProfileService(citizenDetailsConnector,
+                               preferencesConnector,
+                               entityResolver,
+                               accountAccessControl,
+                               appNameConfiguration,
+                               auditConnector,
+                               "customer-profile")
 
   val existingDigitalPreference:    Preference = existingPreferences(digital = true)
   val existingNonDigitalPreference: Preference = existingPreferences(digital = false)
@@ -98,10 +115,14 @@ class CustomerProfileServiceSpec extends WordSpecLike with Matchers with FutureA
   }
 
   def mockGetPreferences(maybeExistingPreferences: Option[Preference]) =
-    (entityResolver.getPreferences()(_: HeaderCarrier, _: ExecutionContext)).expects(*, *).returns(Future successful maybeExistingPreferences)
+    (entityResolver
+      .getPreferences()(_: HeaderCarrier, _: ExecutionContext))
+      .expects(*, *)
+      .returns(Future successful maybeExistingPreferences)
 
   def mockAuditPaperlessSettings() =
-    mockAudit(transactionName = "paperlessSettings", detail = Map("accepted" -> newPaperlessSettings.generic.accepted.toString))
+    mockAudit(transactionName = "paperlessSettings",
+              detail          = Map("accepted" -> newPaperlessSettings.generic.accepted.toString))
 
   def mockPaperlessSettings(status: PreferencesStatus) =
     (entityResolver
@@ -113,7 +134,10 @@ class CustomerProfileServiceSpec extends WordSpecLike with Matchers with FutureA
     val entity: Entity = Entity("entityId")
 
     mockAudit(transactionName = "updatePendingEmailPreference", detail = Map("email" -> newEmail.value))
-    (entityResolver.getEntityIdByNino(_: Nino)(_: HeaderCarrier, _: ExecutionContext)).expects(nino, *, *).returns(Future successful entity)
+    (entityResolver
+      .getEntityIdByNino(_: Nino)(_: HeaderCarrier, _: ExecutionContext))
+      .expects(nino, *, *)
+      .returns(Future successful entity)
 
     (preferencesConnector
       .updatePendingEmail(_: ChangeEmail, _: String)(_: HeaderCarrier, _: ExecutionContext))
@@ -130,13 +154,23 @@ class CustomerProfileServiceSpec extends WordSpecLike with Matchers with FutureA
 
   "getPersonalDetails" should {
     "audit and return accounts" in {
-      val person = PersonDetails(
-        "etag",
-        Person(Some("Firstname"), Some("Lastname"), Some("Middle"), Some("Intial"), Some("Title"), Some("Honours"), Some("sex"), None, None),
-        None)
+      val person = PersonDetails("etag",
+                                 Person(Some("Firstname"),
+                                        Some("Lastname"),
+                                        Some("Middle"),
+                                        Some("Intial"),
+                                        Some("Title"),
+                                        Some("Honours"),
+                                        Some("sex"),
+                                        None,
+                                        None),
+                                 None)
 
       mockAudit(transactionName = "getPersonalDetails", detail = Map("nino" -> nino.value))
-      (citizenDetailsConnector.personDetails(_: Nino)(_: HeaderCarrier, _: ExecutionContext)).expects(nino, *, *).returns(Future successful person)
+      (citizenDetailsConnector
+        .personDetails(_: Nino)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(nino, *, *)
+        .returns(Future successful person)
       val personalDetails = await(service.getPersonalDetails(nino))
 
       personalDetails                  shouldBe person
@@ -184,7 +218,10 @@ class CustomerProfileServiceSpec extends WordSpecLike with Matchers with FutureA
   "paperlessSettingsOptOut" should {
     "audit and opt the user out" in {
       mockAudit(transactionName = "paperlessSettingsOptOut")
-      (entityResolver.paperlessOptOut()(_: HeaderCarrier, _: ExecutionContext)).expects(*, *).returns(Future successful PreferencesExists)
+      (entityResolver
+        .paperlessOptOut()(_: HeaderCarrier, _: ExecutionContext))
+        .expects(*, *)
+        .returns(Future successful PreferencesExists)
 
       await(service.paperlessSettingsOptOut()) shouldBe PreferencesExists
     }

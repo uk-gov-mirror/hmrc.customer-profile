@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ class NinoNotFoundOnAccount(message: String) extends HttpException(message, 403)
 
 class AccountWithLowCL(message: String) extends HttpException(message, 403)
 
-class AccountAccessControl @Inject()(
+class AccountAccessControl @Inject() (
   val authConnector:                                                AuthConnector,
   val http:                                                         CoreGet,
   @Named("auth") val authUrl:                                       String,
@@ -62,7 +62,11 @@ class AccountAccessControl @Inject()(
           )
       }
 
-  def grantAccess(taxId: Option[Nino])(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] =
+  def grantAccess(
+    taxId:       Option[Nino]
+  )(implicit hc: HeaderCarrier,
+    ec:          ExecutionContext
+  ): Future[Unit] =
     authorised()
       .retrieve(nino and confidenceLevel) {
         case Some(foundNino) ~ foundConfidenceLevel ⇒

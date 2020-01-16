@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,10 @@ import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.collection.JavaConverters._
 
-class GuiceModule(environment: Environment, configuration: Configuration) extends AbstractModule {
+class GuiceModule(
+  environment:   Environment,
+  configuration: Configuration)
+    extends AbstractModule {
 
   val servicesConfig = new ServicesConfig(configuration, new RunMode(configuration, environment.mode))
 
@@ -39,7 +42,9 @@ class GuiceModule(environment: Environment, configuration: Configuration) extend
     bind(classOf[HttpClient]).to(classOf[WSHttpImpl])
     bind(classOf[AuthConnector]).to(classOf[DefaultAuthConnector])
 
-    bind(classOf[ApiAccess]).toInstance(ApiAccess("PRIVATE", configuration.underlying.getStringList("api.access.white-list.applicationIds").asScala))
+    bind(classOf[ApiAccess]).toInstance(
+      ApiAccess("PRIVATE", configuration.underlying.getStringList("api.access.white-list.applicationIds").asScala)
+    )
 
     bindConfigBoolean("citizen-details.enabled", "microservice.services.citizen-details.enabled")
 
@@ -48,6 +53,7 @@ class GuiceModule(environment: Environment, configuration: Configuration) extend
     bind(classOf[String]).annotatedWith(named("citizen-details")).toInstance(servicesConfig.baseUrl("citizen-details"))
     bind(classOf[String]).annotatedWith(named("entity-resolver")).toInstance(servicesConfig.baseUrl("entity-resolver"))
     bind(classOf[String]).annotatedWith(named("preferences")).toInstance(servicesConfig.baseUrl("preferences"))
+    bind(classOf[String]).annotatedWith(named("mobile-shuttering")).toInstance(servicesConfig.baseUrl("mobile-shuttering"))
   }
 
   /**
@@ -59,6 +65,9 @@ class GuiceModule(environment: Environment, configuration: Configuration) extend
       .annotatedWith(named(path))
       .to(configuration.underlying.getInt(path))
 
-  private def bindConfigBoolean(name: String, path: String): Unit =
+  private def bindConfigBoolean(
+    name: String,
+    path: String
+  ): Unit =
     bindConstant().annotatedWith(named(name)).to(configuration.underlying.getBoolean(path))
 }

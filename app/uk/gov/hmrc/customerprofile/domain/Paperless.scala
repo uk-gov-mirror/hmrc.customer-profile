@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,9 +25,12 @@ object TermsAccepted {
   implicit val formats: OFormat[TermsAccepted] = Json.format[TermsAccepted]
 }
 
-case class Paperless(generic: TermsAccepted, email: EmailAddress)
+case class Paperless(
+  generic: TermsAccepted,
+  email:   EmailAddress)
 
 object Paperless {
+
   implicit val formats: OFormat[Paperless] = {
     import uk.gov.hmrc.emailaddress.PlayJsonFormats.{emailAddressReads, emailAddressWrites}
     Json.format[Paperless]
@@ -35,6 +38,7 @@ object Paperless {
 }
 
 case class PaperlessOptOut(generic: TermsAccepted)
+
 object PaperlessOptOut {
   implicit val format: OFormat[PaperlessOptOut] = Json.format[PaperlessOptOut]
 }

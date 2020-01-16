@@ -18,13 +18,16 @@ package uk.gov.hmrc.customerprofile
 
 import java.io.InputStream
 
+import eu.timepit.refined.auto._
 import org.scalatest.concurrent.Eventually
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json.{parse, toJson}
 import play.api.libs.json.{JsValue, Json}
 import play.api.libs.ws.WSResponse
-import uk.gov.hmrc.customerprofile.domain.{ChangeEmail, Paperless, TermsAccepted}
+import uk.gov.hmrc.customerprofile.domain.types.ModelTypes.JourneyId
+import uk.gov.hmrc.customerprofile.domain.{ChangeEmail, Paperless, Shuttering, TermsAccepted}
 import uk.gov.hmrc.customerprofile.stubs.AuthStub._
+import uk.gov.hmrc.customerprofile.stubs.ShutteringStub._
 import uk.gov.hmrc.customerprofile.stubs.CitizenDetailsStub.{designatoryDetailsForNinoAre, designatoryDetailsWillReturnErrorResponse, npsDataIsLockedDueToMciFlag}
 import uk.gov.hmrc.customerprofile.stubs.EntityResolverStub._
 import uk.gov.hmrc.customerprofile.stubs.PreferencesStub.{conflictPendingEmailUpdate, errorPendingEmailUpdate, successfulPendingEmailUpdate}
@@ -36,13 +39,16 @@ import scala.concurrent.Future
 import scala.io.Source.fromInputStream
 
 trait CustomerProfileTests extends BaseISpec with Eventually {
-  val nino = Nino("AA000006C")
+  val nino:             Nino             = Nino("AA000006C")
   val acceptJsonHeader: (String, String) = "Accept" -> "application/vnd.hmrc.1.0+json"
-  val journeyId = "b6ef25bc-8f5e-49c8-98c5-f039f39e4557"
+  val journeyId:        JourneyId        = "b6ef25bc-8f5e-49c8-98c5-f039f39e4557"
 
   def getRequestWithAcceptHeader(url: String): Future[WSResponse] = wsUrl(url).addHttpHeaders(acceptJsonHeader).get()
 
-  def postRequestWithAcceptHeader(url: String, form: JsValue): Future[WSResponse] =
+  def postRequestWithAcceptHeader(
+    url:  String,
+    form: JsValue
+  ): Future[WSResponse] =
     wsUrl(url).addHttpHeaders(acceptJsonHeader).post(form)
 
   def postRequestWithAcceptHeader(url: String): Future[WSResponse] =
@@ -85,6 +91,19 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
     "return 400 if invalid journeyId is supplied" in {
       await(wsUrl("/profile/accounts?journeyId=ThisIsAnInvalidJourneyId").get()).status shouldBe 400
     }
+
+    "return shuttered when shuttered" in {
+      stubForShutteringEnabled
+      authRecordExists(nino)
+
+      val response = await(getRequestWithAcceptHeader(url))
+
+      response.status shouldBe 521
+      val shuttering: Shuttering = Json.parse(response.body).as[Shuttering]
+      shuttering.shuttered shouldBe true
+      shuttering.title     shouldBe Some("Shuttered")
+      shuttering.message   shouldBe Some("Preferences are currently not available")
+    }
   }
 
   "GET /profile/preferences" should {
@@ -115,6 +134,19 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
 
     "return 400 if invalid journeyId is supplied" in {
       await(wsUrl("/profile/preferences?journeyId=ThisIsAnInvalidJourneyId").get()).status shouldBe 400
+    }
+
+    "return shuttered when shuttered" in {
+      stubForShutteringEnabled
+      authRecordExists(nino)
+
+      val response = await(getRequestWithAcceptHeader(url))
+
+      response.status shouldBe 521
+      val shuttering: Shuttering = Json.parse(response.body).as[Shuttering]
+      shuttering.shuttered shouldBe true
+      shuttering.title     shouldBe Some("Shuttered")
+      shuttering.message   shouldBe Some("Preferences are currently not available")
     }
   }
 
@@ -147,12 +179,26 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
     "return 400 if invalid journeyId is supplied" in {
       await(wsUrl(s"/profile/personal-details/${nino.value}?journeyId=ThisIsAnInvalidJourneyId").get()).status shouldBe 400
     }
+
+    "return shuttered when shuttered" in {
+      stubForShutteringEnabled
+      authRecordExists(nino)
+
+      val response = await(getRequestWithAcceptHeader(url))
+
+      response.status shouldBe 521
+      val shuttering: Shuttering = Json.parse(response.body).as[Shuttering]
+      shuttering.shuttered shouldBe true
+      shuttering.title     shouldBe Some("Shuttered")
+      shuttering.message   shouldBe Some("Preferences are currently not available")
+    }
   }
 
   "POST /profile/paperless-settings/opt-in" should {
-    val url       = s"/profile/preferences/paperless-settings/opt-in?journeyId=$journeyId"
-    val entityId  = "1098561938451038465138465"
-    val paperless = toJson(Paperless(generic = TermsAccepted(true), email = EmailAddress("new-email@new-email.new.email")))
+    val url      = s"/profile/preferences/paperless-settings/opt-in?journeyId=$journeyId"
+    val entityId = "1098561938451038465138465"
+    val paperless =
+      toJson(Paperless(generic = TermsAccepted(true), email = EmailAddress("new-email@new-email.new.email")))
 
     "return a 204 response when successfully opting into paperless settings" in {
       respondWithEntityDetailsByNino(nino.value, entityId)
@@ -230,6 +276,19 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
     "return 400 if invalid journeyId is supplied" in {
       await(wsUrl("/profile/preferences/paperless-settings/opt-in?journeyId=ThisIsAnInvalidJourneyId").post(paperless)).status shouldBe 400
     }
+
+    "return shuttered when shuttered" in {
+      stubForShutteringEnabled
+      authRecordExists(nino)
+
+      val response = await(postRequestWithAcceptHeader(url, paperless))
+
+      response.status shouldBe 521
+      val shuttering: Shuttering = Json.parse(response.body).as[Shuttering]
+      shuttering.shuttered shouldBe true
+      shuttering.title     shouldBe Some("Shuttered")
+      shuttering.message   shouldBe Some("Preferences are currently not available")
+    }
   }
 
   "POST /profile/paperless-settings/opt-out" should {
@@ -258,11 +317,24 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
     "return 400 if invalid journeyId is supplied" in {
       await(wsUrl("/profile/preferences/paperless-settings/opt-out?journeyId=ThisIsAnInvalidJourneyId").post("")).status shouldBe 400
     }
+
+    "return shuttered when shuttered" in {
+      stubForShutteringEnabled
+      authRecordExists(nino)
+
+      val response = await(postRequestWithAcceptHeader(url))
+
+      response.status shouldBe 521
+      val shuttering: Shuttering = Json.parse(response.body).as[Shuttering]
+      shuttering.shuttered shouldBe true
+      shuttering.title     shouldBe Some("Shuttered")
+      shuttering.message   shouldBe Some("Preferences are currently not available")
+    }
   }
 
   "POST /profile/preferences/pending-email" should {
-    val url       = s"/profile/preferences/pending-email?journeyId=$journeyId"
-    val entityId  = "1098561938451038465138465"
+    val url         = s"/profile/preferences/pending-email?journeyId=$journeyId"
+    val entityId    = "1098561938451038465138465"
     val changeEmail = toJson(ChangeEmail(email = EmailAddress("new-email@new-email.new.email")))
 
     "return a 204 response when a pending email address is successfully updated" in {
@@ -277,7 +349,6 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
 
     "return a Conflict response when preferences has no existing verified or pending email" in {
       val expectedResponse = parse("""{"code":"CONFLICT","message":"No existing verified or pending data"}""")
-
 
       respondWithEntityDetailsByNino(nino.value, entityId)
       respondPreferencesWithPaperlessOptedIn()
@@ -331,6 +402,19 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
     "return 400 if invalid journeyId is supplied" in {
       await(wsUrl("/profile/preferences/pending-email?journeyId=ThisIsAnInvalidJourneyId").post(changeEmail)).status shouldBe 400
     }
+
+    "return shuttered when shuttered" in {
+      stubForShutteringEnabled
+      authRecordExists(nino)
+
+      val response = await(postRequestWithAcceptHeader(url, changeEmail))
+
+      response.status shouldBe 521
+      val shuttering: Shuttering = Json.parse(response.body).as[Shuttering]
+      shuttering.shuttered shouldBe true
+      shuttering.title     shouldBe Some("Shuttered")
+      shuttering.message   shouldBe Some("Preferences are currently not available")
+    }
   }
 
   protected def resourceAsString(resourcePath: String): Option[String] =
@@ -378,7 +462,8 @@ class CustomerProfileAllEnabledISpec extends CustomerProfileTests {
 
       response.status shouldBe 423
       response.json shouldBe parse(
-        """{"code":"MANUAL_CORRESPONDENCE_IND","message":"Data cannot be disclosed to the user because MCI flag is set in NPS"}""")
+        """{"code":"MANUAL_CORRESPONDENCE_IND","message":"Data cannot be disclosed to the user because MCI flag is set in NPS"}"""
+      )
     }
 
     "return 500 response status code when citizen-details returns 500 response status code." in {
@@ -390,16 +475,30 @@ class CustomerProfileAllEnabledISpec extends CustomerProfileTests {
       response.status shouldBe 500
       response.json   shouldBe parse("""{"code":"INTERNAL_SERVER_ERROR","message":"Internal server error"}""")
     }
+
+    "return shuttered when shuttered" in {
+      stubForShutteringEnabled
+      authRecordExists(nino)
+
+      val response = await(getRequestWithAcceptHeader(url))
+
+      response.status shouldBe 521
+      val shuttering: Shuttering = Json.parse(response.body).as[Shuttering]
+      shuttering.shuttered shouldBe true
+      shuttering.title     shouldBe Some("Shuttered")
+      shuttering.message   shouldBe Some("Preferences are currently not available")
+    }
   }
 
 }
 
 class CustomerProfileCitizenDetailsDisabledISpec extends CustomerProfileTests {
+
   override protected def appBuilder: GuiceApplicationBuilder = new GuiceApplicationBuilder().configure(
     config ++
-      Map(
-        "microservice.services.citizen-details.enabled" -> false
-      )
+    Map(
+      "microservice.services.citizen-details.enabled" -> false
+    )
   )
 
   "GET /profile/personal-details/:nino - Citizen Details Disabled" should {

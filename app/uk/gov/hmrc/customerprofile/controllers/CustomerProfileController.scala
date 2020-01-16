@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,11 +29,15 @@ import uk.gov.hmrc.play.HeaderCarrierConverter.fromHeadersAndSession
 import scala.concurrent.Future
 
 trait CustomerProfileController extends HeaderValidator {
+
   def controllerComponents: ControllerComponents
 
   def getAccounts(journeyId: JourneyId): Action[AnyContent]
 
-  def getPersonalDetails(nino: Nino, journeyId: JourneyId): Action[AnyContent]
+  def getPersonalDetails(
+    nino:      Nino,
+    journeyId: JourneyId
+  ): Action[AnyContent]
 
   def getPreferences(journeyId: JourneyId): Action[AnyContent]
 
@@ -49,9 +53,7 @@ trait CustomerProfileController extends HeaderValidator {
             Logger.warn("Errors validating request body: " + errors)
             Future successful BadRequest
           },
-          changeEmail => {
-            pendingEmail(changeEmail, journeyId)
-          }
+          changeEmail => pendingEmail(changeEmail, journeyId)
         )
     }
 
@@ -65,15 +67,25 @@ trait CustomerProfileController extends HeaderValidator {
             Logger.warn("Received error with service getPaperlessSettings: " + errors)
             Future successful BadRequest
           },
-          settings => {
-            optIn(settings, journeyId)
-          }
+          settings => optIn(settings, journeyId)
         )
     }
 
   def withAcceptHeaderValidationAndAuthIfLive(taxId: Option[Nino] = None): ActionBuilder[Request, AnyContent]
 
-  def optIn(settings: Paperless, journeyId: JourneyId)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result]
+  def withShuttering(shuttering: Shuttering)(fn: => Future[Result]): Future[Result]
 
-  def pendingEmail(changeEmail: ChangeEmail, journeyId: JourneyId)(implicit hc: HeaderCarrier, request: Request[_]): Future[Result]
+  def optIn(
+    settings:    Paperless,
+    journeyId:   JourneyId
+  )(implicit hc: HeaderCarrier,
+    request:     Request[_]
+  ): Future[Result]
+
+  def pendingEmail(
+    changeEmail: ChangeEmail,
+    journeyId:   JourneyId
+  )(implicit hc: HeaderCarrier,
+    request:     Request[_]
+  ): Future[Result]
 }

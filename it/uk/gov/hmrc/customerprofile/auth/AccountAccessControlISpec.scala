@@ -16,26 +16,26 @@
 
 package uk.gov.hmrc.customerprofile.auth
 
+import eu.timepit.refined.auto._
 import org.scalatest.concurrent.Eventually
 import uk.gov.hmrc.auth.core.ConfidenceLevel.{L200, L50}
 import uk.gov.hmrc.customerprofile.domain.Accounts
 import uk.gov.hmrc.customerprofile.domain.CredentialStrength.{Strong, Weak}
+import uk.gov.hmrc.customerprofile.domain.types.ModelTypes.JourneyId
 import uk.gov.hmrc.customerprofile.stubs.AuthStub._
 import uk.gov.hmrc.customerprofile.support.BaseISpec
 import uk.gov.hmrc.domain.{Nino, SaUtr}
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import eu.timepit.refined.auto._
-import uk.gov.hmrc.customerprofile.domain.types.ModelTypes.JourneyId
 
 class AccountAccessControlISpec extends BaseISpec with Eventually {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  val saUtr = SaUtr("1872796160")
-  val nino = Nino("CS100700A")
-  val journeyId: JourneyId = "b6ef25bc-8f5e-49c8-98c5-f039f39e4557"
+  val saUtr:                    SaUtr                = SaUtr("1872796160")
+  val nino:                     Nino                 = Nino("CS100700A")
+  val journeyId:                JourneyId            = "b6ef25bc-8f5e-49c8-98c5-f039f39e4557"
   val testAccountAccessControl: AccountAccessControl = app.injector.instanceOf[AccountAccessControl]
 
   "Returning the accounts" should {
@@ -43,9 +43,9 @@ class AccountAccessControlISpec extends BaseISpec with Eventually {
       accountsFound(nino, L50, Weak, saUtr)
 
       val accounts: Accounts = await(testAccountAccessControl.accounts(journeyId)(hc))
-      accounts.nino.get shouldBe nino
-      accounts.saUtr.get shouldBe saUtr
-      accounts.routeToIV shouldBe true
+      accounts.nino.get         shouldBe nino
+      accounts.saUtr.get        shouldBe saUtr
+      accounts.routeToIV        shouldBe true
       accounts.routeToTwoFactor shouldBe true
     }
 
@@ -53,9 +53,9 @@ class AccountAccessControlISpec extends BaseISpec with Eventually {
       accountsFound(nino, L50, Strong, saUtr)
 
       val accounts: Accounts = await(testAccountAccessControl.accounts(journeyId)(hc))
-      accounts.nino.get shouldBe nino
-      accounts.saUtr.get shouldBe saUtr
-      accounts.routeToIV shouldBe true
+      accounts.nino.get         shouldBe nino
+      accounts.saUtr.get        shouldBe saUtr
+      accounts.routeToIV        shouldBe true
       accounts.routeToTwoFactor shouldBe false
     }
 
@@ -63,9 +63,9 @@ class AccountAccessControlISpec extends BaseISpec with Eventually {
       accountsFound(nino, L200, Strong, saUtr)
 
       val accounts: Accounts = await(testAccountAccessControl.accounts(journeyId)(hc))
-      accounts.nino.get shouldBe nino
-      accounts.saUtr.get shouldBe saUtr
-      accounts.routeToIV shouldBe false
+      accounts.nino.get         shouldBe nino
+      accounts.saUtr.get        shouldBe saUtr
+      accounts.routeToIV        shouldBe false
       accounts.routeToTwoFactor shouldBe false
     }
 
@@ -73,9 +73,9 @@ class AccountAccessControlISpec extends BaseISpec with Eventually {
       accountsFoundWithoutNino(L200, Strong, saUtr)
 
       val accounts: Accounts = await(testAccountAccessControl.accounts(journeyId)(hc))
-      accounts.nino shouldBe None
-      accounts.saUtr.get shouldBe saUtr
-      accounts.routeToIV shouldBe false
+      accounts.nino             shouldBe None
+      accounts.saUtr.get        shouldBe saUtr
+      accounts.routeToIV        shouldBe false
       accounts.routeToTwoFactor shouldBe false
     }
 

@@ -31,19 +31,22 @@ object AppDependencies {
   }
 
   object Test {
+
     def apply(): Seq[ModuleID] =
       new TestDependencies {
 
         override lazy val test = Seq(
-          "com.typesafe.play"      %% "play-test"          % PlayVersion.current  % scope,
+          "com.typesafe.play"      %% "play-test"          % PlayVersion.current % scope,
           "org.scalatestplus.play" %% "scalatestplus-play" % scalatestPlusVersion % scope,
-          "org.scalamock"          %% "scalamock"          % scalaMockVersion     % scope,
-          "org.pegdown"            % "pegdown"             % pegdownVersion       % scope
+          "org.scalamock"          %% "scalamock"          % scalaMockVersion % scope,
+          "org.pegdown"            % "pegdown"             % pegdownVersion % scope,
+          "eu.timepit"             %% "refined"            % refinedVersion
         )
       }.test
   }
 
   object IntegrationTest {
+
     def apply(): Seq[ModuleID] =
       new TestDependencies {
 
@@ -61,6 +64,7 @@ object AppDependencies {
     // compatible with wiremock, so we need to pin the jetty stuff to the older version.
     // see https://groups.google.com/forum/#!topic/play-framework/HAIM1ukUCnI
     val jettyVersion = "9.2.13.v20150730"
+
     def overrides(): Set[ModuleID] = Set(
       "org.eclipse.jetty"           % "jetty-server"       % jettyVersion,
       "org.eclipse.jetty"           % "jetty-servlet"      % jettyVersion,

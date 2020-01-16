@@ -11,14 +11,21 @@ import uk.gov.hmrc.emailaddress.EmailAddress
 
 object EntityResolverStub {
 
-  private def entityDetailsByNino(nino: String, entityId: String): String = s"""
-                                       |{
-                                       |  "_id":"$entityId",
-                                       |  "sautr":"8040200778",
-                                       |  "nino":"$nino"
-                                       |}""".stripMargin
+  private def entityDetailsByNino(
+    nino:     String,
+    entityId: String
+  ): String = s"""
+                 |{
+                 |  "_id":"$entityId",
+                 |  "sautr":"8040200778",
+                 |  "nino":"$nino"
+                 |}""".stripMargin
 
-  private def preferences(optedIn: Boolean = true, email: String = "test@email.com", status: Status = Verified): Preference =
+  private def preferences(
+    optedIn: Boolean = true,
+    email:   String  = "test@email.com",
+    status:  Status  = Verified
+  ): Preference =
     if (optedIn) {
       Preference(optedIn, Some(EmailPreference(EmailAddress(email), status)))
     } else Preference(digital = false)
@@ -26,13 +33,19 @@ object EntityResolverStub {
   private def urlEqualToEntityResolverPaye(nino: String): UrlPattern =
     urlEqualTo(s"/entity-resolver/paye/$nino")
 
-  def respondWithEntityDetailsByNino(nino: String, entityId: String): StubMapping =
+  def respondWithEntityDetailsByNino(
+    nino:     String,
+    entityId: String
+  ): StubMapping =
     stubFor(
       get(urlEqualToEntityResolverPaye(nino))
-        .willReturn(aResponse().withStatus(200).withBody(entityDetailsByNino(nino, entityId))))
+        .willReturn(aResponse().withStatus(200).withBody(entityDetailsByNino(nino, entityId)))
+    )
 
   def respondPreferencesWithPaperlessOptedIn(): StubMapping =
-    stubFor(get(urlEqualToPreferences).willReturn(aResponse().withStatus(200).withBody(stringify(toJson(preferences())))))
+    stubFor(
+      get(urlEqualToPreferences).willReturn(aResponse().withStatus(200).withBody(stringify(toJson(preferences()))))
+    )
 
   def respondPreferencesWithBouncedEmail(): StubMapping =
     stubFor(
@@ -40,12 +53,15 @@ object EntityResolverStub {
         .willReturn(
           aResponse()
             .withStatus(200)
-            .withBody(stringify(toJson(preferences(status = Bounced))))))
+            .withBody(stringify(toJson(preferences(status = Bounced))))
+        )
+    )
 
   def respondPreferencesNoPaperlessSet(): StubMapping =
     stubFor(
       get(urlEqualToPreferences)
-        .willReturn(aResponse().withStatus(200).withBody(stringify(toJson(preferences(optedIn = false))))))
+        .willReturn(aResponse().withStatus(200).withBody(stringify(toJson(preferences(optedIn = false)))))
+    )
 
   def respondNoPreferences(): StubMapping =
     stubFor(get(urlEqualToPreferences).willReturn(aResponse().withStatus(404)))

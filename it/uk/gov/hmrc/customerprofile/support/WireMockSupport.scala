@@ -29,10 +29,10 @@ case class WireMockBaseUrl(value: URL)
 trait WireMockSupport extends BeforeAndAfterAll with BeforeAndAfterEach {
   me: Suite =>
 
-  val wireMockPort: Int = wireMockServer.port()
-  val wireMockHost            = "localhost"
-  val wireMockBaseUrlAsString = s"http://$wireMockHost:$wireMockPort"
-  val wireMockBaseUrl         = new URL(wireMockBaseUrlAsString)
+  val wireMockPort:                               Int             = wireMockServer.port()
+  val wireMockHost:                               String          = "localhost"
+  val wireMockBaseUrlAsString:                    String          = s"http://$wireMockHost:$wireMockPort"
+  val wireMockBaseUrl:                            URL             = new URL(wireMockBaseUrlAsString)
   protected implicit val implicitWireMockBaseUrl: WireMockBaseUrl = WireMockBaseUrl(wireMockBaseUrl)
 
   protected def basicWireMockConfig(): WireMockConfiguration = wireMockConfig()

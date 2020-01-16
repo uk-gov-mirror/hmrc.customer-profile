@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,23 +28,32 @@ import uk.gov.hmrc.http._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
-class PreferencesConnectorSpec extends WordSpecLike with Matchers with FutureAwaits with DefaultAwaitTimeout with MockFactory {
+class PreferencesConnectorSpec
+    extends WordSpecLike
+    with Matchers
+    with FutureAwaits
+    with DefaultAwaitTimeout
+    with MockFactory {
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  val http:        WSHttpImpl    = mock[WSHttpImpl]
-  val config:      Configuration = mock[Configuration]
-  val environment: Environment   = mock[Environment]
-  val baseUrl             = "baseUrl"
-  val externalServiceName = "externalServiceName"
-  val entityId            = "entityId"
-  val changeEmailRequest  = ChangeEmail(email = "some-new-email@newEmail.new.email")
+  val http:                WSHttpImpl    = mock[WSHttpImpl]
+  val config:              Configuration = mock[Configuration]
+  val environment:         Environment   = mock[Environment]
+  val baseUrl:             String        = "baseUrl"
+  val externalServiceName: String        = "externalServiceName"
+  val entityId:            String        = "entityId"
+  val changeEmailRequest:  ChangeEmail   = ChangeEmail(email = "some-new-email@newEmail.new.email")
 
-  val connector: PreferencesConnector = new PreferencesConnector(http, baseUrl, externalServiceName, config, environment)
+  val connector: PreferencesConnector =
+    new PreferencesConnector(http, baseUrl, externalServiceName, config, environment)
 
   "updatePendingEmail()" should {
     def mockPUT(response: Future[HttpResponse]) =
       (http
-        .PUT(_: String, _: ChangeEmail)(_: Writes[ChangeEmail], _: HttpReads[HttpResponse], _: HeaderCarrier, _: ExecutionContext))
+        .PUT(_: String, _: ChangeEmail)(_: Writes[ChangeEmail],
+                                        _: HttpReads[HttpResponse],
+                                        _: HeaderCarrier,
+                                        _: ExecutionContext))
         .expects(s"$baseUrl/preferences/$entityId/pending-email", changeEmailRequest, *, *, *, *)
         .returns(response)
 

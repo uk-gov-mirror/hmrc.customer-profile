@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,26 +31,40 @@ import uk.gov.hmrc.service.Auditor
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class CustomerProfileService @Inject()(
+class CustomerProfileService @Inject() (
   citizenDetailsConnector:       CitizenDetailsConnector,
   preferencesConnector:          PreferencesConnector,
   entityResolver:                EntityResolverConnector,
   val accountAccessControl:      AccountAccessControl,
   val appNameConfiguration:      Configuration,
   val auditConnector:            AuditConnector,
-  @Named("appName") val appName: String
-) extends Auditor {
-  def getAccounts(journeyId: JourneyId)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Accounts] =
+  @Named("appName") val appName: String)
+    extends Auditor {
+
+  def getAccounts(
+    journeyId:   JourneyId
+  )(implicit hc: HeaderCarrier,
+    ex:          ExecutionContext
+  ): Future[Accounts] =
     withAudit("getAccounts", Map.empty) {
       accountAccessControl.accounts(journeyId)
     }
 
-  def getPersonalDetails(nino: Nino)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PersonDetails] =
+  def getPersonalDetails(
+    nino:        Nino
+  )(implicit hc: HeaderCarrier,
+    ex:          ExecutionContext
+  ): Future[PersonDetails] =
     withAudit("getPersonalDetails", Map("nino" -> nino.value)) {
       citizenDetailsConnector.personDetails(nino)
     }
 
-  def paperlessSettings(settings: Paperless, journeyId: JourneyId)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] =
+  def paperlessSettings(
+    settings:    Paperless,
+    journeyId:   JourneyId
+  )(implicit hc: HeaderCarrier,
+    ex:          ExecutionContext
+  ): Future[PreferencesStatus] =
     withAudit("paperlessSettings", Map("accepted" -> settings.generic.accepted.toString)) {
       for {
         preferences ← entityResolver.getPreferences()
@@ -61,17 +75,28 @@ class CustomerProfileService @Inject()(
       } yield status
     }
 
-  def paperlessSettingsOptOut()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] =
+  def paperlessSettingsOptOut(
+  )(implicit hc: HeaderCarrier,
+    ex:          ExecutionContext
+  ): Future[PreferencesStatus] =
     withAudit("paperlessSettingsOptOut", Map.empty) {
       entityResolver.paperlessOptOut()
     }
 
-  def getPreferences()(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[Option[Preference]] =
+  def getPreferences(
+  )(implicit hc: HeaderCarrier,
+    ex:          ExecutionContext
+  ): Future[Option[Preference]] =
     withAudit("getPreferences", Map.empty) {
       entityResolver.getPreferences()
     }
 
-  def setPreferencesPendingEmail(changeEmail: ChangeEmail, journeyId: JourneyId)(implicit hc: HeaderCarrier, ex: ExecutionContext): Future[PreferencesStatus] =
+  def setPreferencesPendingEmail(
+    changeEmail: ChangeEmail,
+    journeyId:   JourneyId
+  )(implicit hc: HeaderCarrier,
+    ex:          ExecutionContext
+  ): Future[PreferencesStatus] =
     withAudit("updatePendingEmailPreference", Map("email" → changeEmail.email)) {
       for {
         account ← getAccounts(journeyId)

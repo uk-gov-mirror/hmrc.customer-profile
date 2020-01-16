@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.customerprofile.support
 
-import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Matchers, OptionValues, WordSpecLike}
 import org.scalatestplus.play.WsScalaTestClient
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
@@ -24,6 +23,7 @@ import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.ws.WSClient
 import play.api.test.{DefaultAwaitTimeout, FutureAwaits}
+import uk.gov.hmrc.customerprofile.stubs.ShutteringStub
 
 import scala.language.postfixOps
 
@@ -36,17 +36,19 @@ class BaseISpec
     with WireMockSupport
     with FutureAwaits
     with DefaultAwaitTimeout {
+
   override implicit lazy val app: Application = appBuilder
     .build()
 
   def config: Map[String, Any] = Map(
-    "auditing.enabled"                              -> false,
-    "microservice.services.auth.port"               -> wireMockPort,
-    "microservice.services.citizen-details.port"    -> wireMockPort,
-    "microservice.services.entity-resolver.port"    -> wireMockPort,
-    "microservice.services.preferences.port"        -> wireMockPort,
-    "play.ws.timeout.connection"                    -> "6000 seconds",
-    "play.ws.timeout.request"                       -> "20000 seconds"
+    "auditing.enabled"                             -> false,
+    "microservice.services.auth.port"              -> wireMockPort,
+    "microservice.services.citizen-details.port"   -> wireMockPort,
+    "microservice.services.entity-resolver.port"   -> wireMockPort,
+    "microservice.services.preferences.port"       -> wireMockPort,
+    "play.ws.timeout.connection"                   -> "6000 seconds",
+    "play.ws.timeout.request"                      -> "20000 seconds",
+    "microservice.services.mobile-shuttering.port" -> wireMockPort
   )
 
   protected def appBuilder: GuiceApplicationBuilder = new GuiceApplicationBuilder().configure(config)

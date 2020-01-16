@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.customerprofile.controllers
+package uk.gov.hmrc.customerprofile.domain
 
-import play.api.http.Status._
-import uk.gov.hmrc.api.controllers.ErrorResponse
+import play.api.libs.json.{Json, OFormat}
 
-case object ErrorUnauthorizedNoNino
-    extends ErrorResponse(UNAUTHORIZED, "UNAUTHORIZED", "NINO does not exist on account")
+case class Shuttering(
+  shuttered: Boolean,
+  title:     Option[String] = None,
+  message:   Option[String] = None)
 
-case object ErrorManualCorrespondenceIndicator
-    extends ErrorResponse(LOCKED,
-                          "MANUAL_CORRESPONDENCE_IND",
-                          "Data cannot be disclosed to the user because MCI flag is set in NPS")
+case object Shuttering {
+  implicit val format: OFormat[Shuttering] = Json.format[Shuttering]
 
-case object ErrorPreferenceConflict extends ErrorResponse(CONFLICT, "CONFLICT", "No existing verified or pending data")
+  def shutteringDisabled = this.apply(shuttered = false)
+}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,13 +25,18 @@ import uk.gov.hmrc.http.{CoreGet, HeaderCarrier, NotFoundException, Upstream4xxR
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class CitizenDetailsConnector @Inject()(@Named("citizen-details") citizenDetailsConnectorUrl: String,
-                                        http: CoreGet) {
+class CitizenDetailsConnector @Inject() (
+  @Named("citizen-details") citizenDetailsConnectorUrl: String,
+  http:                                                 CoreGet) {
 
   import play.api.http.Status.LOCKED
   import uk.gov.hmrc.customerprofile.domain.PersonDetails
 
-  def personDetails(nino: Nino)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[PersonDetails] = {
+  def personDetails(
+    nino:        Nino
+  )(implicit hc: HeaderCarrier,
+    ec:          ExecutionContext
+  ): Future[PersonDetails] =
     http.GET[PersonDetails](s"$citizenDetailsConnectorUrl/citizen-details/$nino/designatory-details") recover {
       case e: Upstream4xxResponse if e.upstreamResponseCode == LOCKED =>
         Logger.info("Person details are hidden")
@@ -40,5 +45,4 @@ class CitizenDetailsConnector @Inject()(@Named("citizen-details") citizenDetails
         Logger.info(s"No details found for nino '$nino'")
         throw e
     }
-  }
 }

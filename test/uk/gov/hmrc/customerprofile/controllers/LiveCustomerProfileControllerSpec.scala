@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status.Verified
 import uk.gov.hmrc.customerprofile.domain.types.ModelTypes.JourneyId
 import uk.gov.hmrc.customerprofile.domain.{Paperless, _}
 import uk.gov.hmrc.customerprofile.services.CustomerProfileService
+import uk.gov.hmrc.customerprofile.stubs.ShutteringStub
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.emailaddress.EmailAddress
 import uk.gov.hmrc.http.{HeaderCarrier, Upstream4xxResponse}
@@ -39,46 +40,63 @@ import uk.gov.hmrc.http.{HeaderCarrier, Upstream4xxResponse}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
-class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with FutureAwaits with DefaultAwaitTimeout with MockFactory {
-  val service:       CustomerProfileService = mock[CustomerProfileService]
-  val accessControl: AccountAccessControl   = mock[AccountAccessControl]
+class LiveCustomerProfileControllerSpec
+    extends WordSpecLike
+    with Matchers
+    with FutureAwaits
+    with DefaultAwaitTimeout
+    with MockFactory
+    with ShutteringStub {
+  val service:                          CustomerProfileService = mock[CustomerProfileService]
+  val accessControl:                    AccountAccessControl   = mock[AccountAccessControl]
+  implicit val shutteringConnectorMock: ShutteringConnector    = mock[ShutteringConnector]
+
+  val shuttered =
+    Shuttering(shuttered = true, Some("Shuttered"), Some("Preferences are currently not available"))
+  val notShuttered = Shuttering.shutteringDisabled
 
   val controller: LiveCustomerProfileController =
-    new LiveCustomerProfileController(service, accessControl, citizenDetailsEnabled = true, stubControllerComponents())
+    new LiveCustomerProfileController(service,
+                                      accessControl,
+                                      citizenDetailsEnabled = true,
+                                      stubControllerComponents(),
+                                      shutteringConnectorMock)
 
-  val nino = Nino("CS700100A")
-  val journeyId: JourneyId = "b6ef25bc-8f5e-49c8-98c5-f039f39e4557"
-  val emptyRequest = FakeRequest()
-  val acceptheader:               String                              = "application/vnd.hmrc.1.0+json"
-  val requestWithAcceptHeader:    FakeRequest[AnyContentAsEmpty.type] = FakeRequest().withHeaders("Accept" -> acceptheader)
-  val requestWithoutAcceptHeader: FakeRequest[AnyContentAsEmpty.type] = FakeRequest().withHeaders("Authorization" -> "Some Header")
+  val nino:                    Nino                                = Nino("CS700100A")
+  val journeyId:               JourneyId                           = "b6ef25bc-8f5e-49c8-98c5-f039f39e4557"
+  val acceptheader:            String                              = "application/vnd.hmrc.1.0+json"
+  val requestWithAcceptHeader: FakeRequest[AnyContentAsEmpty.type] = FakeRequest().withHeaders("Accept" -> acceptheader)
+  val emptyRequest:            FakeRequest[AnyContentAsEmpty.type] = FakeRequest()
+
+  val requestWithoutAcceptHeader: FakeRequest[AnyContentAsEmpty.type] =
+    FakeRequest().withHeaders("Authorization" -> "Some Header")
 
   val invalidPostRequest: FakeRequest[JsValue] =
     FakeRequest().withBody(parse("""{ "blah" : "blah" }""")).withHeaders(HeaderNames.ACCEPT → acceptheader)
 
   def authSuccess(maybeNino: Option[Nino] = None) =
-    (accessControl.grantAccess(_: Option[Nino])(_: HeaderCarrier, _: ExecutionContext)).expects(maybeNino, *, *).returns(Future.successful(()))
+    (accessControl
+      .grantAccess(_: Option[Nino])(_: HeaderCarrier, _: ExecutionContext))
+      .expects(maybeNino, *, *)
+      .returns(Future.successful(()))
 
-  def authError(e: Exception, maybeNino: Option[Nino] = None) =
-    (accessControl.grantAccess(_: Option[Nino])(_: HeaderCarrier, _: ExecutionContext)).expects(maybeNino, *, *).returns(Future failed e)
+  def authError(
+    e:         Exception,
+    maybeNino: Option[Nino] = None
+  ) =
+    (accessControl
+      .grantAccess(_: Option[Nino])(_: HeaderCarrier, _: ExecutionContext))
+      .expects(maybeNino, *, *)
+      .returns(Future failed e)
 
   "getAccounts" should {
     def mockGetAccounts(result: Future[Accounts]) =
       (service.getAccounts(_: JourneyId)(_: HeaderCarrier, _: ExecutionContext)).expects(*, *, *).returns(result)
 
-    "return account details without journey id" in {
-      val accounts: Accounts = Accounts(Some(nino), None, routeToIV = false, routeToTwoFactor = false, "102030394AAA")
-      mockGetAccounts(Future successful accounts)
-
-      val result = controller.getAccounts(journeyId)(requestWithAcceptHeader)
-
-      status(result)        shouldBe 200
-      contentAsJson(result) shouldBe toJson(accounts)
-    }
-
     "return account details with journey id" in {
       val accounts: Accounts = Accounts(Some(nino), None, routeToIV = false, routeToTwoFactor = false, "102030394AAA")
       mockGetAccounts(Future successful accounts)
+      stubShutteringResponse(notShuttered)
 
       val result = controller.getAccounts(journeyId)(requestWithAcceptHeader)
 
@@ -88,6 +106,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
 
     "propagate 401" in {
       mockGetAccounts(Future failed new SessionRecordNotFound)
+      stubShutteringResponse(notShuttered)
 
       val result = controller.getAccounts(journeyId)(requestWithAcceptHeader)
       status(result) shouldBe 401
@@ -95,6 +114,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
 
     "return 403 if the user has no nino" in {
       mockGetAccounts(Future failed new NinoNotFoundOnAccount("no nino"))
+      stubShutteringResponse(notShuttered)
 
       val result = controller.getAccounts(journeyId)(requestWithAcceptHeader)
       status(result) shouldBe 403
@@ -107,9 +127,22 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
 
     "return 500 for an unexpected error" in {
       mockGetAccounts(Future failed new RuntimeException())
+      stubShutteringResponse(notShuttered)
 
       val result = controller.getAccounts(journeyId)(requestWithAcceptHeader)
       status(result) shouldBe 500
+    }
+
+    "return 521 when shuttered" in {
+      stubShutteringResponse(shuttered)
+
+      val result = controller.getAccounts(journeyId)(requestWithAcceptHeader)
+
+      status(result) shouldBe 521
+      val jsonBody = contentAsJson(result)
+      (jsonBody \ "shuttered").as[Boolean] shouldBe true
+      (jsonBody \ "title").as[String]      shouldBe "Shuttered"
+      (jsonBody \ "message").as[String]    shouldBe "Preferences are currently not available"
     }
   }
 
@@ -117,29 +150,22 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
     def mockGetAccounts(result: Future[PersonDetails]) =
       (service.getPersonalDetails(_: Nino)(_: HeaderCarrier, _: ExecutionContext)).expects(nino, *, *).returns(result)
 
-    "return personal details without journey id" in {
-      val person = PersonDetails(
-        "etag",
-        Person(Some("Firstname"), Some("Lastname"), Some("Middle"), Some("Intial"), Some("Title"), Some("Honours"), Some("sex"), None, None),
-        None)
-
-      authSuccess(Some(nino))
-      mockGetAccounts(Future successful person)
-
-      val result = controller.getPersonalDetails(nino, journeyId)(requestWithAcceptHeader)
-
-      status(result)        shouldBe 200
-      contentAsJson(result) shouldBe toJson(person)
-    }
-
     "return personal details with journey id" in {
-      val person = PersonDetails(
-        "etag",
-        Person(Some("Firstname"), Some("Lastname"), Some("Middle"), Some("Intial"), Some("Title"), Some("Honours"), Some("sex"), None, None),
-        None)
+      val person = PersonDetails("etag",
+                                 Person(Some("Firstname"),
+                                        Some("Lastname"),
+                                        Some("Middle"),
+                                        Some("Intial"),
+                                        Some("Title"),
+                                        Some("Honours"),
+                                        Some("sex"),
+                                        None,
+                                        None),
+                                 None)
 
       authSuccess(Some(nino))
       mockGetAccounts(Future successful person)
+      stubShutteringResponse(notShuttered)
 
       val result = controller.getPersonalDetails(nino, journeyId)(requestWithAcceptHeader)
 
@@ -169,9 +195,23 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
     "return 500 for an unexpected error" in {
       authSuccess(Some(nino))
       mockGetAccounts(Future failed new RuntimeException())
+      stubShutteringResponse(notShuttered)
 
       val result = controller.getPersonalDetails(nino, journeyId)(requestWithAcceptHeader)
       status(result) shouldBe 500
+    }
+
+    "return 521 when shuttered" in {
+      authSuccess(Some(nino))
+      stubShutteringResponse(shuttered)
+
+      val result = controller.getPersonalDetails(nino, journeyId)(requestWithAcceptHeader)
+
+      status(result) shouldBe 521
+      val jsonBody = contentAsJson(result)
+      (jsonBody \ "shuttered").as[Boolean] shouldBe true
+      (jsonBody \ "title").as[String]      shouldBe "Shuttered"
+      (jsonBody \ "message").as[String]    shouldBe "Preferences are currently not available"
     }
   }
 
@@ -179,23 +219,13 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
     def mockGetPreferences(result: Future[Option[Preference]]) =
       (service.getPreferences()(_: HeaderCarrier, _: ExecutionContext)).expects(*, *).returns(result)
 
-    "return preferences without journeyId" in {
-      val preference: Preference = Preference(digital = true, Some(EmailPreference(EmailAddress("old@old.com"), Verified)))
-
-      authSuccess()
-      mockGetPreferences(Future successful Some(preference))
-
-      val result = controller.getPreferences(journeyId)(requestWithAcceptHeader)
-
-      status(result)        shouldBe 200
-      contentAsJson(result) shouldBe toJson(preference)
-    }
-
     "return preferences with journeyId" in {
-      val preference: Preference = Preference(digital = true, Some(EmailPreference(EmailAddress("old@old.com"), Verified)))
+      val preference: Preference =
+        Preference(digital = true, Some(EmailPreference(EmailAddress("old@old.com"), Verified)))
 
       authSuccess()
       mockGetPreferences(Future successful Some(preference))
+      stubShutteringResponse(notShuttered)
 
       val result = controller.getPreferences(journeyId)(requestWithAcceptHeader)
 
@@ -206,6 +236,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
     "handle no preferences found" in {
       authSuccess()
       mockGetPreferences(Future successful None)
+      stubShutteringResponse(notShuttered)
 
       val result = controller.getPreferences(journeyId)(requestWithAcceptHeader)
 
@@ -255,35 +286,48 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
     "return 500 for an unexpected error" in {
       authSuccess()
       mockGetPreferences(Future failed new RuntimeException())
+      stubShutteringResponse(notShuttered)
 
       val result = controller.getPreferences(journeyId)(requestWithAcceptHeader)
       status(result) shouldBe 500
     }
+
+    "return 521 when shuttered" in {
+      authSuccess()
+      stubShutteringResponse(shuttered)
+
+      val result = controller.getPreferences(journeyId)(requestWithAcceptHeader)
+
+      status(result) shouldBe 521
+      val jsonBody = contentAsJson(result)
+      (jsonBody \ "shuttered").as[Boolean] shouldBe true
+      (jsonBody \ "title").as[String]      shouldBe "Shuttered"
+      (jsonBody \ "message").as[String]    shouldBe "Preferences are currently not available"
+    }
   }
 
   "paperlessSettingsOptIn" should {
-    def mockPaperlessSettings(settings: Paperless, result: Future[PreferencesStatus]) =
-      (service.paperlessSettings(_: Paperless, _: JourneyId)(_: HeaderCarrier, _: ExecutionContext)).expects(settings, *, *, *).returns(result)
+    def mockPaperlessSettings(
+      settings: Paperless,
+      result:   Future[PreferencesStatus]
+    ) =
+      (service
+        .paperlessSettings(_: Paperless, _: JourneyId)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(settings, *, *, *)
+        .returns(result)
 
     val newEmail          = EmailAddress("new@new.com")
     val paperlessSettings = Paperless(TermsAccepted(true), newEmail)
 
     val validPaperlessSettingsRequest: FakeRequest[JsValue] =
       FakeRequest().withBody(toJson(paperlessSettings)).withHeaders(HeaderNames.ACCEPT → acceptheader)
-    val paperlessSettingsRequestWithoutAcceptHeader: FakeRequest[JsValue] = FakeRequest().withBody(toJson(paperlessSettings))
-
-    "opt in for a user with no preferences without journey id" in {
-      authSuccess()
-      mockPaperlessSettings(paperlessSettings, Future successful PreferencesCreated)
-
-      val result = controller.paperlessSettingsOptIn(journeyId)(validPaperlessSettingsRequest)
-
-      status(result) shouldBe 201
-    }
+    val paperlessSettingsRequestWithoutAcceptHeader: FakeRequest[JsValue] =
+      FakeRequest().withBody(toJson(paperlessSettings))
 
     "opt in for a user with no preferences with journey id" in {
       authSuccess()
       mockPaperlessSettings(paperlessSettings, Future successful PreferencesCreated)
+      stubShutteringResponse(notShuttered)
 
       val result = controller.paperlessSettingsOptIn(journeyId)(validPaperlessSettingsRequest)
 
@@ -293,6 +337,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
     "opt in for a user with existing preferences" in {
       authSuccess()
       mockPaperlessSettings(paperlessSettings, Future successful PreferencesExists)
+      stubShutteringResponse(notShuttered)
 
       val result = controller.paperlessSettingsOptIn(journeyId)(validPaperlessSettingsRequest)
 
@@ -302,6 +347,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
     "return 404 where preferences do not exist" in {
       authSuccess()
       mockPaperlessSettings(paperlessSettings, Future successful NoPreferenceExists)
+      stubShutteringResponse(notShuttered)
 
       val result = controller.paperlessSettingsOptIn(journeyId)(validPaperlessSettingsRequest)
 
@@ -311,6 +357,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
     "return 409 for request without email" in {
       authSuccess()
       mockPaperlessSettings(paperlessSettings, Future successful EmailNotExist)
+      stubShutteringResponse(notShuttered)
 
       val result = controller.paperlessSettingsOptIn(journeyId)(validPaperlessSettingsRequest)
 
@@ -320,6 +367,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
     "propagate errors from the service" in {
       authSuccess()
       mockPaperlessSettings(paperlessSettings, Future successful PreferencesFailure)
+      stubShutteringResponse(notShuttered)
 
       val result = controller.paperlessSettingsOptIn(journeyId)(validPaperlessSettingsRequest)
 
@@ -353,10 +401,24 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
 
     "return 500 for an unexpected error" in {
       authSuccess()
+      stubShutteringResponse(notShuttered)
       mockPaperlessSettings(paperlessSettings, Future failed new RuntimeException())
 
       val result = controller.paperlessSettingsOptIn(journeyId)(validPaperlessSettingsRequest)
       status(result) shouldBe 500
+    }
+
+    "return 521 when shuttered" in {
+      authSuccess()
+      stubShutteringResponse(shuttered)
+
+      val result = controller.paperlessSettingsOptIn(journeyId)(validPaperlessSettingsRequest)
+
+      status(result) shouldBe 521
+      val jsonBody = contentAsJson(result)
+      (jsonBody \ "shuttered").as[Boolean] shouldBe true
+      (jsonBody \ "title").as[String]      shouldBe "Shuttered"
+      (jsonBody \ "message").as[String]    shouldBe "Preferences are currently not available"
     }
   }
 
@@ -364,18 +426,10 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
     def mockPaperlessSettingsOptOut(result: Future[PreferencesStatus]) =
       (service.paperlessSettingsOptOut()(_: HeaderCarrier, _: ExecutionContext)).expects(*, *).returns(result)
 
-    "opt out for existing preferences without journey id" in {
-      authSuccess()
-      mockPaperlessSettingsOptOut(Future successful PreferencesExists)
-
-      val result = controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
-
-      status(result) shouldBe 204
-    }
-
     "opt out for existing preferences with journey id" in {
       authSuccess()
       mockPaperlessSettingsOptOut(Future successful PreferencesExists)
+      stubShutteringResponse(notShuttered)
 
       val result = controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
 
@@ -385,6 +439,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
     "opt out without existing preferences and journey id" in {
       authSuccess()
       mockPaperlessSettingsOptOut(Future successful PreferencesCreated)
+      stubShutteringResponse(notShuttered)
 
       val result = controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
 
@@ -394,6 +449,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
     "return 404 where preference does not exist" in {
       authSuccess()
       mockPaperlessSettingsOptOut(Future successful PreferencesDoesNotExist)
+      stubShutteringResponse(notShuttered)
 
       val result = controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
 
@@ -403,6 +459,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
     "return 500 on service error" in {
       authSuccess()
       mockPaperlessSettingsOptOut(Future successful PreferencesFailure)
+      stubShutteringResponse(notShuttered)
 
       val result = controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
 
@@ -431,15 +488,32 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
     "return 500 for an unexpected error" in {
       authSuccess()
       mockPaperlessSettingsOptOut(Future failed new RuntimeException())
+      stubShutteringResponse(notShuttered)
 
       val result = controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
       status(result) shouldBe 500
+    }
+
+    "return 521 when shuttered" in {
+      authSuccess()
+      stubShutteringResponse(shuttered)
+
+      val result = controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
+
+      status(result) shouldBe 521
+      val jsonBody = contentAsJson(result)
+      (jsonBody \ "shuttered").as[Boolean] shouldBe true
+      (jsonBody \ "title").as[String]      shouldBe "Shuttered"
+      (jsonBody \ "message").as[String]    shouldBe "Preferences are currently not available"
     }
   }
 
   "preferencesPendingEmail" should {
 
-    def mockPendingEmail(changeEmail: ChangeEmail, result: Future[PreferencesStatus]) =
+    def mockPendingEmail(
+      changeEmail: ChangeEmail,
+      result:      Future[PreferencesStatus]
+    ) =
       (service
         .setPreferencesPendingEmail(_: ChangeEmail, _: JourneyId)(_: HeaderCarrier, _: ExecutionContext))
         .expects(changeEmail, *, *, *)
@@ -455,6 +529,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
     "successful pending email change" in {
       authSuccess()
       mockPendingEmail(changeEmail, Future successful EmailUpdateOk)
+      stubShutteringResponse(notShuttered)
 
       val result = controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
 
@@ -464,6 +539,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
     "return 404 where preferences do not exist" in {
       authSuccess()
       mockPendingEmail(changeEmail, Future successful NoPreferenceExists)
+      stubShutteringResponse(notShuttered)
 
       val result = controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
 
@@ -473,6 +549,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
     "return 409 for request without email" in {
       authSuccess()
       mockPendingEmail(changeEmail, Future successful EmailNotExist)
+      stubShutteringResponse(notShuttered)
 
       val result = controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
 
@@ -482,6 +559,7 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
     "propagate errors from the service" in {
       authSuccess()
       mockPendingEmail(changeEmail, Future successful PreferencesFailure)
+      stubShutteringResponse(notShuttered)
 
       val result = controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
 
@@ -516,9 +594,23 @@ class LiveCustomerProfileControllerSpec extends WordSpecLike with Matchers with 
     "return 500 for an unexpected error" in {
       authSuccess()
       mockPendingEmail(changeEmail, Future failed new RuntimeException())
+      stubShutteringResponse(notShuttered)
 
       val result = controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
       status(result) shouldBe 500
+    }
+
+    "return 521 when shuttered" in {
+      authSuccess()
+      stubShutteringResponse(shuttered)
+
+      val result = controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
+
+      status(result) shouldBe 521
+      val jsonBody = contentAsJson(result)
+      (jsonBody \ "shuttered").as[Boolean] shouldBe true
+      (jsonBody \ "title").as[String]      shouldBe "Shuttered"
+      (jsonBody \ "message").as[String]    shouldBe "Preferences are currently not available"
     }
   }
 

@@ -33,15 +33,29 @@ class SandboxCustomerProfileISpec extends BaseISpec {
   private val journeyId        = "b6ef25bc-8f5e-49c8-98c5-f039f39e4557"
   private val invalidJsonBody: JsValue = Json.parse("{}")
 
-  def request(url: String, sandboxControl: Option[String] = None, journeyId: String): WSRequest =
+  def request(
+    url:            String,
+    sandboxControl: Option[String] = None,
+    journeyId:      String
+  ): WSRequest =
     wsUrl(s"$url?journeyId=$journeyId")
-      .addHttpHeaders(acceptJsonHeader, "SANDBOX-CONTROL" -> s"${sandboxControl.getOrElse("")}", "X-MOBILE-USER-ID" -> "208606423740")
+      .addHttpHeaders(acceptJsonHeader,
+                      "SANDBOX-CONTROL"  -> s"${sandboxControl.getOrElse("")}",
+                      "X-MOBILE-USER-ID" -> "208606423740")
 
-  def requestWithoutAcceptHeader(url: String, journeyId: String): WSRequest =
+  def requestWithoutAcceptHeader(
+    url:       String,
+    journeyId: String
+  ): WSRequest =
     wsUrl(s"$url?journeyId=$journeyId").addHttpHeaders("X-MOBILE-USER-ID" -> "208606423740")
 
-  def requestWithoutJourneyId(url: String, sandboxControl: Option[String] = None): WSRequest =
-    wsUrl(s"$url").addHttpHeaders(acceptJsonHeader, "SANDBOX-CONTROL" -> s"${sandboxControl.getOrElse("")}", "X-MOBILE-USER-ID" -> "208606423740")
+  def requestWithoutJourneyId(
+    url:            String,
+    sandboxControl: Option[String] = None
+  ): WSRequest =
+    wsUrl(s"$url").addHttpHeaders(acceptJsonHeader,
+                                  "SANDBOX-CONTROL"  -> s"${sandboxControl.getOrElse("")}",
+                                  "X-MOBILE-USER-ID" -> "208606423740")
 
   "GET /sandbox/profile/accounts  " should {
     val url = "/profile/accounts"
@@ -89,17 +103,26 @@ class SandboxCustomerProfileISpec extends BaseISpec {
     val expectedDetails =
       PersonDetails(
         "etag",
-        Person(
-          Some("Jennifer"),
-          None,
-          Some("Thorsteinson"),
-          None,
-          Some("Ms"),
-          None,
-          Some("Female"),
-          Option(LocalDate.parse("1999-01-31")),
-          Some(nino)),
-        Some(Address(Some("999 Big Street"), Some("Worthing"), Some("West Sussex"), None, None, Some("BN99 8IG"), None, None, None))
+        Person(Some("Jennifer"),
+               None,
+               Some("Thorsteinson"),
+               None,
+               Some("Ms"),
+               None,
+               Some("Female"),
+               Option(LocalDate.parse("1999-01-31")),
+               Some(nino)),
+        Some(
+          Address(Some("999 Big Street"),
+                  Some("Worthing"),
+                  Some("West Sussex"),
+                  None,
+                  None,
+                  Some("BN99 8IG"),
+                  None,
+                  None,
+                  None)
+        )
       )
 
     "return the default personal details with journey id" in {
@@ -134,14 +157,18 @@ class SandboxCustomerProfileISpec extends BaseISpec {
     }
 
     "return 400 if invalid journeyId is supplied" in {
-      val response = await(requestWithoutJourneyId(s"/profile/personal-details/${nino.value}?journeyId=ThisIsAnInvalidJourneyId", None).get())
+      val response = await(
+        requestWithoutJourneyId(s"/profile/personal-details/${nino.value}?journeyId=ThisIsAnInvalidJourneyId", None)
+          .get()
+      )
       response.status shouldBe 400
     }
   }
 
   "GET /sandbox/profile/preferences" should {
-    val url                = "/profile/preferences"
-    val expectedPreference = Preference(digital = true, Some(EmailPreference(EmailAddress("name@email.co.uk"), Verified)))
+    val url = "/profile/preferences"
+    val expectedPreference =
+      Preference(digital = true, Some(EmailPreference(EmailAddress("name@email.co.uk"), Verified)))
 
     "return the default personal details with a journeyId" in {
       val response = await(request(url, None, journeyId).get)
@@ -175,14 +202,16 @@ class SandboxCustomerProfileISpec extends BaseISpec {
     }
 
     "return 400 if invalid journeyId is supplied" in {
-      val response = await(requestWithoutJourneyId("/profile/preferences?journeyId=ThisIsAnInvalidJourneyId", None).get())
+      val response =
+        await(requestWithoutJourneyId("/profile/preferences?journeyId=ThisIsAnInvalidJourneyId", None).get())
       response.status shouldBe 400
     }
   }
 
   "POST /sandbox/preferences/profile/paperless-settings/opt-in" should {
-    val url               = "/profile/preferences/paperless-settings/opt-in"
-    val paperlessSettings = toJson(Paperless(generic = TermsAccepted(true), email = EmailAddress("new-email@new-email.new.email")))
+    val url = "/profile/preferences/paperless-settings/opt-in"
+    val paperlessSettings =
+      toJson(Paperless(generic = TermsAccepted(true), email = EmailAddress("new-email@new-email.new.email")))
 
     "return a 204 response with a journeyId by default" in {
       val response = await(request(url, None, journeyId).post(paperlessSettings))
@@ -230,13 +259,16 @@ class SandboxCustomerProfileISpec extends BaseISpec {
     }
 
     "return 400 if no journeyId is supplied" in {
-      val response = await(requestWithoutJourneyId("/profile/preferences/paperless-settings/opt-in", None).post(paperlessSettings))
+      val response =
+        await(requestWithoutJourneyId("/profile/preferences/paperless-settings/opt-in", None).post(paperlessSettings))
       response.status shouldBe 400
     }
 
     "return 400 if invalid journeyId is supplied" in {
       val response = await(
-        requestWithoutJourneyId("/profile/preferences/paperless-settings/opt-in?journeyId=ThisIsAnInvalidJourneyId", None).post(paperlessSettings))
+        requestWithoutJourneyId("/profile/preferences/paperless-settings/opt-in?journeyId=ThisIsAnInvalidJourneyId",
+                                None).post(paperlessSettings)
+      )
       response.status shouldBe 400
     }
   }
@@ -276,13 +308,17 @@ class SandboxCustomerProfileISpec extends BaseISpec {
     }
 
     "return 400 if no journeyId is supplied" in {
-      val response = await(requestWithoutJourneyId("/profile/preferences/paperless-settings/opt-out", None).post(emptyBody))
+      val response =
+        await(requestWithoutJourneyId("/profile/preferences/paperless-settings/opt-out", None).post(emptyBody))
       response.status shouldBe 400
     }
 
     "return 400 if invalid journeyId is supplied" in {
       val response =
-        await(requestWithoutJourneyId("/profile/preferences/paperless-settings/opt-out?journeyId=ThisIsAnInvalidJourneyId", None).post(emptyBody))
+        await(
+          requestWithoutJourneyId("/profile/preferences/paperless-settings/opt-out?journeyId=ThisIsAnInvalidJourneyId",
+                                  None).post(emptyBody)
+        )
       response.status shouldBe 400
     }
   }
@@ -327,13 +363,17 @@ class SandboxCustomerProfileISpec extends BaseISpec {
     }
 
     "return 400 if no journeyId is supplied" in {
-      val response = await(requestWithoutJourneyId("/profile/preferences/paperless-settings/opt-in", None).post(changeEmail))
+      val response =
+        await(requestWithoutJourneyId("/profile/preferences/paperless-settings/opt-in", None).post(changeEmail))
       response.status shouldBe 400
     }
 
     "return 400 if invalid journeyId is supplied" in {
       val response =
-        await(requestWithoutJourneyId("/profile/preferences/paperless-settings/opt-in?journeyId=ThisIsAnInvalidJourneyId", None).post(changeEmail))
+        await(
+          requestWithoutJourneyId("/profile/preferences/paperless-settings/opt-in?journeyId=ThisIsAnInvalidJourneyId",
+                                  None).post(changeEmail)
+        )
       response.status shouldBe 400
     }
   }

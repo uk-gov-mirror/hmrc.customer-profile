@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,28 +32,45 @@ import uk.gov.hmrc.http.{NotFoundException, _}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
-class EntityResolverConnectorSpec extends WordSpecLike with Matchers with FutureAwaits with DefaultAwaitTimeout with ScalaFutures with MockFactory {
+class EntityResolverConnectorSpec
+    extends WordSpecLike
+    with Matchers
+    with FutureAwaits
+    with DefaultAwaitTimeout
+    with ScalaFutures
+    with MockFactory {
   implicit val hc: HeaderCarrier = new HeaderCarrier
 
-  val http:        WSHttpImpl    = mock[WSHttpImpl]
-  val config:      Configuration = mock[Configuration]
-  val environment: Environment   = mock[Environment]
-
-  val baseUrl                                         = "http://entity-resolver.service"
-  val termsAndCondtionssPostUrl                       = s"$baseUrl/preferences/terms-and-conditions"
-  val circuitBreakerNumberOfCallsToTriggerStateChange = 5
+  val http:                                            WSHttpImpl    = mock[WSHttpImpl]
+  val config:                                          Configuration = mock[Configuration]
+  val environment:                                     Environment   = mock[Environment]
+  val baseUrl:                                         String        = "http://entity-resolver.service"
+  val termsAndCondtionssPostUrl:                       String        = s"$baseUrl/preferences/terms-and-conditions"
+  val circuitBreakerNumberOfCallsToTriggerStateChange: Int           = 5
 
   // create a new connectopr each time because the circuit breaker is stateful
   def preferenceConnector: EntityResolverConnector = {
     def mockCircuitBreakerConfig() = {
-      (config.getOptional[Configuration](_: String)(_: ConfigLoader[Configuration])).expects("microservice.services.entity-resolver", *).returns(Some(config)).anyNumberOfTimes()
+      (config
+        .getOptional[Configuration](_: String)(_: ConfigLoader[Configuration]))
+        .expects("microservice.services.entity-resolver", *)
+        .returns(Some(config))
+        .anyNumberOfTimes()
       (config
         .getOptional[Int](_: String)(_: ConfigLoader[Int]))
         .expects("circuitBreaker.numberOfCallsToTriggerStateChange", *)
         .returns(Some(circuitBreakerNumberOfCallsToTriggerStateChange))
         .anyNumberOfTimes()
-      (config.getOptional[Int](_: String)(_: ConfigLoader[Int])).expects("circuitBreaker.unavailablePeriodDurationInSeconds", *).returns(Some(2000)).anyNumberOfTimes()
-      (config.getOptional[Int](_: String)(_: ConfigLoader[Int])).expects("circuitBreaker.unstablePeriodDurationInSeconds", *).returns(Some(2000)).anyNumberOfTimes()
+      (config
+        .getOptional[Int](_: String)(_: ConfigLoader[Int]))
+        .expects("circuitBreaker.unavailablePeriodDurationInSeconds", *)
+        .returns(Some(2000))
+        .anyNumberOfTimes()
+      (config
+        .getOptional[Int](_: String)(_: ConfigLoader[Int]))
+        .expects("circuitBreaker.unstablePeriodDurationInSeconds", *)
+        .returns(Some(2000))
+        .anyNumberOfTimes()
     }
 
     mockCircuitBreakerConfig()
@@ -109,13 +126,15 @@ class EntityResolverConnectorSpec extends WordSpecLike with Matchers with Future
     val paperlessSettingsAccepted = Paperless(TermsAccepted(true), email)
     val paperlessSettingsRejected = Paperless(TermsAccepted(false), email)
 
-    def mockHttpPOST(paperlessSettings: Paperless, response: Future[HttpResponse]) =
+    def mockHttpPOST(
+      paperlessSettings: Paperless,
+      response:          Future[HttpResponse]
+    ) =
       (http
-        .POST(_: String, _: Paperless, _: Seq[(String, String)])(
-          _: Writes[Paperless],
-          _: HttpReads[HttpResponse],
-          _: HeaderCarrier,
-          _: ExecutionContext))
+        .POST(_: String, _: Paperless, _: Seq[(String, String)])(_: Writes[Paperless],
+                                                                 _: HttpReads[HttpResponse],
+                                                                 _: HeaderCarrier,
+                                                                 _: ExecutionContext))
         .expects(termsAndCondtionssPostUrl, paperlessSettings, *, *, *, *, *)
         .returning(response)
 
@@ -167,11 +186,10 @@ class EntityResolverConnectorSpec extends WordSpecLike with Matchers with Future
   "paperlessOptOut()" should {
     def mockHttpPOST(response: Future[HttpResponse]) =
       (http
-        .POST(_: String, _: PaperlessOptOut, _: Seq[(String, String)])(
-          _: Writes[PaperlessOptOut],
-          _: HttpReads[HttpResponse],
-          _: HeaderCarrier,
-          _: ExecutionContext))
+        .POST(_: String, _: PaperlessOptOut, _: Seq[(String, String)])(_: Writes[PaperlessOptOut],
+                                                                       _: HttpReads[HttpResponse],
+                                                                       _: HeaderCarrier,
+                                                                       _: ExecutionContext))
         .expects(termsAndCondtionssPostUrl, PaperlessOptOut(TermsAccepted(false)), *, *, *, *, *)
         .returning(response)
 

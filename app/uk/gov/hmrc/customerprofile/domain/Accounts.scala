@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,12 @@ package uk.gov.hmrc.customerprofile.domain
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.domain.{Nino, SaUtr}
 
-case class Accounts(nino: Option[Nino], saUtr: Option[SaUtr], routeToIV: Boolean, routeToTwoFactor: Boolean, journeyId: String)
+case class Accounts(
+  nino:             Option[Nino],
+  saUtr:            Option[SaUtr],
+  routeToIV:        Boolean,
+  routeToTwoFactor: Boolean,
+  journeyId:        String)
 
 object Accounts {
   implicit val format: OFormat[Accounts] = Json.format[Accounts]
