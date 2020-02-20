@@ -29,7 +29,7 @@ import uk.gov.hmrc.domain.{Nino, SaUtr}
 import uk.gov.hmrc.http._
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 case object ErrorUnauthorizedMicroService extends ErrorResponse(401, "UNAUTHORIZED", "Unauthorized to access resource")
 
@@ -62,11 +62,7 @@ class AccountAccessControl @Inject() (
           )
       }
 
-  def grantAccess(
-    taxId:       Option[Nino]
-  )(implicit hc: HeaderCarrier,
-    ec:          ExecutionContext
-  ): Future[Unit] =
+  def grantAccess(taxId: Option[Nino])(implicit hc: HeaderCarrier): Future[Unit] =
     authorised()
       .retrieve(nino and confidenceLevel) {
         case Some(foundNino) ~ foundConfidenceLevel ⇒

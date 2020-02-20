@@ -25,7 +25,7 @@ lazy val microservice = Project(appName, file("."))
   )
   .settings(
     majorVersion := 1,
-    scalaVersion := "2.11.12",
+    scalaVersion := "2.12.8",
     playDefaultPort := 8233,
     libraryDependencies ++= AppDependencies(),
     dependencyOverrides ++= AppDependencies.overrides(),
@@ -53,7 +53,7 @@ lazy val microservice = Project(appName, file("."))
       "-Ywarn-nullary-unit",
       "-Ywarn-numeric-widen",
       //"-Ywarn-unused-import", - does not work well with fatal-warnings because of play-generated sources
-      "-Xfatal-warnings",
+      //"-Xfatal-warnings",
       "-Xlint"
     ),
     coverageMinimum := 90,
@@ -64,5 +64,5 @@ lazy val microservice = Project(appName, file("."))
 
 def oneForkedJvmPerTest(tests: Seq[TestDefinition]): Seq[Group] =
   tests map { test =>
-    Group(test.name, Seq(test), SubProcess(ForkOptions(runJVMOptions = Seq("-Dtest.name=" + test.name))))
+    Group(test.name, Seq(test), SubProcess(ForkOptions().withRunJVMOptions(Vector(s"-Dtest.name=${test.name}"))))
   }

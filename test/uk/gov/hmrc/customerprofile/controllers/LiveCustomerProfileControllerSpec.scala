@@ -76,8 +76,8 @@ class LiveCustomerProfileControllerSpec
 
   def authSuccess(maybeNino: Option[Nino] = None) =
     (accessControl
-      .grantAccess(_: Option[Nino])(_: HeaderCarrier, _: ExecutionContext))
-      .expects(maybeNino, *, *)
+      .grantAccess(_: Option[Nino])(_: HeaderCarrier))
+      .expects(maybeNino, *)
       .returns(Future.successful(()))
 
   def authError(
@@ -85,8 +85,8 @@ class LiveCustomerProfileControllerSpec
     maybeNino: Option[Nino] = None
   ) =
     (accessControl
-      .grantAccess(_: Option[Nino])(_: HeaderCarrier, _: ExecutionContext))
-      .expects(maybeNino, *, *)
+      .grantAccess(_: Option[Nino])(_: HeaderCarrier))
+      .expects(maybeNino, *)
       .returns(Future failed e)
 
   "getAccounts" should {

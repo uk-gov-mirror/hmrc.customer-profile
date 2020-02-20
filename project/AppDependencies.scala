@@ -4,16 +4,16 @@ object AppDependencies {
 
   import play.core.PlayVersion
 
-  private val bootstrapPlayVersion          = "0.35.0"
-  private val playHmrcVersion               = "3.4.0-play-26"
+  private val bootstrapPlayVersion          = "1.3.0"
+  private val playHmrcVersion               = "4.1.0-play-26"
   private val domainVersion                 = "5.6.0-play-26"
-  private val reactiveCircuitBreakerVersion = "3.3.0"
-  private val emailAddressVersion           = "2.2.0"
+  private val reactiveCircuitBreakerVersion = "3.5.0"
+  private val emailAddressVersion           = "3.4.0"
 
   private val scalatestPlusVersion = "3.1.2"
-  private val scalaMockVersion     = "4.0.0"
+  private val scalaMockVersion     = "4.1.0"
   private val pegdownVersion       = "1.6.0"
-  private val wiremockVersion      = "2.20.0"
+  private val wiremockVersion      = "2.21.0"
   private val refinedVersion       = "0.9.4"
 
   val compile = Seq(
@@ -65,7 +65,7 @@ object AppDependencies {
     // see https://groups.google.com/forum/#!topic/play-framework/HAIM1ukUCnI
     val jettyVersion = "9.2.13.v20150730"
 
-    def overrides(): Set[ModuleID] = Set(
+    def overrides(): Seq[ModuleID] = Seq(
       "org.eclipse.jetty"           % "jetty-server"       % jettyVersion,
       "org.eclipse.jetty"           % "jetty-servlet"      % jettyVersion,
       "org.eclipse.jetty"           % "jetty-security"     % jettyVersion,
@@ -84,6 +84,6 @@ object AppDependencies {
   }
 
   def apply():     Seq[ModuleID] = compile ++ Test() ++ IntegrationTest()
-  def overrides(): Set[ModuleID] = IntegrationTest.overrides()
+  def overrides(): Seq[ModuleID] = IntegrationTest.overrides()
 
 }

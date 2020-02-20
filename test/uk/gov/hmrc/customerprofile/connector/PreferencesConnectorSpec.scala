@@ -50,11 +50,11 @@ class PreferencesConnectorSpec
   "updatePendingEmail()" should {
     def mockPUT(response: Future[HttpResponse]) =
       (http
-        .PUT(_: String, _: ChangeEmail)(_: Writes[ChangeEmail],
+        .PUT(_: String, _: ChangeEmail, _: Seq[(String, String)])(_: Writes[ChangeEmail],
                                         _: HttpReads[HttpResponse],
                                         _: HeaderCarrier,
                                         _: ExecutionContext))
-        .expects(s"$baseUrl/preferences/$entityId/pending-email", changeEmailRequest, *, *, *, *)
+        .expects(s"$baseUrl/preferences/$entityId/pending-email", changeEmailRequest, *, *, *, *, *)
         .returns(response)
 
     "return status EmailUpdateOk when the service returns an OK status" in {
