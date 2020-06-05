@@ -9,6 +9,7 @@ object AppDependencies {
   private val domainVersion                 = "5.6.0-play-26"
   private val reactiveCircuitBreakerVersion = "3.5.0"
   private val emailAddressVersion           = "3.4.0"
+  private val jodaVersion                   = "2.7.4"
 
   private val scalatestPlusVersion = "3.1.2"
   private val scalaMockVersion     = "4.1.0"
@@ -17,12 +18,13 @@ object AppDependencies {
   private val refinedVersion       = "0.9.4"
 
   val compile = Seq(
-    "uk.gov.hmrc" %% "bootstrap-play-26"        % bootstrapPlayVersion,
-    "uk.gov.hmrc" %% "play-hmrc-api"            % playHmrcVersion,
-    "uk.gov.hmrc" %% "domain"                   % domainVersion,
-    "uk.gov.hmrc" %% "reactive-circuit-breaker" % reactiveCircuitBreakerVersion,
-    "uk.gov.hmrc" %% "emailaddress"             % emailAddressVersion,
-    "eu.timepit"  %% "refined"                  % refinedVersion
+    "uk.gov.hmrc"       %% "bootstrap-play-26"        % bootstrapPlayVersion,
+    "uk.gov.hmrc"       %% "play-hmrc-api"            % playHmrcVersion,
+    "uk.gov.hmrc"       %% "domain"                   % domainVersion,
+    "uk.gov.hmrc"       %% "reactive-circuit-breaker" % reactiveCircuitBreakerVersion,
+    "uk.gov.hmrc"       %% "emailaddress"             % emailAddressVersion,
+    "eu.timepit"        %% "refined"                  % refinedVersion,
+    "com.typesafe.play" %% "play-json-joda"           % jodaVersion
   )
 
   trait TestDependencies {

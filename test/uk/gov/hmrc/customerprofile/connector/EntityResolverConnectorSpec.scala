@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.customerprofile.connector
 
+import org.joda.time.LocalDate
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Matchers, WordSpecLike}
@@ -24,7 +25,7 @@ import play.api.test.{DefaultAwaitTimeout, FutureAwaits}
 import play.api.{ConfigLoader, Configuration, Environment}
 import uk.gov.hmrc.circuitbreaker.UnhealthyServiceException
 import uk.gov.hmrc.customerprofile.config.WSHttpImpl
-import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status.Verified
+import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status.{Pending, Verified}
 import uk.gov.hmrc.customerprofile.domain._
 import uk.gov.hmrc.emailaddress.EmailAddress
 import uk.gov.hmrc.http.{NotFoundException, _}
@@ -86,6 +87,14 @@ class EntityResolverConnectorSpec
 
     "return the preferences for utr only" in {
       val preferences = Some(Preference(digital = true, Some(EmailPreference(EmailAddress("test@mail.com"), Verified))))
+
+      mockHttpGET(Future successful preferences)
+
+      await(preferenceConnector.getPreferences()) shouldBe preferences
+    }
+
+    "return the preferences with linkSent daye when email is pending" in {
+      val preferences = Some(Preference(digital = true, Some(EmailPreference(EmailAddress("test@mail.com"), Pending, Some(LocalDate.now())))))
 
       mockHttpGET(Future successful preferences)
 

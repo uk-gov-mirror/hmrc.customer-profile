@@ -34,6 +34,17 @@ User Preferences
 
 ```json
 {
+  "digital" : true,
+  "email" : {
+    "email" : "name@email.co.uk",
+    "status" : "pending",
+    "linkSent": "2020-06-04"
+  }
+}
+```
+
+```json
+{
   "digital" : false
 }
 ```
