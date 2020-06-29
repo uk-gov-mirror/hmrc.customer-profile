@@ -26,8 +26,17 @@ import play.api.mvc.AnyContentAsEmpty
 import play.api.test.Helpers._
 import play.api.test.{DefaultAwaitTimeout, FakeRequest, FutureAwaits}
 import uk.gov.hmrc.auth.core.SessionRecordNotFound
-import uk.gov.hmrc.customerprofile.auth.{AccountAccessControl, AccountWithLowCL, FailToMatchTaxIdOnAuth, NinoNotFoundOnAccount}
-import uk.gov.hmrc.customerprofile.connector.{PreferencesDoesNotExist, PreferencesFailure, _}
+import uk.gov.hmrc.customerprofile.auth.{
+  AccountAccessControl,
+  AccountWithLowCL,
+  FailToMatchTaxIdOnAuth,
+  NinoNotFoundOnAccount
+}
+import uk.gov.hmrc.customerprofile.connector.{
+  PreferencesDoesNotExist,
+  PreferencesFailure,
+  _
+}
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status.Verified
 import uk.gov.hmrc.customerprofile.domain.types.ModelTypes.JourneyId
 import uk.gov.hmrc.customerprofile.domain.{Paperless, _}
@@ -47,32 +56,42 @@ class LiveCustomerProfileControllerSpec
     with DefaultAwaitTimeout
     with MockFactory
     with ShutteringStub {
-  val service:                          CustomerProfileService = mock[CustomerProfileService]
-  val accessControl:                    AccountAccessControl   = mock[AccountAccessControl]
-  implicit val shutteringConnectorMock: ShutteringConnector    = mock[ShutteringConnector]
+  val service: CustomerProfileService = mock[CustomerProfileService]
+  val accessControl: AccountAccessControl = mock[AccountAccessControl]
+  implicit val shutteringConnectorMock: ShutteringConnector =
+    mock[ShutteringConnector]
 
   val shuttered =
-    Shuttering(shuttered = true, Some("Shuttered"), Some("Preferences are currently not available"))
+    Shuttering(
+      shuttered = true,
+      Some("Shuttered"),
+      Some("Preferences are currently not available")
+    )
   val notShuttered = Shuttering.shutteringDisabled
 
   val controller: LiveCustomerProfileController =
-    new LiveCustomerProfileController(service,
-                                      accessControl,
-                                      citizenDetailsEnabled = true,
-                                      stubControllerComponents(),
-                                      shutteringConnectorMock)
+    new LiveCustomerProfileController(
+      service,
+      accessControl,
+      citizenDetailsEnabled = true,
+      stubControllerComponents(),
+      shutteringConnectorMock
+    )
 
-  val nino:                    Nino                                = Nino("CS700100A")
-  val journeyId:               JourneyId                           = "b6ef25bc-8f5e-49c8-98c5-f039f39e4557"
-  val acceptheader:            String                              = "application/vnd.hmrc.1.0+json"
-  val requestWithAcceptHeader: FakeRequest[AnyContentAsEmpty.type] = FakeRequest().withHeaders("Accept" -> acceptheader)
-  val emptyRequest:            FakeRequest[AnyContentAsEmpty.type] = FakeRequest()
+  val nino: Nino = Nino("CS700100A")
+  val journeyId: JourneyId = "b6ef25bc-8f5e-49c8-98c5-f039f39e4557"
+  val acceptheader: String = "application/vnd.hmrc.1.0+json"
+  val requestWithAcceptHeader: FakeRequest[AnyContentAsEmpty.type] =
+    FakeRequest().withHeaders("Accept" -> acceptheader)
+  val emptyRequest: FakeRequest[AnyContentAsEmpty.type] = FakeRequest()
 
   val requestWithoutAcceptHeader: FakeRequest[AnyContentAsEmpty.type] =
     FakeRequest().withHeaders("Authorization" -> "Some Header")
 
   val invalidPostRequest: FakeRequest[JsValue] =
-    FakeRequest().withBody(parse("""{ "blah" : "blah" }""")).withHeaders(HeaderNames.ACCEPT → acceptheader)
+    FakeRequest()
+      .withBody(parse("""{ "blah" : "blah" }"""))
+      .withHeaders(HeaderNames.ACCEPT → acceptheader)
 
   def authSuccess(maybeNino: Option[Nino] = None) =
     (accessControl
@@ -80,10 +99,7 @@ class LiveCustomerProfileControllerSpec
       .expects(maybeNino, *)
       .returns(Future.successful(()))
 
-  def authError(
-    e:         Exception,
-    maybeNino: Option[Nino] = None
-  ) =
+  def authError(e: Exception, maybeNino: Option[Nino] = None) =
     (accessControl
       .grantAccess(_: Option[Nino])(_: HeaderCarrier))
       .expects(maybeNino, *)
@@ -91,16 +107,25 @@ class LiveCustomerProfileControllerSpec
 
   "getAccounts" should {
     def mockGetAccounts(result: Future[Accounts]) =
-      (service.getAccounts(_: JourneyId)(_: HeaderCarrier, _: ExecutionContext)).expects(*, *, *).returns(result)
+      (service
+        .getAccounts(_: JourneyId)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(*, *, *)
+        .returns(result)
 
     "return account details with journey id" in {
-      val accounts: Accounts = Accounts(Some(nino), None, routeToIV = false, routeToTwoFactor = false, "102030394AAA")
+      val accounts: Accounts = Accounts(
+        Some(nino),
+        None,
+        routeToIV = false,
+        routeToTwoFactor = false,
+        "102030394AAA"
+      )
       mockGetAccounts(Future successful accounts)
       stubShutteringResponse(notShuttered)
 
       val result = controller.getAccounts(journeyId)(requestWithAcceptHeader)
 
-      status(result)        shouldBe 200
+      status(result) shouldBe 200
       contentAsJson(result) shouldBe toJson(accounts)
     }
 
@@ -141,54 +166,66 @@ class LiveCustomerProfileControllerSpec
       status(result) shouldBe 521
       val jsonBody = contentAsJson(result)
       (jsonBody \ "shuttered").as[Boolean] shouldBe true
-      (jsonBody \ "title").as[String]      shouldBe "Shuttered"
-      (jsonBody \ "message").as[String]    shouldBe "Preferences are currently not available"
+      (jsonBody \ "title").as[String] shouldBe "Shuttered"
+      (jsonBody \ "message")
+        .as[String] shouldBe "Preferences are currently not available"
     }
   }
 
   "getPersonalDetails" should {
     def mockGetAccounts(result: Future[PersonDetails]) =
-      (service.getPersonalDetails(_: Nino)(_: HeaderCarrier, _: ExecutionContext)).expects(nino, *, *).returns(result)
+      (service
+        .getPersonalDetails(_: Nino)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(nino, *, *)
+        .returns(result)
 
     "return personal details with journey id" in {
-      val person = PersonDetails("etag",
-                                 Person(Some("Firstname"),
-                                        Some("Lastname"),
-                                        Some("Middle"),
-                                        Some("Intial"),
-                                        Some("Title"),
-                                        Some("Honours"),
-                                        Some("sex"),
-                                        None,
-                                        None),
-                                 None)
+      val person = PersonDetails(
+        Person(
+          Some("Firstname"),
+          Some("Lastname"),
+          Some("Middle"),
+          Some("Intial"),
+          Some("Title"),
+          Some("Honours"),
+          Some("sex"),
+          None,
+          None
+        ),
+        None
+      )
 
       authSuccess(Some(nino))
       mockGetAccounts(Future successful person)
       stubShutteringResponse(notShuttered)
 
-      val result = controller.getPersonalDetails(nino, journeyId)(requestWithAcceptHeader)
+      val result =
+        controller.getPersonalDetails(nino, journeyId)(requestWithAcceptHeader)
 
-      status(result)        shouldBe 200
+      status(result) shouldBe 200
       contentAsJson(result) shouldBe toJson(person)
     }
 
     "propagate 401" in {
       authError(new SessionRecordNotFound, Some(nino))
 
-      val result = controller.getPersonalDetails(nino, journeyId)(requestWithAcceptHeader)
+      val result =
+        controller.getPersonalDetails(nino, journeyId)(requestWithAcceptHeader)
       status(result) shouldBe 401
     }
 
     "return 403 if the user has no nino" in {
       authError(new NinoNotFoundOnAccount("no nino"), Some(nino))
 
-      val result = controller.getPersonalDetails(nino, journeyId)(requestWithAcceptHeader)
+      val result =
+        controller.getPersonalDetails(nino, journeyId)(requestWithAcceptHeader)
       status(result) shouldBe 403
     }
 
     "return status code 406 when the headers are invalid" in {
-      val result = controller.getPersonalDetails(nino, journeyId)(requestWithoutAcceptHeader)
+      val result = controller.getPersonalDetails(nino, journeyId)(
+        requestWithoutAcceptHeader
+      )
       status(result) shouldBe 406
     }
 
@@ -197,7 +234,8 @@ class LiveCustomerProfileControllerSpec
       mockGetAccounts(Future failed new RuntimeException())
       stubShutteringResponse(notShuttered)
 
-      val result = controller.getPersonalDetails(nino, journeyId)(requestWithAcceptHeader)
+      val result =
+        controller.getPersonalDetails(nino, journeyId)(requestWithAcceptHeader)
       status(result) shouldBe 500
     }
 
@@ -205,23 +243,31 @@ class LiveCustomerProfileControllerSpec
       authSuccess(Some(nino))
       stubShutteringResponse(shuttered)
 
-      val result = controller.getPersonalDetails(nino, journeyId)(requestWithAcceptHeader)
+      val result =
+        controller.getPersonalDetails(nino, journeyId)(requestWithAcceptHeader)
 
       status(result) shouldBe 521
       val jsonBody = contentAsJson(result)
       (jsonBody \ "shuttered").as[Boolean] shouldBe true
-      (jsonBody \ "title").as[String]      shouldBe "Shuttered"
-      (jsonBody \ "message").as[String]    shouldBe "Preferences are currently not available"
+      (jsonBody \ "title").as[String] shouldBe "Shuttered"
+      (jsonBody \ "message")
+        .as[String] shouldBe "Preferences are currently not available"
     }
   }
 
   "getPreferences" should {
     def mockGetPreferences(result: Future[Option[Preference]]) =
-      (service.getPreferences()(_: HeaderCarrier, _: ExecutionContext)).expects(*, *).returns(result)
+      (service
+        .getPreferences()(_: HeaderCarrier, _: ExecutionContext))
+        .expects(*, *)
+        .returns(result)
 
     "return preferences with journeyId" in {
       val preference: Preference =
-        Preference(digital = true, Some(EmailPreference(EmailAddress("old@old.com"), Verified)))
+        Preference(
+          digital = true,
+          Some(EmailPreference(EmailAddress("old@old.com"), Verified))
+        )
 
       authSuccess()
       mockGetPreferences(Future successful Some(preference))
@@ -229,7 +275,7 @@ class LiveCustomerProfileControllerSpec
 
       val result = controller.getPreferences(journeyId)(requestWithAcceptHeader)
 
-      status(result)        shouldBe 200
+      status(result) shouldBe 200
       contentAsJson(result) shouldBe toJson(preference)
     }
 
@@ -279,7 +325,8 @@ class LiveCustomerProfileControllerSpec
     }
 
     "return status code 406 when the headers are invalid" in {
-      val result = controller.getPreferences(journeyId)(requestWithoutAcceptHeader)
+      val result =
+        controller.getPreferences(journeyId)(requestWithoutAcceptHeader)
       status(result) shouldBe 406
     }
 
@@ -301,55 +348,74 @@ class LiveCustomerProfileControllerSpec
       status(result) shouldBe 521
       val jsonBody = contentAsJson(result)
       (jsonBody \ "shuttered").as[Boolean] shouldBe true
-      (jsonBody \ "title").as[String]      shouldBe "Shuttered"
-      (jsonBody \ "message").as[String]    shouldBe "Preferences are currently not available"
+      (jsonBody \ "title").as[String] shouldBe "Shuttered"
+      (jsonBody \ "message")
+        .as[String] shouldBe "Preferences are currently not available"
     }
   }
 
   "paperlessSettingsOptIn" should {
-    def mockPaperlessSettings(
-      settings: Paperless,
-      result:   Future[PreferencesStatus]
-    ) =
+    def mockPaperlessSettings(settings: Paperless,
+                              result: Future[PreferencesStatus]) =
       (service
-        .paperlessSettings(_: Paperless, _: JourneyId)(_: HeaderCarrier, _: ExecutionContext))
+        .paperlessSettings(_: Paperless, _: JourneyId)(
+          _: HeaderCarrier,
+          _: ExecutionContext
+        ))
         .expects(settings, *, *, *)
         .returns(result)
 
-    val newEmail          = EmailAddress("new@new.com")
+    val newEmail = EmailAddress("new@new.com")
     val paperlessSettings = Paperless(TermsAccepted(true), newEmail)
 
     val validPaperlessSettingsRequest: FakeRequest[JsValue] =
-      FakeRequest().withBody(toJson(paperlessSettings)).withHeaders(HeaderNames.ACCEPT → acceptheader)
+      FakeRequest()
+        .withBody(toJson(paperlessSettings))
+        .withHeaders(HeaderNames.ACCEPT → acceptheader)
     val paperlessSettingsRequestWithoutAcceptHeader: FakeRequest[JsValue] =
       FakeRequest().withBody(toJson(paperlessSettings))
 
     "opt in for a user with no preferences with journey id" in {
       authSuccess()
-      mockPaperlessSettings(paperlessSettings, Future successful PreferencesCreated)
+      mockPaperlessSettings(
+        paperlessSettings,
+        Future successful PreferencesCreated
+      )
       stubShutteringResponse(notShuttered)
 
-      val result = controller.paperlessSettingsOptIn(journeyId)(validPaperlessSettingsRequest)
+      val result = controller.paperlessSettingsOptIn(journeyId)(
+        validPaperlessSettingsRequest
+      )
 
       status(result) shouldBe 201
     }
 
     "opt in for a user with existing preferences" in {
       authSuccess()
-      mockPaperlessSettings(paperlessSettings, Future successful PreferencesExists)
+      mockPaperlessSettings(
+        paperlessSettings,
+        Future successful PreferencesExists
+      )
       stubShutteringResponse(notShuttered)
 
-      val result = controller.paperlessSettingsOptIn(journeyId)(validPaperlessSettingsRequest)
+      val result = controller.paperlessSettingsOptIn(journeyId)(
+        validPaperlessSettingsRequest
+      )
 
       status(result) shouldBe 204
     }
 
     "return 404 where preferences do not exist" in {
       authSuccess()
-      mockPaperlessSettings(paperlessSettings, Future successful NoPreferenceExists)
+      mockPaperlessSettings(
+        paperlessSettings,
+        Future successful NoPreferenceExists
+      )
       stubShutteringResponse(notShuttered)
 
-      val result = controller.paperlessSettingsOptIn(journeyId)(validPaperlessSettingsRequest)
+      val result = controller.paperlessSettingsOptIn(journeyId)(
+        validPaperlessSettingsRequest
+      )
 
       status(result) shouldBe 404
     }
@@ -359,17 +425,24 @@ class LiveCustomerProfileControllerSpec
       mockPaperlessSettings(paperlessSettings, Future successful EmailNotExist)
       stubShutteringResponse(notShuttered)
 
-      val result = controller.paperlessSettingsOptIn(journeyId)(validPaperlessSettingsRequest)
+      val result = controller.paperlessSettingsOptIn(journeyId)(
+        validPaperlessSettingsRequest
+      )
 
       status(result) shouldBe 409
     }
 
     "propagate errors from the service" in {
       authSuccess()
-      mockPaperlessSettings(paperlessSettings, Future successful PreferencesFailure)
+      mockPaperlessSettings(
+        paperlessSettings,
+        Future successful PreferencesFailure
+      )
       stubShutteringResponse(notShuttered)
 
-      val result = controller.paperlessSettingsOptIn(journeyId)(validPaperlessSettingsRequest)
+      val result = controller.paperlessSettingsOptIn(journeyId)(
+        validPaperlessSettingsRequest
+      )
 
       status(result) shouldBe 500
     }
@@ -377,34 +450,46 @@ class LiveCustomerProfileControllerSpec
     "propagate 401 for auth failure" in {
       authError(new SessionRecordNotFound)
 
-      val result = controller.paperlessSettingsOptIn(journeyId)(validPaperlessSettingsRequest)
+      val result = controller.paperlessSettingsOptIn(journeyId)(
+        validPaperlessSettingsRequest
+      )
       status(result) shouldBe 401
     }
 
     "return 403 if the user has no nino" in {
       authError(new NinoNotFoundOnAccount("no nino"))
 
-      val result = controller.paperlessSettingsOptIn(journeyId)(validPaperlessSettingsRequest)
+      val result = controller.paperlessSettingsOptIn(journeyId)(
+        validPaperlessSettingsRequest
+      )
       status(result) shouldBe 403
     }
 
     "return status code 406 when no accept header is provided" in {
-      val result = controller.paperlessSettingsOptIn(journeyId)(paperlessSettingsRequestWithoutAcceptHeader)
+      val result = controller.paperlessSettingsOptIn(journeyId)(
+        paperlessSettingsRequestWithoutAcceptHeader
+      )
       status(result) shouldBe 406
     }
 
     "return 400 for an invalid form" in {
       authSuccess()
-      val result = controller.paperlessSettingsOptIn(journeyId)(invalidPostRequest)
+      val result =
+        controller.paperlessSettingsOptIn(journeyId)(invalidPostRequest)
       status(result) shouldBe 400
     }
 
     "return 500 for an unexpected error" in {
       authSuccess()
       stubShutteringResponse(notShuttered)
-      mockPaperlessSettings(paperlessSettings, Future failed new RuntimeException())
+      mockPaperlessSettings(
+        paperlessSettings,
+        Future failed new RuntimeException()
+      )
 
-      val result = controller.paperlessSettingsOptIn(journeyId)(validPaperlessSettingsRequest)
+      val result = controller.paperlessSettingsOptIn(journeyId)(
+        validPaperlessSettingsRequest
+      )
       status(result) shouldBe 500
     }
 
@@ -412,26 +497,33 @@ class LiveCustomerProfileControllerSpec
       authSuccess()
       stubShutteringResponse(shuttered)
 
-      val result = controller.paperlessSettingsOptIn(journeyId)(validPaperlessSettingsRequest)
+      val result = controller.paperlessSettingsOptIn(journeyId)(
+        validPaperlessSettingsRequest
+      )
 
       status(result) shouldBe 521
       val jsonBody = contentAsJson(result)
       (jsonBody \ "shuttered").as[Boolean] shouldBe true
-      (jsonBody \ "title").as[String]      shouldBe "Shuttered"
-      (jsonBody \ "message").as[String]    shouldBe "Preferences are currently not available"
+      (jsonBody \ "title").as[String] shouldBe "Shuttered"
+      (jsonBody \ "message")
+        .as[String] shouldBe "Preferences are currently not available"
     }
   }
 
   "paperlessSettingsOptOut" should {
     def mockPaperlessSettingsOptOut(result: Future[PreferencesStatus]) =
-      (service.paperlessSettingsOptOut()(_: HeaderCarrier, _: ExecutionContext)).expects(*, *).returns(result)
+      (service
+        .paperlessSettingsOptOut()(_: HeaderCarrier, _: ExecutionContext))
+        .expects(*, *)
+        .returns(result)
 
     "opt out for existing preferences with journey id" in {
       authSuccess()
       mockPaperlessSettingsOptOut(Future successful PreferencesExists)
       stubShutteringResponse(notShuttered)
 
-      val result = controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
+      val result =
+        controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
 
       status(result) shouldBe 204
     }
@@ -441,7 +533,8 @@ class LiveCustomerProfileControllerSpec
       mockPaperlessSettingsOptOut(Future successful PreferencesCreated)
       stubShutteringResponse(notShuttered)
 
-      val result = controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
+      val result =
+        controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
 
       status(result) shouldBe 201
     }
@@ -451,7 +544,8 @@ class LiveCustomerProfileControllerSpec
       mockPaperlessSettingsOptOut(Future successful PreferencesDoesNotExist)
       stubShutteringResponse(notShuttered)
 
-      val result = controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
+      val result =
+        controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
 
       status(result) shouldBe 404
     }
@@ -461,7 +555,8 @@ class LiveCustomerProfileControllerSpec
       mockPaperlessSettingsOptOut(Future successful PreferencesFailure)
       stubShutteringResponse(notShuttered)
 
-      val result = controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
+      val result =
+        controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
 
       status(result) shouldBe 500
     }
@@ -469,19 +564,23 @@ class LiveCustomerProfileControllerSpec
     "propagate 401 for auth failure" in {
       authError(new SessionRecordNotFound)
 
-      val result = controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
+      val result =
+        controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
       status(result) shouldBe 401
     }
 
     "return 403 if the user has no nino" in {
       authError(new NinoNotFoundOnAccount("no nino"))
 
-      val result = controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
+      val result =
+        controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
       status(result) shouldBe 403
     }
 
     "return status code 406 when no accept header is provided" in {
-      val result = controller.paperlessSettingsOptOut(journeyId)(requestWithoutAcceptHeader)
+      val result = controller.paperlessSettingsOptOut(journeyId)(
+        requestWithoutAcceptHeader
+      )
       status(result) shouldBe 406
     }
 
@@ -490,7 +589,8 @@ class LiveCustomerProfileControllerSpec
       mockPaperlessSettingsOptOut(Future failed new RuntimeException())
       stubShutteringResponse(notShuttered)
 
-      val result = controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
+      val result =
+        controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
       status(result) shouldBe 500
     }
 
@@ -498,40 +598,47 @@ class LiveCustomerProfileControllerSpec
       authSuccess()
       stubShutteringResponse(shuttered)
 
-      val result = controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
+      val result =
+        controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
 
       status(result) shouldBe 521
       val jsonBody = contentAsJson(result)
       (jsonBody \ "shuttered").as[Boolean] shouldBe true
-      (jsonBody \ "title").as[String]      shouldBe "Shuttered"
-      (jsonBody \ "message").as[String]    shouldBe "Preferences are currently not available"
+      (jsonBody \ "title").as[String] shouldBe "Shuttered"
+      (jsonBody \ "message")
+        .as[String] shouldBe "Preferences are currently not available"
     }
   }
 
   "preferencesPendingEmail" should {
 
-    def mockPendingEmail(
-      changeEmail: ChangeEmail,
-      result:      Future[PreferencesStatus]
-    ) =
+    def mockPendingEmail(changeEmail: ChangeEmail,
+                         result: Future[PreferencesStatus]) =
       (service
-        .setPreferencesPendingEmail(_: ChangeEmail, _: JourneyId)(_: HeaderCarrier, _: ExecutionContext))
+        .setPreferencesPendingEmail(_: ChangeEmail, _: JourneyId)(
+          _: HeaderCarrier,
+          _: ExecutionContext
+        ))
         .expects(changeEmail, *, *, *)
         .returns(result)
 
-    val newEmail    = EmailAddress("new@new.com")
+    val newEmail = EmailAddress("new@new.com")
     val changeEmail = ChangeEmail(newEmail)
 
     val validPendingEmailRequest: FakeRequest[JsValue] =
-      FakeRequest().withBody(toJson(changeEmail)).withHeaders(HeaderNames.ACCEPT → acceptheader)
-    val changeEmailRequestWithoutAcceptHeader: FakeRequest[JsValue] = FakeRequest().withBody(toJson(changeEmail))
+      FakeRequest()
+        .withBody(toJson(changeEmail))
+        .withHeaders(HeaderNames.ACCEPT → acceptheader)
+    val changeEmailRequestWithoutAcceptHeader: FakeRequest[JsValue] =
+      FakeRequest().withBody(toJson(changeEmail))
 
     "successful pending email change" in {
       authSuccess()
       mockPendingEmail(changeEmail, Future successful EmailUpdateOk)
       stubShutteringResponse(notShuttered)
 
-      val result = controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
+      val result =
+        controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
 
       status(result) shouldBe 204
     }
@@ -541,7 +648,8 @@ class LiveCustomerProfileControllerSpec
       mockPendingEmail(changeEmail, Future successful NoPreferenceExists)
       stubShutteringResponse(notShuttered)
 
-      val result = controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
+      val result =
+        controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
 
       status(result) shouldBe 404
     }
@@ -551,7 +659,8 @@ class LiveCustomerProfileControllerSpec
       mockPendingEmail(changeEmail, Future successful EmailNotExist)
       stubShutteringResponse(notShuttered)
 
-      val result = controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
+      val result =
+        controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
 
       status(result) shouldBe 409
     }
@@ -561,7 +670,8 @@ class LiveCustomerProfileControllerSpec
       mockPendingEmail(changeEmail, Future successful PreferencesFailure)
       stubShutteringResponse(notShuttered)
 
-      val result = controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
+      val result =
+        controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
 
       status(result) shouldBe 500
     }
@@ -569,25 +679,30 @@ class LiveCustomerProfileControllerSpec
     "propagate 401 for auth failure" in {
       authError(new SessionRecordNotFound)
 
-      val result = controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
+      val result =
+        controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
       status(result) shouldBe 401
     }
 
     "return 403 if the user has no nino" in {
       authError(new NinoNotFoundOnAccount("no nino"))
 
-      val result = controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
+      val result =
+        controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
       status(result) shouldBe 403
     }
 
     "return status code 406 when no accept header is provided" in {
-      val result = controller.preferencesPendingEmail(journeyId)(changeEmailRequestWithoutAcceptHeader)
+      val result = controller.preferencesPendingEmail(journeyId)(
+        changeEmailRequestWithoutAcceptHeader
+      )
       status(result) shouldBe 406
     }
 
     "return 400 for an invalid form" in {
       authSuccess()
-      val result = controller.preferencesPendingEmail(journeyId)(invalidPostRequest)
+      val result =
+        controller.preferencesPendingEmail(journeyId)(invalidPostRequest)
       status(result) shouldBe 400
     }
 
@@ -596,7 +711,8 @@ class LiveCustomerProfileControllerSpec
       mockPendingEmail(changeEmail, Future failed new RuntimeException())
       stubShutteringResponse(notShuttered)
 
-      val result = controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
+      val result =
+        controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
       status(result) shouldBe 500
     }
 
@@ -604,13 +720,15 @@ class LiveCustomerProfileControllerSpec
       authSuccess()
       stubShutteringResponse(shuttered)
 
-      val result = controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
+      val result =
+        controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
 
       status(result) shouldBe 521
       val jsonBody = contentAsJson(result)
       (jsonBody \ "shuttered").as[Boolean] shouldBe true
-      (jsonBody \ "title").as[String]      shouldBe "Shuttered"
-      (jsonBody \ "message").as[String]    shouldBe "Preferences are currently not available"
+      (jsonBody \ "title").as[String] shouldBe "Shuttered"
+      (jsonBody \ "message")
+        .as[String] shouldBe "Preferences are currently not available"
     }
   }
 

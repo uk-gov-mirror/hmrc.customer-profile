@@ -29,7 +29,11 @@ import uk.gov.hmrc.emailaddress.EmailAddress
 
 import scala.util.Random
 
-class DomainFormatCheckSpec extends WordSpecLike with Matchers with FutureAwaits with DefaultAwaitTimeout {
+class DomainFormatCheckSpec
+    extends WordSpecLike
+    with Matchers
+    with FutureAwaits
+    with DefaultAwaitTimeout {
 
   import DomainGenerator._
 
@@ -66,13 +70,13 @@ object DomainGenerator {
 
   import uk.gov.hmrc.domain.Generator
 
-  val nino:  Nino  = new Generator().nextNino
+  val nino: Nino = new Generator().nextNino
   val saUtr: SaUtr = new SaUtrGenerator().nextSaUtr
 
   val accountsWithNinoAndSaUtr = Accounts(
     Some(nino),
     Some(saUtr),
-    routeToIV        = false,
+    routeToIV = false,
     routeToTwoFactor = false,
     "102030394AAA"
   )
@@ -96,8 +100,6 @@ object DomainGenerator {
     verifiedEmailPreference
   )
 
-  val etag = "etag12345"
-
   val person =
     Person(
       Some("John"),
@@ -111,7 +113,7 @@ object DomainGenerator {
       Some(nino)
     )
   val address: Option[Address] = None
-  val personalDetails = PersonDetails(etag, person, address)
+  val personalDetails = PersonDetails(person, address)
   lazy val personalDetailsAsJson: JsValue = toJson(personalDetails)
 
 }

@@ -36,7 +36,7 @@ trait WriteDatesAsLongs {
   }
 
   implicit val localDateFormat: Format[LocalDate] = new Format[LocalDate] {
-    override def writes(o:   LocalDate): JsValue = dateWrites.writes(o)
+    override def writes(o: LocalDate): JsValue = dateWrites.writes(o)
 
     override def reads(json: JsValue): JsResult[LocalDate] =
       DefaultLocalDateReads.reads(json)
@@ -47,16 +47,15 @@ object Person extends WriteDatesAsLongs {
   implicit val formats: OFormat[Person] = format[Person]
 }
 
-case class Person(
-  firstName:   Option[String],
-  middleName:  Option[String],
-  lastName:    Option[String],
-  initials:    Option[String],
-  title:       Option[String],
-  honours:     Option[String],
-  sex:         Option[String],
-  dateOfBirth: Option[LocalDate],
-  nino:        Option[Nino]) {
+case class Person(firstName: Option[String],
+                  middleName: Option[String],
+                  lastName: Option[String],
+                  initials: Option[String],
+                  title: Option[String],
+                  honours: Option[String],
+                  sex: Option[String],
+                  dateOfBirth: Option[LocalDate],
+                  nino: Option[Nino]) {
 
   lazy val shortName: Option[String] = for {
     f <- firstName
@@ -71,22 +70,18 @@ object Address extends WriteDatesAsLongs {
   implicit val formats: OFormat[Address] = format[Address]
 }
 
-case class Address(
-  line1:     Option[String],
-  line2:     Option[String],
-  line3:     Option[String],
-  line4:     Option[String],
-  line5:     Option[String],
-  postcode:  Option[String],
-  country:   Option[String],
-  startDate: Option[LocalDate],
-  `type`:    Option[String])
+case class Address(line1: Option[String],
+                   line2: Option[String],
+                   line3: Option[String],
+                   line4: Option[String],
+                   line5: Option[String],
+                   postcode: Option[String],
+                   country: Option[String],
+                   startDate: Option[LocalDate],
+                   `type`: Option[String])
 
 object PersonDetails {
   implicit val formats: OFormat[PersonDetails] = format[PersonDetails]
 }
 
-case class PersonDetails(
-  etag:    String,
-  person:  Person,
-  address: Option[Address])
+case class PersonDetails(person: Person, address: Option[Address])
