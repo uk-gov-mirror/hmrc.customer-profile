@@ -30,7 +30,6 @@ Personal Details
 
 ```json
 {
-  "etag": "etag12345",
   "person": {
     "firstName": "Jennifer",
     "lastName": "Thorsteinson",
