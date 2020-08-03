@@ -193,8 +193,8 @@ class SandboxCustomerProfileISpec extends BaseISpec {
     val url = "/profile/preferences"
     val expectedPreference =
       Preference(
-        digital = true,
-        Some(EmailPreference(EmailAddress("name@email.co.uk"), Verified))
+        digital = false,
+        None
       )
 
     "return the default personal details with a journeyId" in {
