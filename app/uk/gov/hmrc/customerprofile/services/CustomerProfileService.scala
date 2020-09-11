@@ -76,11 +76,12 @@ class CustomerProfileService @Inject() (
     }
 
   def paperlessSettingsOptOut(
-  )(implicit hc: HeaderCarrier,
-    ex:          ExecutionContext
+    paperlessOptOut: PaperlessOptOut
+  )(implicit hc:     HeaderCarrier,
+    ex:              ExecutionContext
   ): Future[PreferencesStatus] =
     withAudit("paperlessSettingsOptOut", Map.empty) {
-      entityResolver.paperlessOptOut()
+      entityResolver.paperlessOptOut(paperlessOptOut)
     }
 
   def getPreferences(

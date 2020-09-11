@@ -3,10 +3,11 @@ package uk.gov.hmrc.customerprofile.stubs
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.matching.UrlPattern
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
+import play.api.libs.json.Json
 import play.api.libs.json.Json.{stringify, toJson}
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status._
-import uk.gov.hmrc.customerprofile.domain.{EmailPreference, Preference}
+import uk.gov.hmrc.customerprofile.domain.{EmailPreference, OptInPage, PageType, Paperless, PaperlessOptOut, Preference, TermsAccepted, Version}
 import uk.gov.hmrc.emailaddress.EmailAddress
 
 object EntityResolverStub {
@@ -68,6 +69,43 @@ object EntityResolverStub {
 
   def successPaperlessSettingsChange(): StubMapping =
     stubFor(post(urlEqualToPaperlessSettingsChange).willReturn(aResponse().withStatus(200)))
+
+  def successPaperlessSettingsOptInWithVersion: StubMapping =
+    stubFor(
+      post(urlEqualToPaperlessSettingsChange)
+        .withRequestBody(
+          equalToJson(
+            Json
+              .toJson(
+                Paperless(generic = TermsAccepted(true, Some(OptInPage(Version(1, 1), 44, PageType.iOSOptIn))),
+                          email   = EmailAddress("new-email@new-email.new.email"),
+                          "en")
+              )
+              .toString(),
+            true,
+            false
+          )
+        )
+        .willReturn(aResponse().withStatus(200))
+    )
+
+  def successPaperlessSettingsOptOutWithVersion: StubMapping =
+    stubFor(
+      post(urlEqualToPaperlessSettingsChange)
+        .withRequestBody(
+          equalToJson(
+            Json
+              .toJson(
+                PaperlessOptOut(generic = TermsAccepted(false, Some(OptInPage(Version(1, 1), 44, PageType.iOSOptOut))),
+                  "en")
+              )
+              .toString(),
+            true,
+            false
+          )
+        )
+        .willReturn(aResponse().withStatus(200))
+    )
 
   val urlEqualToPreferences:             UrlPattern = urlEqualTo(s"/preferences")
   val urlEqualToPaperlessSettingsChange: UrlPattern = urlEqualTo(s"/preferences/terms-and-conditions")

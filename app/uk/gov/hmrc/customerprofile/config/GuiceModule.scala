@@ -47,6 +47,7 @@ class GuiceModule(
     )
 
     bindConfigBoolean("citizen-details.enabled", "microservice.services.citizen-details.enabled")
+    bindConfigBoolean("optInVersionsEnabled", "optInVersionsEnabled")
 
     bindConfigInt("controllers.confidenceLevel")
     bind(classOf[String]).annotatedWith(named("auth")).toInstance(servicesConfig.baseUrl("auth"))

@@ -29,31 +29,36 @@ import uk.gov.hmrc.emailaddress.EmailAddress
 
 class SandboxCustomerProfileISpec extends BaseISpec {
   private val acceptJsonHeader = "Accept" -> "application/vnd.hmrc.1.0+json"
-  private val nino = Nino("CS700100A")
-  private val journeyId = "b6ef25bc-8f5e-49c8-98c5-f039f39e4557"
+  private val nino             = Nino("CS700100A")
+  private val journeyId        = "b6ef25bc-8f5e-49c8-98c5-f039f39e4557"
   private val invalidJsonBody: JsValue = Json.parse("{}")
 
-  def request(url: String,
-              sandboxControl: Option[String] = None,
-              journeyId: String): WSRequest =
+  def request(
+    url:            String,
+    sandboxControl: Option[String] = None,
+    journeyId:      String
+  ): WSRequest =
     wsUrl(s"$url?journeyId=$journeyId")
       .addHttpHeaders(
         acceptJsonHeader,
-        "SANDBOX-CONTROL" -> s"${sandboxControl.getOrElse("")}",
+        "SANDBOX-CONTROL"  -> s"${sandboxControl.getOrElse("")}",
         "X-MOBILE-USER-ID" -> "208606423740"
       )
 
-  def requestWithoutAcceptHeader(url: String, journeyId: String): WSRequest =
+  def requestWithoutAcceptHeader(
+    url:       String,
+    journeyId: String
+  ): WSRequest =
     wsUrl(s"$url?journeyId=$journeyId")
       .addHttpHeaders("X-MOBILE-USER-ID" -> "208606423740")
 
   def requestWithoutJourneyId(
-    url: String,
+    url:            String,
     sandboxControl: Option[String] = None
   ): WSRequest =
     wsUrl(s"$url").addHttpHeaders(
       acceptJsonHeader,
-      "SANDBOX-CONTROL" -> s"${sandboxControl.getOrElse("")}",
+      "SANDBOX-CONTROL"  -> s"${sandboxControl.getOrElse("")}",
       "X-MOBILE-USER-ID" -> "208606423740"
     )
 
@@ -67,7 +72,7 @@ class SandboxCustomerProfileISpec extends BaseISpec {
         Accounts(
           Some(nino),
           None,
-          routeToIV = false,
+          routeToIV        = false,
           routeToTwoFactor = false,
           journeyId
         )
@@ -145,7 +150,7 @@ class SandboxCustomerProfileISpec extends BaseISpec {
     "return the default personal details with journey id" in {
       val response = await(request(url, None, journeyId).get())
       response.status shouldBe 200
-      response.json shouldBe toJson(expectedDetails)
+      response.json   shouldBe toJson(expectedDetails)
     }
 
     "return 401 for ERROR-401" in {
@@ -200,7 +205,7 @@ class SandboxCustomerProfileISpec extends BaseISpec {
     "return the default personal details with a journeyId" in {
       val response = await(request(url, None, journeyId).get)
       response.status shouldBe 200
-      response.json shouldBe toJson(expectedPreference)
+      response.json   shouldBe toJson(expectedPreference)
     }
 
     "return 401 for ERROR-401" in {
@@ -246,7 +251,8 @@ class SandboxCustomerProfileISpec extends BaseISpec {
       toJson(
         Paperless(
           generic = TermsAccepted(true),
-          email = EmailAddress("new-email@new-email.new.email")
+          email   = EmailAddress("new-email@new-email.new.email"),
+          "en"
         )
       )
 
@@ -334,41 +340,49 @@ class SandboxCustomerProfileISpec extends BaseISpec {
   }
 
   "POST /sandbox/preferences/profile/paperless-settings/opt-out" should {
-    val url = "/profile/preferences/paperless-settings/opt-out"
+    val url       = "/profile/preferences/paperless-settings/opt-out"
     val emptyBody = ""
 
+    val paperlessSettings =
+      toJson(
+        PaperlessOptOut(
+          generic = TermsAccepted(false),
+          "en"
+        )
+      )
+
     "return a 204 response by default with journeyId" in {
-      val response = await(request(url, None, journeyId).post(emptyBody))
+      val response = await(request(url, None, journeyId).post(paperlessSettings))
       response.status shouldBe 204
     }
 
     "return 401 for ERROR-401" in {
       val response =
-        await(request(url, Some("ERROR-401"), journeyId).post(emptyBody))
+        await(request(url, Some("ERROR-401"), journeyId).post(paperlessSettings))
       response.status shouldBe 401
     }
 
     "return 403 for ERROR-403" in {
       val response =
-        await(request(url, Some("ERROR-403"), journeyId).post(emptyBody))
+        await(request(url, Some("ERROR-403"), journeyId).post(paperlessSettings))
       response.status shouldBe 403
     }
 
     "return a 404 response for ERROR-404" in {
       val response =
-        await(request(url, Some("ERROR-404"), journeyId).post(emptyBody))
+        await(request(url, Some("ERROR-404"), journeyId).post(paperlessSettings))
       response.status shouldBe 404
     }
 
     "return 406 without Accept header" in {
       val response =
-        await(requestWithoutAcceptHeader(url, journeyId).post(emptyBody))
+        await(requestWithoutAcceptHeader(url, journeyId).post(paperlessSettings))
       response.status shouldBe 406
     }
 
     "return a 500 response for ERROR-500" in {
       val response =
-        await(request(url, Some("ERROR-500"), journeyId).post(emptyBody))
+        await(request(url, Some("ERROR-500"), journeyId).post(paperlessSettings))
       response.status shouldBe 500
     }
 
@@ -378,7 +392,7 @@ class SandboxCustomerProfileISpec extends BaseISpec {
           requestWithoutJourneyId(
             "/profile/preferences/paperless-settings/opt-out",
             None
-          ).post(emptyBody)
+          ).post(paperlessSettings)
         )
       response.status shouldBe 400
     }
@@ -389,7 +403,7 @@ class SandboxCustomerProfileISpec extends BaseISpec {
           requestWithoutJourneyId(
             "/profile/preferences/paperless-settings/opt-out?journeyId=ThisIsAnInvalidJourneyId",
             None
-          ).post(emptyBody)
+          ).post(paperlessSettings)
         )
       response.status shouldBe 400
     }

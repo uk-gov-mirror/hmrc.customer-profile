@@ -26,17 +26,9 @@ import play.api.mvc.AnyContentAsEmpty
 import play.api.test.Helpers._
 import play.api.test.{DefaultAwaitTimeout, FakeRequest, FutureAwaits}
 import uk.gov.hmrc.auth.core.SessionRecordNotFound
-import uk.gov.hmrc.customerprofile.auth.{
-  AccountAccessControl,
-  AccountWithLowCL,
-  FailToMatchTaxIdOnAuth,
-  NinoNotFoundOnAccount
-}
-import uk.gov.hmrc.customerprofile.connector.{
-  PreferencesDoesNotExist,
-  PreferencesFailure,
-  _
-}
+import uk.gov.hmrc.customerprofile.auth.{AccountAccessControl, AccountWithLowCL, FailToMatchTaxIdOnAuth, NinoNotFoundOnAccount}
+import uk.gov.hmrc.customerprofile.connector.{PreferencesDoesNotExist, PreferencesFailure, _}
+import uk.gov.hmrc.customerprofile.domain
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status.Verified
 import uk.gov.hmrc.customerprofile.domain.types.ModelTypes.JourneyId
 import uk.gov.hmrc.customerprofile.domain.{Paperless, _}
@@ -56,8 +48,9 @@ class LiveCustomerProfileControllerSpec
     with DefaultAwaitTimeout
     with MockFactory
     with ShutteringStub {
-  val service: CustomerProfileService = mock[CustomerProfileService]
-  val accessControl: AccountAccessControl = mock[AccountAccessControl]
+  val service:       CustomerProfileService = mock[CustomerProfileService]
+  val accessControl: AccountAccessControl   = mock[AccountAccessControl]
+
   implicit val shutteringConnectorMock: ShutteringConnector =
     mock[ShutteringConnector]
 
@@ -75,12 +68,14 @@ class LiveCustomerProfileControllerSpec
       accessControl,
       citizenDetailsEnabled = true,
       stubControllerComponents(),
-      shutteringConnectorMock
+      shutteringConnectorMock,
+      optInVersionsEnabled = false
     )
 
-  val nino: Nino = Nino("CS700100A")
-  val journeyId: JourneyId = "b6ef25bc-8f5e-49c8-98c5-f039f39e4557"
-  val acceptheader: String = "application/vnd.hmrc.1.0+json"
+  val nino:         Nino      = Nino("CS700100A")
+  val journeyId:    JourneyId = "b6ef25bc-8f5e-49c8-98c5-f039f39e4557"
+  val acceptheader: String    = "application/vnd.hmrc.1.0+json"
+
   val requestWithAcceptHeader: FakeRequest[AnyContentAsEmpty.type] =
     FakeRequest().withHeaders("Accept" -> acceptheader)
   val emptyRequest: FakeRequest[AnyContentAsEmpty.type] = FakeRequest()
@@ -99,7 +94,10 @@ class LiveCustomerProfileControllerSpec
       .expects(maybeNino, *)
       .returns(Future.successful(()))
 
-  def authError(e: Exception, maybeNino: Option[Nino] = None) =
+  def authError(
+    e:         Exception,
+    maybeNino: Option[Nino] = None
+  ) =
     (accessControl
       .grantAccess(_: Option[Nino])(_: HeaderCarrier))
       .expects(maybeNino, *)
@@ -116,7 +114,7 @@ class LiveCustomerProfileControllerSpec
       val accounts: Accounts = Accounts(
         Some(nino),
         None,
-        routeToIV = false,
+        routeToIV        = false,
         routeToTwoFactor = false,
         "102030394AAA"
       )
@@ -125,7 +123,7 @@ class LiveCustomerProfileControllerSpec
 
       val result = controller.getAccounts(journeyId)(requestWithAcceptHeader)
 
-      status(result) shouldBe 200
+      status(result)        shouldBe 200
       contentAsJson(result) shouldBe toJson(accounts)
     }
 
@@ -166,7 +164,7 @@ class LiveCustomerProfileControllerSpec
       status(result) shouldBe 521
       val jsonBody = contentAsJson(result)
       (jsonBody \ "shuttered").as[Boolean] shouldBe true
-      (jsonBody \ "title").as[String] shouldBe "Shuttered"
+      (jsonBody \ "title").as[String]      shouldBe "Shuttered"
       (jsonBody \ "message")
         .as[String] shouldBe "Preferences are currently not available"
     }
@@ -202,7 +200,7 @@ class LiveCustomerProfileControllerSpec
       val result =
         controller.getPersonalDetails(nino, journeyId)(requestWithAcceptHeader)
 
-      status(result) shouldBe 200
+      status(result)        shouldBe 200
       contentAsJson(result) shouldBe toJson(person)
     }
 
@@ -249,7 +247,7 @@ class LiveCustomerProfileControllerSpec
       status(result) shouldBe 521
       val jsonBody = contentAsJson(result)
       (jsonBody \ "shuttered").as[Boolean] shouldBe true
-      (jsonBody \ "title").as[String] shouldBe "Shuttered"
+      (jsonBody \ "title").as[String]      shouldBe "Shuttered"
       (jsonBody \ "message")
         .as[String] shouldBe "Preferences are currently not available"
     }
@@ -275,7 +273,7 @@ class LiveCustomerProfileControllerSpec
 
       val result = controller.getPreferences(journeyId)(requestWithAcceptHeader)
 
-      status(result) shouldBe 200
+      status(result)        shouldBe 200
       contentAsJson(result) shouldBe toJson(preference)
     }
 
@@ -348,15 +346,17 @@ class LiveCustomerProfileControllerSpec
       status(result) shouldBe 521
       val jsonBody = contentAsJson(result)
       (jsonBody \ "shuttered").as[Boolean] shouldBe true
-      (jsonBody \ "title").as[String] shouldBe "Shuttered"
+      (jsonBody \ "title").as[String]      shouldBe "Shuttered"
       (jsonBody \ "message")
         .as[String] shouldBe "Preferences are currently not available"
     }
   }
 
   "paperlessSettingsOptIn" should {
-    def mockPaperlessSettings(settings: Paperless,
-                              result: Future[PreferencesStatus]) =
+    def mockPaperlessSettings(
+      settings: Paperless,
+      result:   Future[PreferencesStatus]
+    ) =
       (service
         .paperlessSettings(_: Paperless, _: JourneyId)(
           _: HeaderCarrier,
@@ -365,13 +365,15 @@ class LiveCustomerProfileControllerSpec
         .expects(settings, *, *, *)
         .returns(result)
 
-    val newEmail = EmailAddress("new@new.com")
-    val paperlessSettings = Paperless(TermsAccepted(true), newEmail)
+    val newEmail          = EmailAddress("new@new.com")
+    val paperlessSettings = Paperless(TermsAccepted(true), newEmail, "en")
+    val paperlessSettingsWithVersion = Paperless(TermsAccepted(accepted = true, Some(OptInPage(Version(1, 1), 44, PageType.AndroidOptIn))), newEmail, "en")
 
     val validPaperlessSettingsRequest: FakeRequest[JsValue] =
       FakeRequest()
-        .withBody(toJson(paperlessSettings))
+        .withBody(toJson(paperlessSettingsWithVersion))
         .withHeaders(HeaderNames.ACCEPT → acceptheader)
+
     val paperlessSettingsRequestWithoutAcceptHeader: FakeRequest[JsValue] =
       FakeRequest().withBody(toJson(paperlessSettings))
 
@@ -386,6 +388,28 @@ class LiveCustomerProfileControllerSpec
       val result = controller.paperlessSettingsOptIn(journeyId)(
         validPaperlessSettingsRequest
       )
+
+      status(result) shouldBe 201
+    }
+
+    "opt in with versions enabled sends version info" in {
+      val controller: LiveCustomerProfileController =
+        new LiveCustomerProfileController(
+          service,
+          accessControl,
+          citizenDetailsEnabled = true,
+          stubControllerComponents(),
+          shutteringConnectorMock,
+          optInVersionsEnabled = true
+        )
+
+      authSuccess()
+      mockPaperlessSettings(paperlessSettingsWithVersion,
+                            Future successful PreferencesCreated)
+      stubShutteringResponse(notShuttered)
+
+      val result =
+        controller.paperlessSettingsOptIn(journeyId)(validPaperlessSettingsRequest)
 
       status(result) shouldBe 201
     }
@@ -504,59 +528,96 @@ class LiveCustomerProfileControllerSpec
       status(result) shouldBe 521
       val jsonBody = contentAsJson(result)
       (jsonBody \ "shuttered").as[Boolean] shouldBe true
-      (jsonBody \ "title").as[String] shouldBe "Shuttered"
+      (jsonBody \ "title").as[String]      shouldBe "Shuttered"
       (jsonBody \ "message")
         .as[String] shouldBe "Preferences are currently not available"
     }
   }
 
   "paperlessSettingsOptOut" should {
-    def mockPaperlessSettingsOptOut(result: Future[PreferencesStatus]) =
+
+    val optOutPaperlessSettings = PaperlessOptOut(TermsAccepted(false), "en")
+
+    val optOutPaperlessSettingsWithVersion = PaperlessOptOut(TermsAccepted(false, Some(OptInPage(Version(1, 1), 44, PageType.AndroidOptOut))), "en")
+
+    val validPaperlessOptOutRequest: FakeRequest[JsValue] =
+      FakeRequest()
+        .withBody(toJson(optOutPaperlessSettingsWithVersion))
+        .withHeaders(HeaderNames.ACCEPT → acceptheader)
+
+    val optOutPaperlessSettingsRequestWithoutAcceptHeader: FakeRequest[JsValue] =
+      FakeRequest().withBody(toJson(optOutPaperlessSettings))
+
+    def mockPaperlessSettingsOptOut(
+      optOutPaperless: PaperlessOptOut,
+      result:          Future[PreferencesStatus]
+    ) =
       (service
-        .paperlessSettingsOptOut()(_: HeaderCarrier, _: ExecutionContext))
-        .expects(*, *)
+        .paperlessSettingsOptOut(_: domain.PaperlessOptOut)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(optOutPaperless, *, *)
         .returns(result)
 
     "opt out for existing preferences with journey id" in {
       authSuccess()
-      mockPaperlessSettingsOptOut(Future successful PreferencesExists)
+      mockPaperlessSettingsOptOut(optOutPaperlessSettings, Future successful PreferencesExists)
       stubShutteringResponse(notShuttered)
 
       val result =
-        controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
+        controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest)
 
       status(result) shouldBe 204
     }
 
     "opt out without existing preferences and journey id" in {
       authSuccess()
-      mockPaperlessSettingsOptOut(Future successful PreferencesCreated)
+      mockPaperlessSettingsOptOut(optOutPaperlessSettings, Future successful PreferencesCreated)
       stubShutteringResponse(notShuttered)
 
       val result =
-        controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
+        controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest)
+
+      status(result) shouldBe 201
+    }
+
+    "opt out with versions enabled sends version info" in {
+      val controller: LiveCustomerProfileController =
+        new LiveCustomerProfileController(
+          service,
+          accessControl,
+          citizenDetailsEnabled = true,
+          stubControllerComponents(),
+          shutteringConnectorMock,
+          optInVersionsEnabled = true
+        )
+
+      authSuccess()
+      mockPaperlessSettingsOptOut(optOutPaperlessSettingsWithVersion, Future successful PreferencesCreated)
+      stubShutteringResponse(notShuttered)
+
+      val result =
+        controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest)
 
       status(result) shouldBe 201
     }
 
     "return 404 where preference does not exist" in {
       authSuccess()
-      mockPaperlessSettingsOptOut(Future successful PreferencesDoesNotExist)
+      mockPaperlessSettingsOptOut(optOutPaperlessSettings, Future successful PreferencesDoesNotExist)
       stubShutteringResponse(notShuttered)
 
       val result =
-        controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
+        controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest)
 
       status(result) shouldBe 404
     }
 
     "return 500 on service error" in {
       authSuccess()
-      mockPaperlessSettingsOptOut(Future successful PreferencesFailure)
+      mockPaperlessSettingsOptOut(optOutPaperlessSettings, Future successful PreferencesFailure)
       stubShutteringResponse(notShuttered)
 
       val result =
-        controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
+        controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest)
 
       status(result) shouldBe 500
     }
@@ -565,7 +626,7 @@ class LiveCustomerProfileControllerSpec
       authError(new SessionRecordNotFound)
 
       val result =
-        controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
+        controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest)
       status(result) shouldBe 401
     }
 
@@ -573,24 +634,24 @@ class LiveCustomerProfileControllerSpec
       authError(new NinoNotFoundOnAccount("no nino"))
 
       val result =
-        controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
+        controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest)
       status(result) shouldBe 403
     }
 
     "return status code 406 when no accept header is provided" in {
       val result = controller.paperlessSettingsOptOut(journeyId)(
-        requestWithoutAcceptHeader
+        optOutPaperlessSettingsRequestWithoutAcceptHeader
       )
       status(result) shouldBe 406
     }
 
     "return 500 for an unexpected error" in {
       authSuccess()
-      mockPaperlessSettingsOptOut(Future failed new RuntimeException())
+      mockPaperlessSettingsOptOut(optOutPaperlessSettings, Future failed new RuntimeException())
       stubShutteringResponse(notShuttered)
 
       val result =
-        controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
+        controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest)
       status(result) shouldBe 500
     }
 
@@ -599,12 +660,12 @@ class LiveCustomerProfileControllerSpec
       stubShutteringResponse(shuttered)
 
       val result =
-        controller.paperlessSettingsOptOut(journeyId)(requestWithAcceptHeader)
+        controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest)
 
       status(result) shouldBe 521
       val jsonBody = contentAsJson(result)
       (jsonBody \ "shuttered").as[Boolean] shouldBe true
-      (jsonBody \ "title").as[String] shouldBe "Shuttered"
+      (jsonBody \ "title").as[String]      shouldBe "Shuttered"
       (jsonBody \ "message")
         .as[String] shouldBe "Preferences are currently not available"
     }
@@ -612,8 +673,10 @@ class LiveCustomerProfileControllerSpec
 
   "preferencesPendingEmail" should {
 
-    def mockPendingEmail(changeEmail: ChangeEmail,
-                         result: Future[PreferencesStatus]) =
+    def mockPendingEmail(
+      changeEmail: ChangeEmail,
+      result:      Future[PreferencesStatus]
+    ) =
       (service
         .setPreferencesPendingEmail(_: ChangeEmail, _: JourneyId)(
           _: HeaderCarrier,
@@ -622,7 +685,7 @@ class LiveCustomerProfileControllerSpec
         .expects(changeEmail, *, *, *)
         .returns(result)
 
-    val newEmail = EmailAddress("new@new.com")
+    val newEmail    = EmailAddress("new@new.com")
     val changeEmail = ChangeEmail(newEmail)
 
     val validPendingEmailRequest: FakeRequest[JsValue] =
@@ -726,7 +789,7 @@ class LiveCustomerProfileControllerSpec
       status(result) shouldBe 521
       val jsonBody = contentAsJson(result)
       (jsonBody \ "shuttered").as[Boolean] shouldBe true
-      (jsonBody \ "title").as[String] shouldBe "Shuttered"
+      (jsonBody \ "title").as[String]      shouldBe "Shuttered"
       (jsonBody \ "message")
         .as[String] shouldBe "Preferences are currently not available"
     }

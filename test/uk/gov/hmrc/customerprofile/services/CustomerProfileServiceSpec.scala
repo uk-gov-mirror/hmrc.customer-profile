@@ -112,7 +112,7 @@ class CustomerProfileServiceSpec
   )
 
   val newEmail = EmailAddress("new@new.com")
-  val newPaperlessSettings = Paperless(TermsAccepted(true), newEmail)
+  val newPaperlessSettings = Paperless(TermsAccepted(true), newEmail, "en")
 
   val nino = Nino("CS700100A")
   val accounts: Accounts = Accounts(
@@ -256,11 +256,11 @@ class CustomerProfileServiceSpec
     "audit and opt the user out" in {
       mockAudit(transactionName = "paperlessSettingsOptOut")
       (entityResolver
-        .paperlessOptOut()(_: HeaderCarrier, _: ExecutionContext))
-        .expects(*, *)
+        .paperlessOptOut(_: PaperlessOptOut)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(PaperlessOptOut(TermsAccepted(false), "en"), *, *)
         .returns(Future successful PreferencesExists)
 
-      await(service.paperlessSettingsOptOut()) shouldBe PreferencesExists
+      await(service.paperlessSettingsOptOut(PaperlessOptOut(TermsAccepted(false), "en"))) shouldBe PreferencesExists
     }
   }
 

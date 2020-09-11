@@ -41,7 +41,19 @@ trait CustomerProfileController extends HeaderValidator {
 
   def getPreferences(journeyId: JourneyId): Action[AnyContent]
 
-  def paperlessSettingsOptOut(journeyId: JourneyId): Action[AnyContent]
+  def paperlessSettingsOptOut(journeyId: JourneyId): Action[JsValue] =
+    withAcceptHeaderValidationAndAuthIfLive().async(controllerComponents.parsers.json) { implicit request =>
+      implicit val hc: HeaderCarrier = fromHeadersAndSession(request.headers, None)
+      request.body
+        .validate[PaperlessOptOut]
+        .fold(
+          errors => {
+            Logger.warn("Received error with service getPaperlessSettings: " + errors)
+            Future successful BadRequest
+          },
+          settings => optOut(settings, journeyId)
+        )
+    }
 
   def preferencesPendingEmail(journeyId: JourneyId): Action[JsValue] =
     withAcceptHeaderValidationAndAuthIfLive().async(controllerComponents.parsers.json) { implicit request =>
@@ -77,6 +89,13 @@ trait CustomerProfileController extends HeaderValidator {
 
   def optIn(
     settings:    Paperless,
+    journeyId:   JourneyId
+  )(implicit hc: HeaderCarrier,
+    request:     Request[_]
+  ): Future[Result]
+
+  def optOut(
+    settings:    PaperlessOptOut,
     journeyId:   JourneyId
   )(implicit hc: HeaderCarrier,
     request:     Request[_]

@@ -25,7 +25,7 @@ import play.api.libs.json.Json.{parse, toJson}
 import play.api.libs.json.{JsValue, Json}
 import play.api.libs.ws.WSResponse
 import uk.gov.hmrc.customerprofile.domain.types.ModelTypes.JourneyId
-import uk.gov.hmrc.customerprofile.domain.{ChangeEmail, Paperless, Shuttering, TermsAccepted}
+import uk.gov.hmrc.customerprofile.domain.{ChangeEmail, OptInPage, PageType, Paperless, PaperlessOptOut, Shuttering, TermsAccepted, Version}
 import uk.gov.hmrc.customerprofile.stubs.AuthStub._
 import uk.gov.hmrc.customerprofile.stubs.ShutteringStub._
 import uk.gov.hmrc.customerprofile.stubs.CitizenDetailsStub.{designatoryDetailsForNinoAre, designatoryDetailsWillReturnErrorResponse, npsDataIsLockedDueToMciFlag}
@@ -198,7 +198,11 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
     val url      = s"/profile/preferences/paperless-settings/opt-in?journeyId=$journeyId"
     val entityId = "1098561938451038465138465"
     val paperless =
-      toJson(Paperless(generic = TermsAccepted(true), email = EmailAddress("new-email@new-email.new.email")))
+      toJson(
+        Paperless(generic = TermsAccepted(true, Some(OptInPage(Version(1, 1), 44, PageType.iOSReOptIn))),
+                  email   = EmailAddress("new-email@new-email.new.email"),
+                  "en")
+      )
 
     "return a 204 response when successfully opting into paperless settings" in {
       respondWithEntityDetailsByNino(nino.value, entityId)
@@ -293,36 +297,40 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
 
   "POST /profile/paperless-settings/opt-out" should {
     val url = s"/profile/preferences/paperless-settings/opt-out?journeyId=$journeyId"
+    val paperless =
+      toJson(
+        PaperlessOptOut(generic = TermsAccepted(false, Some(OptInPage(Version(1, 1), 44, PageType.AndroidReOptIn))), "en")
+      )
 
     "return a 204 response when successful" in {
       authRecordExists(nino)
       successPaperlessSettingsChange()
 
-      await(postRequestWithAcceptHeader(url)).status shouldBe 204
+      await(postRequestWithAcceptHeader(url, paperless)).status shouldBe 204
     }
 
     "return 406 if no request header is supplied" in {
-      await(wsUrl(url).post("")).status shouldBe 406
+      await(wsUrl(url).post(paperless)).status shouldBe 406
     }
 
     "propagate 401" in {
       authFailure()
-      await(postRequestWithAcceptHeader(url)).status shouldBe 401
+      await(postRequestWithAcceptHeader(url, paperless)).status shouldBe 401
     }
 
     "return 400 if no journeyId is supplied" in {
-      await(wsUrl("/profile/preferences/paperless-settings/opt-out").post("")).status shouldBe 400
+      await(wsUrl("/profile/preferences/paperless-settings/opt-out").post(paperless)).status shouldBe 400
     }
 
     "return 400 if invalid journeyId is supplied" in {
-      await(wsUrl("/profile/preferences/paperless-settings/opt-out?journeyId=ThisIsAnInvalidJourneyId").post("")).status shouldBe 400
+      await(wsUrl("/profile/preferences/paperless-settings/opt-out?journeyId=ThisIsAnInvalidJourneyId").post(paperless)).status shouldBe 400
     }
 
     "return shuttered when shuttered" in {
       stubForShutteringEnabled
       authRecordExists(nino)
 
-      val response = await(postRequestWithAcceptHeader(url))
+      val response = await(postRequestWithAcceptHeader(url, paperless))
 
       response.status shouldBe 521
       val shuttering: Shuttering = Json.parse(response.body).as[Shuttering]
@@ -509,6 +517,60 @@ class CustomerProfileCitizenDetailsDisabledISpec extends CustomerProfileTests {
       val response = await(getRequestWithAcceptHeader(url))
 
       response.status shouldBe 404
+    }
+
+  }
+}
+
+class CustomerProfilePaperlessVersionsEnabledISpec extends CustomerProfileTests {
+
+  override protected def appBuilder: GuiceApplicationBuilder = new GuiceApplicationBuilder().configure(
+    config ++
+      Map(
+        "optInVersionsEnabled" -> true
+      )
+  )
+
+  "POST /profile/paperless-settings/opt-in - Paperless Versions Enabled" should {
+    val url = s"/profile/preferences/paperless-settings/opt-in?journeyId=$journeyId"
+    val entityId = "1098561938451038465138465"
+    val paperless =
+      toJson(
+        Paperless(generic = TermsAccepted(accepted = true, Some(OptInPage(Version(1, 1), 44, PageType.iOSOptIn))),
+          email = EmailAddress("new-email@new-email.new.email"),
+          "en")
+      )
+
+    "return a 204 response and send version info when successfully opting into paperless settings" in {
+      respondWithEntityDetailsByNino(nino.value, entityId)
+      respondPreferencesNoPaperlessSet()
+      authRecordExists(nino)
+      successPaperlessSettingsOptInWithVersion
+      accountsFound(nino)
+
+      await(postRequestWithAcceptHeader(url, paperless)).status shouldBe 204
+    }
+
+  }
+
+  "POST /profile/paperless-settings/opt-out - Paperless Versions Enabled" should {
+    val url = s"/profile/preferences/paperless-settings/opt-out?journeyId=$journeyId"
+    val entityId = "1098561938451038465138465"
+    val paperless =
+      toJson(
+        Paperless(generic = TermsAccepted(accepted = false, Some(OptInPage(Version(1, 1), 44, PageType.iOSOptOut))),
+          email = EmailAddress("new-email@new-email.new.email"),
+          "en")
+      )
+
+    "return a 204 response and send version info when successfully opting into paperless settings" in {
+      respondWithEntityDetailsByNino(nino.value, entityId)
+      respondPreferencesNoPaperlessSet()
+      authRecordExists(nino)
+      successPaperlessSettingsOptOutWithVersion
+      accountsFound(nino)
+
+      await(postRequestWithAcceptHeader(url, paperless)).status shouldBe 204
     }
 
   }

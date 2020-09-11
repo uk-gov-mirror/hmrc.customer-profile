@@ -27,7 +27,7 @@ import uk.gov.hmrc.auth.core.AuthorisationException
 import uk.gov.hmrc.customerprofile.auth._
 import uk.gov.hmrc.customerprofile.connector._
 import uk.gov.hmrc.customerprofile.domain.types.ModelTypes.JourneyId
-import uk.gov.hmrc.customerprofile.domain.{ChangeEmail, Paperless, Shuttering}
+import uk.gov.hmrc.customerprofile.domain.{ChangeEmail, Paperless, PaperlessOptOut, Shuttering}
 import uk.gov.hmrc.customerprofile.services.CustomerProfileService
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{HeaderCarrier, NotFoundException, Upstream4xxResponse}
@@ -42,7 +42,8 @@ class LiveCustomerProfileController @Inject() (
   accessControl:                                               AccountAccessControl,
   @Named("citizen-details.enabled") val citizenDetailsEnabled: Boolean,
   controllerComponents:                                        ControllerComponents,
-  shutteringConnector:                                         ShutteringConnector
+  shutteringConnector:                                         ShutteringConnector,
+  @Named("optInVersionsEnabled") val optInVersionsEnabled:     Boolean
 )(implicit val executionContext:                               ExecutionContext)
     extends BackendController(controllerComponents)
     with CustomerProfileController {
@@ -188,7 +189,9 @@ class LiveCustomerProfileController @Inject() (
   ): Future[Result] =
     shutteringConnector.getShutteringStatus(journeyId).flatMap { shuttered =>
       withShuttering(shuttered) {
-        errorWrapper(service.paperlessSettings(settings, journeyId).map {
+        val settingsToSend =
+          if (!optInVersionsEnabled) settings.copy(generic = settings.generic.copy(optInPage = None)) else settings
+        errorWrapper(service.paperlessSettings(settingsToSend, journeyId).map {
           case PreferencesExists | EmailUpdateOk => NoContent
           case PreferencesCreated                => Created
           case EmailNotExist                     => Conflict(toJson(ErrorPreferenceConflict))
@@ -198,17 +201,22 @@ class LiveCustomerProfileController @Inject() (
       }
     }
 
-  override def paperlessSettingsOptOut(journeyId: JourneyId): Action[AnyContent] =
-    withAcceptHeaderValidationAndAuthIfLive().async { implicit request =>
-      shutteringConnector.getShutteringStatus(journeyId).flatMap { shuttered =>
-        withShuttering(shuttered) {
-          errorWrapper(service.paperlessSettingsOptOut().map {
-            case PreferencesExists       => NoContent
-            case PreferencesCreated      => Created
-            case PreferencesDoesNotExist => NotFound
-            case _                       => InternalServerError(toJson(PreferencesSettingsError))
-          })
-        }
+  override def optOut(
+    paperlessOptOut: PaperlessOptOut,
+    journeyId:       JourneyId
+  )(implicit hc:     HeaderCarrier,
+    request:         Request[_]
+  ): Future[Result] =
+    shutteringConnector.getShutteringStatus(journeyId).flatMap { shuttered =>
+      withShuttering(shuttered) {
+        val paperlessOptOutToSend =
+          if (!optInVersionsEnabled) paperlessOptOut.copy(generic = paperlessOptOut.generic.copy(optInPage = None)) else paperlessOptOut
+        errorWrapper(service.paperlessSettingsOptOut(paperlessOptOutToSend).map {
+          case PreferencesExists       => NoContent
+          case PreferencesCreated      => Created
+          case PreferencesDoesNotExist => NotFound
+          case _                       => InternalServerError(toJson(PreferencesSettingsError))
+        })
       }
     }
 
@@ -230,4 +238,3 @@ class LiveCustomerProfileController @Inject() (
     }
 
 }
-

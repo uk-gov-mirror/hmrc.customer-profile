@@ -84,11 +84,14 @@ class EntityResolverConnector @Inject() (
     }
 
   def paperlessOptOut(
-  )(implicit hc: HeaderCarrier,
-    ex:          ExecutionContext
+    paperlessOptOut: PaperlessOptOut
+  )(implicit hc:     HeaderCarrier,
+    ex:              ExecutionContext
   ): Future[PreferencesStatus] =
-    withCircuitBreaker(http.POST(url(s"/preferences/terms-and-conditions"), PaperlessOptOut(TermsAccepted(false))))
-      .map(_.status)
+    withCircuitBreaker(
+      http
+        .POST(url(s"/preferences/terms-and-conditions"), paperlessOptOut)
+    ).map(_.status)
       .map {
         case OK      => PreferencesExists
         case CREATED =>
