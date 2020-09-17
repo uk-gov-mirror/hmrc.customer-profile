@@ -30,7 +30,7 @@ object TermsAccepted {
 case class Paperless(
   generic:  TermsAccepted,
   email:    EmailAddress,
-  language: String)
+  language: Option[String])
 
 object Paperless {
 
@@ -42,7 +42,7 @@ object Paperless {
 
 case class PaperlessOptOut(
   generic:  TermsAccepted,
-  language: String)
+  language: Option[String])
 
 object PaperlessOptOut {
   implicit val format: OFormat[PaperlessOptOut] = Json.format[PaperlessOptOut]
@@ -68,22 +68,22 @@ object Version {
 sealed trait PageType
 
 object PageType {
-  case object AndroidOptIn extends PageType
-  case object iOSOptIn extends PageType
-  case object AndroidOptOut extends PageType
-  case object iOSOptOut extends PageType
-  case object AndroidReOptIn extends PageType
-  case object iOSReOptIn extends PageType
+  case object AndroidOptInPage extends PageType
+  case object iOSOptInPage extends PageType
+  case object AndroidOptOutPage extends PageType
+  case object iOSOptOutPage extends PageType
+  case object AndroidReOptInPage extends PageType
+  case object iOSReOptInPage extends PageType
 
   val reads: Reads[PageType] = new Reads[PageType] {
 
     override def reads(json: JsValue): JsResult[PageType] = json match {
-      case JsString("AndroidOptIn")   => JsSuccess(AndroidOptIn)
-      case JsString("iOSOptIn")       => JsSuccess(iOSOptIn)
-      case JsString("AndroidOptOut")  => JsSuccess(AndroidOptOut)
-      case JsString("iOSOptOut")      => JsSuccess(iOSOptOut)
-      case JsString("AndroidReOptIn") => JsSuccess(AndroidReOptIn)
-      case JsString("iOSReOptIn")     => JsSuccess(iOSReOptIn)
+      case JsString("AndroidOptInPage")   => JsSuccess(AndroidOptInPage)
+      case JsString("iOSOptInPage")       => JsSuccess(iOSOptInPage)
+      case JsString("AndroidOptOutPage")  => JsSuccess(AndroidOptOutPage)
+      case JsString("iOSOptOutPage")      => JsSuccess(iOSOptOutPage)
+      case JsString("AndroidReOptInPage") => JsSuccess(AndroidReOptInPage)
+      case JsString("iOSReOptInPage")     => JsSuccess(iOSReOptInPage)
       case _                          => JsError()
     }
   }
@@ -91,12 +91,12 @@ object PageType {
   val writes: Writes[PageType] = new Writes[PageType] {
 
     override def writes(pageType: PageType) = pageType match {
-      case AndroidOptIn   => JsString("AndroidOptIn")
-      case `iOSOptIn`     => JsString("iOSOptIn")
-      case AndroidOptOut  => JsString("AndroidOptOut")
-      case `iOSOptOut`    => JsString("iOSOptOut")
-      case AndroidReOptIn => JsString("AndroidReOptIn")
-      case `iOSReOptIn`   => JsString("iOSReOptIn")
+      case AndroidOptInPage   => JsString("AndroidOptInPage")
+      case `iOSOptInPage`     => JsString("iOSOptInPage")
+      case AndroidOptOutPage  => JsString("AndroidOptOutPage")
+      case `iOSOptOutPage`    => JsString("iOSOptOutPage")
+      case AndroidReOptInPage => JsString("AndroidReOptInPage")
+      case `iOSReOptInPage`   => JsString("iOSReOptInPage")
     }
   }
 

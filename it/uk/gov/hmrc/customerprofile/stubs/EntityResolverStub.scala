@@ -77,9 +77,9 @@ object EntityResolverStub {
           equalToJson(
             Json
               .toJson(
-                Paperless(generic = TermsAccepted(true, Some(OptInPage(Version(1, 1), 44, PageType.iOSOptIn))),
+                Paperless(generic = TermsAccepted(true, Some(OptInPage(Version(1, 1), 44, PageType.iOSOptInPage))),
                           email   = EmailAddress("new-email@new-email.new.email"),
-                          "en")
+                          Some("en"))
               )
               .toString(),
             true,
@@ -96,8 +96,8 @@ object EntityResolverStub {
           equalToJson(
             Json
               .toJson(
-                PaperlessOptOut(generic = TermsAccepted(false, Some(OptInPage(Version(1, 1), 44, PageType.iOSOptOut))),
-                  "en")
+                PaperlessOptOut(generic = TermsAccepted(false, Some(OptInPage(Version(1, 1), 44, PageType.iOSOptOutPage))),
+                  Some("en"))
               )
               .toString(),
             true,

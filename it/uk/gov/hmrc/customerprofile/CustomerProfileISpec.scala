@@ -199,9 +199,9 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
     val entityId = "1098561938451038465138465"
     val paperless =
       toJson(
-        Paperless(generic = TermsAccepted(true, Some(OptInPage(Version(1, 1), 44, PageType.iOSReOptIn))),
+        Paperless(generic = TermsAccepted(true, Some(OptInPage(Version(1, 1), 44, PageType.iOSReOptInPage))),
                   email   = EmailAddress("new-email@new-email.new.email"),
-                  "en")
+                  Some("en"))
       )
 
     "return a 204 response when successfully opting into paperless settings" in {
@@ -299,7 +299,7 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
     val url = s"/profile/preferences/paperless-settings/opt-out?journeyId=$journeyId"
     val paperless =
       toJson(
-        PaperlessOptOut(generic = TermsAccepted(false, Some(OptInPage(Version(1, 1), 44, PageType.AndroidReOptIn))), "en")
+        PaperlessOptOut(generic = TermsAccepted(false, Some(OptInPage(Version(1, 1), 44, PageType.AndroidReOptInPage))), Some("en"))
       )
 
     "return a 204 response when successful" in {
@@ -536,9 +536,9 @@ class CustomerProfilePaperlessVersionsEnabledISpec extends CustomerProfileTests 
     val entityId = "1098561938451038465138465"
     val paperless =
       toJson(
-        Paperless(generic = TermsAccepted(accepted = true, Some(OptInPage(Version(1, 1), 44, PageType.iOSOptIn))),
+        Paperless(generic = TermsAccepted(accepted = true, Some(OptInPage(Version(1, 1), 44, PageType.iOSOptInPage))),
           email = EmailAddress("new-email@new-email.new.email"),
-          "en")
+          Some("en"))
       )
 
     "return a 204 response and send version info when successfully opting into paperless settings" in {
@@ -558,9 +558,9 @@ class CustomerProfilePaperlessVersionsEnabledISpec extends CustomerProfileTests 
     val entityId = "1098561938451038465138465"
     val paperless =
       toJson(
-        Paperless(generic = TermsAccepted(accepted = false, Some(OptInPage(Version(1, 1), 44, PageType.iOSOptOut))),
+        Paperless(generic = TermsAccepted(accepted = false, Some(OptInPage(Version(1, 1), 44, PageType.iOSOptOutPage))),
           email = EmailAddress("new-email@new-email.new.email"),
-          "en")
+          Some("en"))
       )
 
     "return a 204 response and send version info when successfully opting into paperless settings" in {

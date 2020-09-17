@@ -252,7 +252,7 @@ class SandboxCustomerProfileISpec extends BaseISpec {
         Paperless(
           generic = TermsAccepted(true),
           email   = EmailAddress("new-email@new-email.new.email"),
-          "en"
+          Some("en")
         )
       )
 
@@ -347,7 +347,7 @@ class SandboxCustomerProfileISpec extends BaseISpec {
       toJson(
         PaperlessOptOut(
           generic = TermsAccepted(false),
-          "en"
+          Some("en")
         )
       )
 
