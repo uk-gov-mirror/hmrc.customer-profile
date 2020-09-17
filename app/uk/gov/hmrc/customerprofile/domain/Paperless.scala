@@ -69,21 +69,25 @@ sealed trait PageType
 
 object PageType {
   case object AndroidOptInPage extends PageType
-  case object iOSOptInPage extends PageType
+  case object IosOptInPage extends PageType
   case object AndroidOptOutPage extends PageType
-  case object iOSOptOutPage extends PageType
+  case object IosOptOutPage extends PageType
   case object AndroidReOptInPage extends PageType
-  case object iOSReOptInPage extends PageType
+  case object IosReOptInPage extends PageType
+  case object AndroidReOptOutPage extends PageType
+  case object IosReOptOutPage extends PageType
 
   val reads: Reads[PageType] = new Reads[PageType] {
 
     override def reads(json: JsValue): JsResult[PageType] = json match {
       case JsString("AndroidOptInPage")   => JsSuccess(AndroidOptInPage)
-      case JsString("iOSOptInPage")       => JsSuccess(iOSOptInPage)
+      case JsString("IosOptInPage")       => JsSuccess(IosOptInPage)
       case JsString("AndroidOptOutPage")  => JsSuccess(AndroidOptOutPage)
-      case JsString("iOSOptOutPage")      => JsSuccess(iOSOptOutPage)
+      case JsString("IosOptOutPage")      => JsSuccess(IosOptOutPage)
       case JsString("AndroidReOptInPage") => JsSuccess(AndroidReOptInPage)
-      case JsString("iOSReOptInPage")     => JsSuccess(iOSReOptInPage)
+      case JsString("IosReOptInPage")     => JsSuccess(IosReOptInPage)
+      case JsString("AndroidReOptOutPage") => JsSuccess(AndroidReOptOutPage)
+      case JsString("IosReOptOutPage")     => JsSuccess(IosReOptOutPage)
       case _                          => JsError()
     }
   }
@@ -92,11 +96,13 @@ object PageType {
 
     override def writes(pageType: PageType) = pageType match {
       case AndroidOptInPage   => JsString("AndroidOptInPage")
-      case `iOSOptInPage`     => JsString("iOSOptInPage")
+      case IosOptInPage     => JsString("IosOptInPage")
       case AndroidOptOutPage  => JsString("AndroidOptOutPage")
-      case `iOSOptOutPage`    => JsString("iOSOptOutPage")
+      case IosOptOutPage    => JsString("IosOptOutPage")
       case AndroidReOptInPage => JsString("AndroidReOptInPage")
-      case `iOSReOptInPage`   => JsString("iOSReOptInPage")
+      case IosReOptInPage   => JsString("IosReOptInPage")
+      case AndroidReOptOutPage => JsString("AndroidReOptOutPage")
+      case IosReOptOutPage   => JsString("IosReOptOutPage")
     }
   }
 

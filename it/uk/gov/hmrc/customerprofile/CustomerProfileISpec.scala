@@ -199,7 +199,7 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
     val entityId = "1098561938451038465138465"
     val paperless =
       toJson(
-        Paperless(generic = TermsAccepted(true, Some(OptInPage(Version(1, 1), 44, PageType.iOSReOptInPage))),
+        Paperless(generic = TermsAccepted(true, Some(OptInPage(Version(1, 1), 44, PageType.IosReOptInPage))),
                   email   = EmailAddress("new-email@new-email.new.email"),
                   Some("en"))
       )
@@ -536,7 +536,7 @@ class CustomerProfilePaperlessVersionsEnabledISpec extends CustomerProfileTests 
     val entityId = "1098561938451038465138465"
     val paperless =
       toJson(
-        Paperless(generic = TermsAccepted(accepted = true, Some(OptInPage(Version(1, 1), 44, PageType.iOSOptInPage))),
+        Paperless(generic = TermsAccepted(accepted = true, Some(OptInPage(Version(1, 1), 44, PageType.IosOptInPage))),
           email = EmailAddress("new-email@new-email.new.email"),
           Some("en"))
       )
@@ -558,7 +558,7 @@ class CustomerProfilePaperlessVersionsEnabledISpec extends CustomerProfileTests 
     val entityId = "1098561938451038465138465"
     val paperless =
       toJson(
-        Paperless(generic = TermsAccepted(accepted = false, Some(OptInPage(Version(1, 1), 44, PageType.iOSOptOutPage))),
+        Paperless(generic = TermsAccepted(accepted = false, Some(OptInPage(Version(1, 1), 44, PageType.IosOptOutPage))),
           email = EmailAddress("new-email@new-email.new.email"),
           Some("en"))
       )
