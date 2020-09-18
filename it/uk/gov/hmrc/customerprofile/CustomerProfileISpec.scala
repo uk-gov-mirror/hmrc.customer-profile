@@ -199,7 +199,7 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
     val entityId = "1098561938451038465138465"
     val paperless =
       toJson(
-        Paperless(generic = TermsAccepted(true, Some(OptInPage(Version(1, 1), 44, PageType.IosReOptInPage))),
+        Paperless(generic = TermsAccepted(Some(true), Some(OptInPage(Version(1, 1), 44, PageType.IosReOptInPage))),
                   email   = EmailAddress("new-email@new-email.new.email"),
                   Some("en"))
       )
@@ -299,7 +299,7 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
     val url = s"/profile/preferences/paperless-settings/opt-out?journeyId=$journeyId"
     val paperless =
       toJson(
-        PaperlessOptOut(generic = TermsAccepted(false, Some(OptInPage(Version(1, 1), 44, PageType.AndroidReOptInPage))), Some("en"))
+        PaperlessOptOut(generic = TermsAccepted(Some(false), Some(OptInPage(Version(1, 1), 44, PageType.AndroidReOptInPage))), Some("en"))
       )
 
     "return a 204 response when successful" in {
@@ -536,7 +536,7 @@ class CustomerProfilePaperlessVersionsEnabledISpec extends CustomerProfileTests 
     val entityId = "1098561938451038465138465"
     val paperless =
       toJson(
-        Paperless(generic = TermsAccepted(accepted = true, Some(OptInPage(Version(1, 1), 44, PageType.IosOptInPage))),
+        Paperless(generic = TermsAccepted(accepted = Some(true), Some(OptInPage(Version(1, 1), 44, PageType.IosOptInPage))),
           email = EmailAddress("new-email@new-email.new.email"),
           Some("en"))
       )
@@ -558,7 +558,7 @@ class CustomerProfilePaperlessVersionsEnabledISpec extends CustomerProfileTests 
     val entityId = "1098561938451038465138465"
     val paperless =
       toJson(
-        Paperless(generic = TermsAccepted(accepted = false, Some(OptInPage(Version(1, 1), 44, PageType.IosOptOutPage))),
+        Paperless(generic = TermsAccepted(accepted = Some(false), Some(OptInPage(Version(1, 1), 44, PageType.IosOptOutPage))),
           email = EmailAddress("new-email@new-email.new.email"),
           Some("en"))
       )

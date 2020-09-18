@@ -112,7 +112,7 @@ class CustomerProfileServiceSpec
   )
 
   val newEmail = EmailAddress("new@new.com")
-  val newPaperlessSettings = Paperless(TermsAccepted(true), newEmail, Some("en"))
+  val newPaperlessSettings = Paperless(TermsAccepted(Some(true)), newEmail, Some("en"))
 
   val nino = Nino("CS700100A")
   val accounts: Accounts = Accounts(
@@ -250,6 +250,17 @@ class CustomerProfileServiceSpec
 
       await(service.paperlessSettings(newPaperlessSettings, journeyId)) shouldBe PreferencesCreated
     }
+
+    "If sent, override the accepted value to 'true' when opting in" in {
+      mockAudit(
+        transactionName = "paperlessSettings",
+        detail = Map("accepted" -> "Some(false)")
+      )
+      mockGetPreferences(None)
+      mockPaperlessSettings(PreferencesCreated)
+
+      await(service.paperlessSettings(newPaperlessSettings.copy(generic = newPaperlessSettings.generic.copy(accepted = Some(false))), journeyId)) shouldBe PreferencesCreated
+    }
   }
 
   "paperlessSettingsOptOut" should {
@@ -257,10 +268,20 @@ class CustomerProfileServiceSpec
       mockAudit(transactionName = "paperlessSettingsOptOut")
       (entityResolver
         .paperlessOptOut(_: PaperlessOptOut)(_: HeaderCarrier, _: ExecutionContext))
-        .expects(PaperlessOptOut(TermsAccepted(false), Some("en")), *, *)
+        .expects(PaperlessOptOut(TermsAccepted(Some(false)), Some("en")), *, *)
         .returns(Future successful PreferencesExists)
 
-      await(service.paperlessSettingsOptOut(PaperlessOptOut(TermsAccepted(false), Some("en")))) shouldBe PreferencesExists
+      await(service.paperlessSettingsOptOut(PaperlessOptOut(TermsAccepted(Some(false)), Some("en")))) shouldBe PreferencesExists
+    }
+
+    "If sent, override the accepted value to 'false' when opting out" in {
+      mockAudit(transactionName = "paperlessSettingsOptOut")
+      (entityResolver
+        .paperlessOptOut(_: PaperlessOptOut)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(PaperlessOptOut(TermsAccepted(Some(false)), Some("en")), *, *)
+        .returns(Future successful PreferencesExists)
+
+      await(service.paperlessSettingsOptOut(PaperlessOptOut(TermsAccepted(Some(true)), Some("en")))) shouldBe PreferencesExists
     }
   }
 

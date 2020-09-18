@@ -20,7 +20,7 @@ import play.api.libs.json.{Format, JsError, JsResult, JsString, JsSuccess, JsVal
 import uk.gov.hmrc.emailaddress.EmailAddress
 
 case class TermsAccepted(
-  accepted:  Boolean,
+  accepted:  Option[Boolean],
   optInPage: Option[OptInPage] = None)
 
 object TermsAccepted {

@@ -250,7 +250,7 @@ class SandboxCustomerProfileISpec extends BaseISpec {
     val paperlessSettings =
       toJson(
         Paperless(
-          generic = TermsAccepted(true),
+          generic = TermsAccepted(Some(true)),
           email   = EmailAddress("new-email@new-email.new.email"),
           Some("en")
         )
@@ -346,7 +346,7 @@ class SandboxCustomerProfileISpec extends BaseISpec {
     val paperlessSettings =
       toJson(
         PaperlessOptOut(
-          generic = TermsAccepted(false),
+          generic = TermsAccepted(Some(false)),
           Some("en")
         )
       )

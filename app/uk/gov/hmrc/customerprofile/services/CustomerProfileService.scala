@@ -68,9 +68,15 @@ class CustomerProfileService @Inject() (
     withAudit("paperlessSettings", Map("accepted" -> settings.generic.accepted.toString)) {
       for {
         preferences ← entityResolver.getPreferences()
-        status ← preferences.fold(entityResolver.paperlessSettings(settings)) { preference =>
+        status ← preferences.fold(
+                  entityResolver
+                    .paperlessSettings(settings.copy(generic = settings.generic.copy(accepted = Some(true))))
+                ) { preference =>
                   if (preference.digital) setPreferencesPendingEmail(ChangeEmail(settings.email.value), journeyId)
-                  else entityResolver.paperlessSettings(settings)
+                  else
+                    entityResolver.paperlessSettings(
+                      settings.copy(generic = settings.generic.copy(accepted = Some(true)))
+                    )
                 }
       } yield status
     }
@@ -81,7 +87,9 @@ class CustomerProfileService @Inject() (
     ex:              ExecutionContext
   ): Future[PreferencesStatus] =
     withAudit("paperlessSettingsOptOut", Map.empty) {
-      entityResolver.paperlessOptOut(paperlessOptOut)
+      entityResolver.paperlessOptOut(
+        paperlessOptOut.copy(generic = paperlessOptOut.generic.copy(accepted = Some(false)))
+      )
     }
 
   def getPreferences(

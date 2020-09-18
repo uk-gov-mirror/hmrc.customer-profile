@@ -366,8 +366,8 @@ class LiveCustomerProfileControllerSpec
         .returns(result)
 
     val newEmail          = EmailAddress("new@new.com")
-    val paperlessSettings = Paperless(TermsAccepted(true), newEmail, Some("en"))
-    val paperlessSettingsWithVersion = Paperless(TermsAccepted(accepted = true, Some(OptInPage(Version(1, 1), 44, PageType.AndroidOptInPage))), newEmail, Some("en"))
+    val paperlessSettings = Paperless(TermsAccepted(Some(true)), newEmail, Some("en"))
+    val paperlessSettingsWithVersion = Paperless(TermsAccepted(accepted = Some(true), Some(OptInPage(Version(1, 1), 44, PageType.AndroidOptInPage))), newEmail, Some("en"))
 
     val validPaperlessSettingsRequest: FakeRequest[JsValue] =
       FakeRequest()
@@ -536,9 +536,9 @@ class LiveCustomerProfileControllerSpec
 
   "paperlessSettingsOptOut" should {
 
-    val optOutPaperlessSettings = PaperlessOptOut(TermsAccepted(false), Some("en"))
+    val optOutPaperlessSettings = PaperlessOptOut(TermsAccepted(Some(false)), Some("en"))
 
-    val optOutPaperlessSettingsWithVersion = PaperlessOptOut(TermsAccepted(false, Some(OptInPage(Version(1, 1), 44, PageType.AndroidOptOutPage))), Some("en"))
+    val optOutPaperlessSettingsWithVersion = PaperlessOptOut(TermsAccepted(Some(false), Some(OptInPage(Version(1, 1), 44, PageType.AndroidOptOutPage))), Some("en"))
 
     val validPaperlessOptOutRequest: FakeRequest[JsValue] =
       FakeRequest()
