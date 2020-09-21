@@ -27,7 +27,7 @@ import uk.gov.hmrc.auth.core.AuthorisationException
 import uk.gov.hmrc.customerprofile.auth._
 import uk.gov.hmrc.customerprofile.connector._
 import uk.gov.hmrc.customerprofile.domain.types.ModelTypes.JourneyId
-import uk.gov.hmrc.customerprofile.domain.{ChangeEmail, Paperless, PaperlessOptOut, Shuttering}
+import uk.gov.hmrc.customerprofile.domain.{ChangeEmail, Paperless, PaperlessOptOut, Shuttering, TermsAccepted}
 import uk.gov.hmrc.customerprofile.services.CustomerProfileService
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{HeaderCarrier, NotFoundException, Upstream4xxResponse}
@@ -210,7 +210,11 @@ class LiveCustomerProfileController @Inject() (
     shutteringConnector.getShutteringStatus(journeyId).flatMap { shuttered =>
       withShuttering(shuttered) {
         val paperlessOptOutToSend =
-          if (!optInVersionsEnabled) paperlessOptOut.copy(generic = paperlessOptOut.generic.copy(optInPage = None)) else paperlessOptOut
+          if (!optInVersionsEnabled)
+            paperlessOptOut.copy(generic =
+              Some(paperlessOptOut.generic.getOrElse(TermsAccepted(Some(false))).copy(optInPage = None))
+            )
+          else paperlessOptOut
         errorWrapper(service.paperlessSettingsOptOut(paperlessOptOutToSend).map {
           case PreferencesExists       => NoContent
           case PreferencesCreated      => Created

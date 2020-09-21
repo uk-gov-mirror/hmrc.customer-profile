@@ -268,20 +268,20 @@ class CustomerProfileServiceSpec
       mockAudit(transactionName = "paperlessSettingsOptOut")
       (entityResolver
         .paperlessOptOut(_: PaperlessOptOut)(_: HeaderCarrier, _: ExecutionContext))
-        .expects(PaperlessOptOut(TermsAccepted(Some(false)), Some("en")), *, *)
+        .expects(PaperlessOptOut(Some(TermsAccepted(Some(false))), Some("en")), *, *)
         .returns(Future successful PreferencesExists)
 
-      await(service.paperlessSettingsOptOut(PaperlessOptOut(TermsAccepted(Some(false)), Some("en")))) shouldBe PreferencesExists
+      await(service.paperlessSettingsOptOut(PaperlessOptOut(Some(TermsAccepted(Some(false))), Some("en")))) shouldBe PreferencesExists
     }
 
     "If sent, override the accepted value to 'false' when opting out" in {
       mockAudit(transactionName = "paperlessSettingsOptOut")
       (entityResolver
         .paperlessOptOut(_: PaperlessOptOut)(_: HeaderCarrier, _: ExecutionContext))
-        .expects(PaperlessOptOut(TermsAccepted(Some(false)), Some("en")), *, *)
+        .expects(PaperlessOptOut(Some(TermsAccepted(Some(false))), Some("en")), *, *)
         .returns(Future successful PreferencesExists)
 
-      await(service.paperlessSettingsOptOut(PaperlessOptOut(TermsAccepted(Some(true)), Some("en")))) shouldBe PreferencesExists
+      await(service.paperlessSettingsOptOut(PaperlessOptOut(Some(TermsAccepted(Some(true))), Some("en")))) shouldBe PreferencesExists
     }
   }
 

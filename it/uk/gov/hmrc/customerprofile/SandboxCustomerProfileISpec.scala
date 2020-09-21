@@ -346,7 +346,7 @@ class SandboxCustomerProfileISpec extends BaseISpec {
     val paperlessSettings =
       toJson(
         PaperlessOptOut(
-          generic = TermsAccepted(Some(false)),
+          generic = Some(TermsAccepted(Some(false))),
           Some("en")
         )
       )

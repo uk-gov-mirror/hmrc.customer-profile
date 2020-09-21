@@ -90,7 +90,7 @@ object DomainGenerator {
   val paperless = Paperless(TermsAccepted(Some(true)), email, Some("en"))
   lazy val paperlessAsJson: JsValue = toJson(paperless)
 
-  val paperlessOptOut = PaperlessOptOut(TermsAccepted(Some(false)), Some("en"))
+  val paperlessOptOut = PaperlessOptOut(Some(TermsAccepted(Some(false))), Some("en"))
   lazy val paperlessOptOutAsJson: JsValue = toJson(paperlessOptOut)
 
   val verifiedEmailPreference =

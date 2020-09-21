@@ -87,8 +87,9 @@ class CustomerProfileService @Inject() (
     ex:              ExecutionContext
   ): Future[PreferencesStatus] =
     withAudit("paperlessSettingsOptOut", Map.empty) {
+      val genericOptOut = paperlessOptOut.generic.getOrElse(TermsAccepted(Some(false))).copy(accepted = Some(false))
       entityResolver.paperlessOptOut(
-        paperlessOptOut.copy(generic = paperlessOptOut.generic.copy(accepted = Some(false)))
+        paperlessOptOut.copy(generic = Some(genericOptOut))
       )
     }
 

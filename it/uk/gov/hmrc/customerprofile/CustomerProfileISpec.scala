@@ -299,7 +299,7 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
     val url = s"/profile/preferences/paperless-settings/opt-out?journeyId=$journeyId"
     val paperless =
       toJson(
-        PaperlessOptOut(generic = TermsAccepted(Some(false), Some(OptInPage(Version(1, 1), 44, PageType.AndroidReOptInPage))), Some("en"))
+        PaperlessOptOut(generic = Some(TermsAccepted(Some(false), Some(OptInPage(Version(1, 1), 44, PageType.AndroidReOptInPage)))), Some("en"))
       )
 
     "return a 204 response when successful" in {

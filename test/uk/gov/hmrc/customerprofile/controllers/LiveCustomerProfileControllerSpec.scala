@@ -367,7 +367,10 @@ class LiveCustomerProfileControllerSpec
 
     val newEmail          = EmailAddress("new@new.com")
     val paperlessSettings = Paperless(TermsAccepted(Some(true)), newEmail, Some("en"))
-    val paperlessSettingsWithVersion = Paperless(TermsAccepted(accepted = Some(true), Some(OptInPage(Version(1, 1), 44, PageType.AndroidOptInPage))), newEmail, Some("en"))
+    val paperlessSettingsWithVersion =
+      Paperless(TermsAccepted(accepted = Some(true), Some(OptInPage(Version(1, 1), 44, PageType.AndroidOptInPage))),
+                newEmail,
+                Some("en"))
 
     val validPaperlessSettingsRequest: FakeRequest[JsValue] =
       FakeRequest()
@@ -404,8 +407,7 @@ class LiveCustomerProfileControllerSpec
         )
 
       authSuccess()
-      mockPaperlessSettings(paperlessSettingsWithVersion,
-                            Future successful PreferencesCreated)
+      mockPaperlessSettings(paperlessSettingsWithVersion, Future successful PreferencesCreated)
       stubShutteringResponse(notShuttered)
 
       val result =
@@ -536,13 +538,14 @@ class LiveCustomerProfileControllerSpec
 
   "paperlessSettingsOptOut" should {
 
-    val optOutPaperlessSettings = PaperlessOptOut(TermsAccepted(Some(false)), Some("en"))
+    val optOutPaperlessSettings = PaperlessOptOut(Some(TermsAccepted(Some(false))), Some("en"))
 
-    val optOutPaperlessSettingsWithVersion = PaperlessOptOut(TermsAccepted(Some(false), Some(OptInPage(Version(1, 1), 44, PageType.AndroidOptOutPage))), Some("en"))
+    def optOutPaperlessSettingsWithVersion(pageType: PageType) =
+      PaperlessOptOut(Some(TermsAccepted(Some(false), Some(OptInPage(Version(1, 1), 44, pageType)))), Some("en"))
 
-    val validPaperlessOptOutRequest: FakeRequest[JsValue] =
+    def validPaperlessOptOutRequest(pageType: PageType): FakeRequest[JsValue] =
       FakeRequest()
-        .withBody(toJson(optOutPaperlessSettingsWithVersion))
+        .withBody(toJson(optOutPaperlessSettingsWithVersion(pageType)))
         .withHeaders(HeaderNames.ACCEPT → acceptheader)
 
     val optOutPaperlessSettingsRequestWithoutAcceptHeader: FakeRequest[JsValue] =
@@ -563,7 +566,7 @@ class LiveCustomerProfileControllerSpec
       stubShutteringResponse(notShuttered)
 
       val result =
-        controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest)
+        controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest(PageType.AndroidReOptOutPage))
 
       status(result) shouldBe 204
     }
@@ -574,7 +577,7 @@ class LiveCustomerProfileControllerSpec
       stubShutteringResponse(notShuttered)
 
       val result =
-        controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest)
+        controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest(PageType.AndroidOptOutPage))
 
       status(result) shouldBe 201
     }
@@ -591,11 +594,12 @@ class LiveCustomerProfileControllerSpec
         )
 
       authSuccess()
-      mockPaperlessSettingsOptOut(optOutPaperlessSettingsWithVersion, Future successful PreferencesCreated)
+      mockPaperlessSettingsOptOut(optOutPaperlessSettingsWithVersion(PageType.IosReOptOutPage),
+                                  Future successful PreferencesCreated)
       stubShutteringResponse(notShuttered)
 
       val result =
-        controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest)
+        controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest(PageType.IosReOptOutPage))
 
       status(result) shouldBe 201
     }
@@ -606,7 +610,7 @@ class LiveCustomerProfileControllerSpec
       stubShutteringResponse(notShuttered)
 
       val result =
-        controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest)
+        controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest(PageType.AndroidOptOutPage))
 
       status(result) shouldBe 404
     }
@@ -617,7 +621,7 @@ class LiveCustomerProfileControllerSpec
       stubShutteringResponse(notShuttered)
 
       val result =
-        controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest)
+        controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest(PageType.AndroidOptOutPage))
 
       status(result) shouldBe 500
     }
@@ -626,7 +630,7 @@ class LiveCustomerProfileControllerSpec
       authError(new SessionRecordNotFound)
 
       val result =
-        controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest)
+        controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest(PageType.AndroidOptOutPage))
       status(result) shouldBe 401
     }
 
@@ -634,7 +638,7 @@ class LiveCustomerProfileControllerSpec
       authError(new NinoNotFoundOnAccount("no nino"))
 
       val result =
-        controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest)
+        controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest(PageType.AndroidOptOutPage))
       status(result) shouldBe 403
     }
 
@@ -651,7 +655,7 @@ class LiveCustomerProfileControllerSpec
       stubShutteringResponse(notShuttered)
 
       val result =
-        controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest)
+        controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest(PageType.AndroidOptOutPage))
       status(result) shouldBe 500
     }
 
@@ -660,7 +664,7 @@ class LiveCustomerProfileControllerSpec
       stubShutteringResponse(shuttered)
 
       val result =
-        controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest)
+        controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest(PageType.AndroidOptOutPage))
 
       status(result) shouldBe 521
       val jsonBody = contentAsJson(result)

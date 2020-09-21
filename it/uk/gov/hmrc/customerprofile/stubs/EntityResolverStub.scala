@@ -96,7 +96,7 @@ object EntityResolverStub {
           equalToJson(
             Json
               .toJson(
-                PaperlessOptOut(generic = TermsAccepted(Some(false), Some(OptInPage(Version(1, 1), 44, PageType.IosOptOutPage))),
+                PaperlessOptOut(generic = Some(TermsAccepted(Some(false), Some(OptInPage(Version(1, 1), 44, PageType.IosOptOutPage)))),
                   Some("en"))
               )
               .toString(),

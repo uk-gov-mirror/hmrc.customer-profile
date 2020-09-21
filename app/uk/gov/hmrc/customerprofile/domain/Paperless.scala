@@ -41,7 +41,7 @@ object Paperless {
 }
 
 case class PaperlessOptOut(
-  generic:  TermsAccepted,
+  generic:  Option[TermsAccepted],
   language: Option[String])
 
 object PaperlessOptOut {
