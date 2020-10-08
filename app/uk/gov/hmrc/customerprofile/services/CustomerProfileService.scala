@@ -18,9 +18,11 @@ package uk.gov.hmrc.customerprofile.services
 
 import com.google.inject.{Inject, Singleton}
 import javax.inject.Named
+import org.joda.time.LocalDate
 import play.api.Configuration
 import uk.gov.hmrc.customerprofile.auth.{AccountAccessControl, NinoNotFoundOnAccount}
 import uk.gov.hmrc.customerprofile.connector._
+import uk.gov.hmrc.customerprofile.domain.EmailPreference._
 import uk.gov.hmrc.customerprofile.domain._
 import uk.gov.hmrc.customerprofile.domain.types.ModelTypes.JourneyId
 import uk.gov.hmrc.domain.Nino
@@ -98,7 +100,7 @@ class CustomerProfileService @Inject() (
     ex:          ExecutionContext
   ): Future[Option[Preference]] =
     withAudit("getPreferences", Map.empty) {
-      entityResolver.getPreferences()
+      makePreferencesForwardsCompatible(entityResolver.getPreferences())
     }
 
   def setPreferencesPendingEmail(
@@ -114,5 +116,37 @@ class CustomerProfileService @Inject() (
         response ← preferencesConnector.updatePendingEmail(changeEmail, entity._id)
       } yield response
     }
+
+  def mapStatusToExisitingValue(statusReceived: Option[Status]): Option[StatusName] = statusReceived match {
+    case Some(Status.Pending)  => Some(StatusName.Pending)
+    case Some(Status.Bounced)  => Some(StatusName.Bounced)
+    case Some(Status.Verified) => Some(StatusName.Verified)
+    case None                  => None
+  }
+
+  private def makePreferencesForwardsCompatible(
+    preferencesReceived: Future[Option[Preference]]
+  )(implicit ex:         ExecutionContext
+  ): Future[Option[Preference]] =
+    for {
+      emailAddressCopied <- preferencesReceived.map(
+                             _.map(pref => pref.copy(emailAddress = pref.email.map(_.email.value)))
+                           )
+      statusPresent <- preferencesReceived.map(_.exists(_.email.isDefined))
+      statusCopied <- if (statusPresent)
+                       Future successful emailAddressCopied
+                         .map(pref =>
+                           pref.copy(status = Some(
+                             PaperlessStatus(name = mapStatusToExisitingValue(pref.email.map(email => email.status)))
+                           )
+                           )
+                         )
+                     else Future successful emailAddressCopied
+      linkSentPresent <- preferencesReceived.map(_.exists(_.email.exists(_.linkSent.isDefined)))
+      linkSent        <- if (linkSentPresent) preferencesReceived.map(_.get.email.get.linkSent) else Future successful None
+      forwardsCompatiblePreferences <- if (linkSentPresent)
+                                        Future successful statusCopied.map(pref => pref.copy(linkSent = linkSent))
+                                      else Future successful statusCopied
+    } yield forwardsCompatiblePreferences
 
 }

@@ -25,9 +25,13 @@ User Preferences
 ```json
 {
   "digital" : true,
+  "emailAddress": "name@email.co.uk",
   "email" : {
     "email" : "name@email.co.uk",
     "status" : "verified"
+  },
+  "status": {
+      "name": "verified"
   }
 }
 ```
@@ -35,10 +39,15 @@ User Preferences
 ```json
 {
   "digital" : true,
+  "emailAddress": "someonenew@email.com",
+  "linkSent": "2020-06-04",
   "email" : {
     "email" : "name@email.co.uk",
     "status" : "pending",
     "linkSent": "2020-06-04"
+  },
+  "status": {
+      "name": "pending"
   }
 }
 ```

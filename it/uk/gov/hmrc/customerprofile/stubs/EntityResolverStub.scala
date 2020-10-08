@@ -3,6 +3,7 @@ package uk.gov.hmrc.customerprofile.stubs
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.matching.UrlPattern
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
+import org.joda.time.LocalDate
 import play.api.libs.json.Json
 import play.api.libs.json.Json.{stringify, toJson}
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status
@@ -23,12 +24,14 @@ object EntityResolverStub {
                  |}""".stripMargin
 
   private def preferences(
-    optedIn: Boolean = true,
-    email:   String  = "test@email.com",
-    status:  Status  = Verified
+    optedIn:  Boolean           = true,
+    email:    String            = "test@email.com",
+    status:   Status            = Verified,
+    linkSent: Option[LocalDate] = None
   ): Preference =
     if (optedIn) {
-      Preference(optedIn, Some(EmailPreference(EmailAddress(email), status)))
+      Preference(digital = optedIn,
+                 email   = Some(EmailPreference(EmailAddress(value = email), status = status, linkSent = linkSent)))
     } else Preference(digital = false)
 
   private def urlEqualToEntityResolverPaye(nino: String): UrlPattern =
@@ -48,6 +51,11 @@ object EntityResolverStub {
       get(urlEqualToPreferences).willReturn(aResponse().withStatus(200).withBody(stringify(toJson(preferences()))))
     )
 
+  def respondPreferencesWithPaperlessOptedOut(): StubMapping =
+    stubFor(
+      get(urlEqualToPreferences).willReturn(aResponse().withStatus(200).withBody(stringify(toJson(preferences(optedIn = false)))))
+    )
+
   def respondPreferencesWithBouncedEmail(): StubMapping =
     stubFor(
       get(urlEqualToPreferences)
@@ -55,6 +63,16 @@ object EntityResolverStub {
           aResponse()
             .withStatus(200)
             .withBody(stringify(toJson(preferences(status = Bounced))))
+        )
+    )
+
+  def respondPreferencesWithUnverifiedEmail(linkSent: Option[LocalDate] = None): StubMapping =
+    stubFor(
+      get(urlEqualToPreferences)
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+            .withBody(stringify(toJson(preferences(status = Pending, linkSent = linkSent))))
         )
     )
 
@@ -77,9 +95,11 @@ object EntityResolverStub {
           equalToJson(
             Json
               .toJson(
-                Paperless(generic = TermsAccepted(Some(true), Some(OptInPage(Version(1, 1), 44, PageType.IosOptInPage))),
-                          email   = EmailAddress("new-email@new-email.new.email"),
-                          Some("en"))
+                Paperless(
+                  generic = TermsAccepted(Some(true), Some(OptInPage(Version(1, 1), 44, PageType.IosOptInPage))),
+                  email   = EmailAddress("new-email@new-email.new.email"),
+                  Some("en")
+                )
               )
               .toString(),
             true,
@@ -96,8 +116,10 @@ object EntityResolverStub {
           equalToJson(
             Json
               .toJson(
-                PaperlessOptOut(generic = Some(TermsAccepted(Some(false), Some(OptInPage(Version(1, 1), 44, PageType.IosOptOutPage)))),
-                  Some("en"))
+                PaperlessOptOut(generic = Some(
+                                  TermsAccepted(Some(false), Some(OptInPage(Version(1, 1), 44, PageType.IosOptOutPage)))
+                                ),
+                                Some("en"))
               )
               .toString(),
             true,

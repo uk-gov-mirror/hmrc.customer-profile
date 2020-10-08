@@ -19,6 +19,7 @@ package uk.gov.hmrc.customerprofile
 import java.io.InputStream
 
 import eu.timepit.refined.auto._
+import org.joda.time.LocalDate
 import org.scalatest.concurrent.Eventually
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json.{parse, toJson}
@@ -117,6 +118,46 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
 
       response.status                         shouldBe 200
       (response.json \ "digital").as[Boolean] shouldBe true
+    }
+
+    "return preferences if opted out" in {
+      authRecordExists(nino)
+      respondPreferencesWithPaperlessOptedOut()
+
+      val response = await(getRequestWithAcceptHeader(url))
+
+      response.status                         shouldBe 200
+      (response.json \ "digital").as[Boolean] shouldBe false
+      (response.json \ "email").isEmpty shouldBe true
+      (response.json \ "status").isEmpty shouldBe true
+      (response.json \ "linkSent").isEmpty shouldBe true
+      (response.json \ "emailAddress").isEmpty shouldBe true
+
+    }
+
+    "return preferences if email bounced" in {
+      authRecordExists(nino)
+      respondPreferencesWithBouncedEmail()
+
+      val response = await(getRequestWithAcceptHeader(url))
+
+      response.status                         shouldBe 200
+      (response.json \ "digital").as[Boolean] shouldBe true
+
+    }
+
+    "copy relevant preferences to future payload positions" in {
+      val linkSent = LocalDate.now()
+      authRecordExists(nino)
+      respondPreferencesWithUnverifiedEmail(Some(linkSent))
+
+      val response = await(getRequestWithAcceptHeader(url))
+
+      response.status                         shouldBe 200
+      (response.json \ "digital").as[Boolean] shouldBe true
+      (response.json \ "emailAddress").as[String] shouldBe "test@email.com"
+      (response.json \ "linkSent").as[String] shouldBe linkSent.toString("YYYY-MM-dd")
+      (response.json \ "status" \ "name").as[String] shouldBe "pending"
     }
 
     "return 406 if no request header is supplied" in {

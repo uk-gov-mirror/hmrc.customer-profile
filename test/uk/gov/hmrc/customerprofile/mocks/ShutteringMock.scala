@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.customerprofile.stubs
+package uk.gov.hmrc.customerprofile.mocks
 
 import org.scalamock.handlers.CallHandler
 import org.scalamock.scalatest.MockFactory
@@ -25,9 +25,9 @@ import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.{ExecutionContext, Future}
 
-trait ShutteringStub extends MockFactory {
+trait ShutteringMock extends MockFactory {
 
-  def stubShutteringResponse(
+  def mockShutteringResponse(
     response:                     Shuttering
   )(implicit shutteringConnector: ShutteringConnector
   ): CallHandler[Future[Shuttering]] =

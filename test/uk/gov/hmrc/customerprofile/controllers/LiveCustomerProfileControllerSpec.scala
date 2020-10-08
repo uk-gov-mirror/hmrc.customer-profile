@@ -32,8 +32,8 @@ import uk.gov.hmrc.customerprofile.domain
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status.Verified
 import uk.gov.hmrc.customerprofile.domain.types.ModelTypes.JourneyId
 import uk.gov.hmrc.customerprofile.domain.{Paperless, _}
+import uk.gov.hmrc.customerprofile.mocks.ShutteringMock
 import uk.gov.hmrc.customerprofile.services.CustomerProfileService
-import uk.gov.hmrc.customerprofile.stubs.ShutteringStub
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.emailaddress.EmailAddress
 import uk.gov.hmrc.http.{HeaderCarrier, Upstream4xxResponse}
@@ -47,7 +47,7 @@ class LiveCustomerProfileControllerSpec
     with FutureAwaits
     with DefaultAwaitTimeout
     with MockFactory
-    with ShutteringStub {
+    with ShutteringMock {
   val service:       CustomerProfileService = mock[CustomerProfileService]
   val accessControl: AccountAccessControl   = mock[AccountAccessControl]
 
@@ -119,7 +119,7 @@ class LiveCustomerProfileControllerSpec
         "102030394AAA"
       )
       mockGetAccounts(Future successful accounts)
-      stubShutteringResponse(notShuttered)
+      mockShutteringResponse(notShuttered)
 
       val result = controller.getAccounts(journeyId)(requestWithAcceptHeader)
 
@@ -129,7 +129,7 @@ class LiveCustomerProfileControllerSpec
 
     "propagate 401" in {
       mockGetAccounts(Future failed new SessionRecordNotFound)
-      stubShutteringResponse(notShuttered)
+      mockShutteringResponse(notShuttered)
 
       val result = controller.getAccounts(journeyId)(requestWithAcceptHeader)
       status(result) shouldBe 401
@@ -137,7 +137,7 @@ class LiveCustomerProfileControllerSpec
 
     "return 403 if the user has no nino" in {
       mockGetAccounts(Future failed new NinoNotFoundOnAccount("no nino"))
-      stubShutteringResponse(notShuttered)
+      mockShutteringResponse(notShuttered)
 
       val result = controller.getAccounts(journeyId)(requestWithAcceptHeader)
       status(result) shouldBe 403
@@ -150,14 +150,14 @@ class LiveCustomerProfileControllerSpec
 
     "return 500 for an unexpected error" in {
       mockGetAccounts(Future failed new RuntimeException())
-      stubShutteringResponse(notShuttered)
+      mockShutteringResponse(notShuttered)
 
       val result = controller.getAccounts(journeyId)(requestWithAcceptHeader)
       status(result) shouldBe 500
     }
 
     "return 521 when shuttered" in {
-      stubShutteringResponse(shuttered)
+      mockShutteringResponse(shuttered)
 
       val result = controller.getAccounts(journeyId)(requestWithAcceptHeader)
 
@@ -195,7 +195,7 @@ class LiveCustomerProfileControllerSpec
 
       authSuccess(Some(nino))
       mockGetAccounts(Future successful person)
-      stubShutteringResponse(notShuttered)
+      mockShutteringResponse(notShuttered)
 
       val result =
         controller.getPersonalDetails(nino, journeyId)(requestWithAcceptHeader)
@@ -230,7 +230,7 @@ class LiveCustomerProfileControllerSpec
     "return 500 for an unexpected error" in {
       authSuccess(Some(nino))
       mockGetAccounts(Future failed new RuntimeException())
-      stubShutteringResponse(notShuttered)
+      mockShutteringResponse(notShuttered)
 
       val result =
         controller.getPersonalDetails(nino, journeyId)(requestWithAcceptHeader)
@@ -239,7 +239,7 @@ class LiveCustomerProfileControllerSpec
 
     "return 521 when shuttered" in {
       authSuccess(Some(nino))
-      stubShutteringResponse(shuttered)
+      mockShutteringResponse(shuttered)
 
       val result =
         controller.getPersonalDetails(nino, journeyId)(requestWithAcceptHeader)
@@ -264,12 +264,12 @@ class LiveCustomerProfileControllerSpec
       val preference: Preference =
         Preference(
           digital = true,
-          Some(EmailPreference(EmailAddress("old@old.com"), Verified))
+          email = Some(EmailPreference(EmailAddress("old@old.com"), Verified))
         )
 
       authSuccess()
       mockGetPreferences(Future successful Some(preference))
-      stubShutteringResponse(notShuttered)
+      mockShutteringResponse(notShuttered)
 
       val result = controller.getPreferences(journeyId)(requestWithAcceptHeader)
 
@@ -280,7 +280,7 @@ class LiveCustomerProfileControllerSpec
     "handle no preferences found" in {
       authSuccess()
       mockGetPreferences(Future successful None)
-      stubShutteringResponse(notShuttered)
+      mockShutteringResponse(notShuttered)
 
       val result = controller.getPreferences(journeyId)(requestWithAcceptHeader)
 
@@ -331,7 +331,7 @@ class LiveCustomerProfileControllerSpec
     "return 500 for an unexpected error" in {
       authSuccess()
       mockGetPreferences(Future failed new RuntimeException())
-      stubShutteringResponse(notShuttered)
+      mockShutteringResponse(notShuttered)
 
       val result = controller.getPreferences(journeyId)(requestWithAcceptHeader)
       status(result) shouldBe 500
@@ -339,7 +339,7 @@ class LiveCustomerProfileControllerSpec
 
     "return 521 when shuttered" in {
       authSuccess()
-      stubShutteringResponse(shuttered)
+      mockShutteringResponse(shuttered)
 
       val result = controller.getPreferences(journeyId)(requestWithAcceptHeader)
 
@@ -386,7 +386,7 @@ class LiveCustomerProfileControllerSpec
         paperlessSettings,
         Future successful PreferencesCreated
       )
-      stubShutteringResponse(notShuttered)
+      mockShutteringResponse(notShuttered)
 
       val result = controller.paperlessSettingsOptIn(journeyId)(
         validPaperlessSettingsRequest
@@ -408,7 +408,7 @@ class LiveCustomerProfileControllerSpec
 
       authSuccess()
       mockPaperlessSettings(paperlessSettingsWithVersion, Future successful PreferencesCreated)
-      stubShutteringResponse(notShuttered)
+      mockShutteringResponse(notShuttered)
 
       val result =
         controller.paperlessSettingsOptIn(journeyId)(validPaperlessSettingsRequest)
@@ -422,7 +422,7 @@ class LiveCustomerProfileControllerSpec
         paperlessSettings,
         Future successful PreferencesExists
       )
-      stubShutteringResponse(notShuttered)
+      mockShutteringResponse(notShuttered)
 
       val result = controller.paperlessSettingsOptIn(journeyId)(
         validPaperlessSettingsRequest
@@ -437,7 +437,7 @@ class LiveCustomerProfileControllerSpec
         paperlessSettings,
         Future successful NoPreferenceExists
       )
-      stubShutteringResponse(notShuttered)
+      mockShutteringResponse(notShuttered)
 
       val result = controller.paperlessSettingsOptIn(journeyId)(
         validPaperlessSettingsRequest
@@ -449,7 +449,7 @@ class LiveCustomerProfileControllerSpec
     "return 409 for request without email" in {
       authSuccess()
       mockPaperlessSettings(paperlessSettings, Future successful EmailNotExist)
-      stubShutteringResponse(notShuttered)
+      mockShutteringResponse(notShuttered)
 
       val result = controller.paperlessSettingsOptIn(journeyId)(
         validPaperlessSettingsRequest
@@ -464,7 +464,7 @@ class LiveCustomerProfileControllerSpec
         paperlessSettings,
         Future successful PreferencesFailure
       )
-      stubShutteringResponse(notShuttered)
+      mockShutteringResponse(notShuttered)
 
       val result = controller.paperlessSettingsOptIn(journeyId)(
         validPaperlessSettingsRequest
@@ -507,7 +507,7 @@ class LiveCustomerProfileControllerSpec
 
     "return 500 for an unexpected error" in {
       authSuccess()
-      stubShutteringResponse(notShuttered)
+      mockShutteringResponse(notShuttered)
       mockPaperlessSettings(
         paperlessSettings,
         Future failed new RuntimeException()
@@ -521,7 +521,7 @@ class LiveCustomerProfileControllerSpec
 
     "return 521 when shuttered" in {
       authSuccess()
-      stubShutteringResponse(shuttered)
+      mockShutteringResponse(shuttered)
 
       val result = controller.paperlessSettingsOptIn(journeyId)(
         validPaperlessSettingsRequest
@@ -563,7 +563,7 @@ class LiveCustomerProfileControllerSpec
     "opt out for existing preferences with journey id" in {
       authSuccess()
       mockPaperlessSettingsOptOut(optOutPaperlessSettings, Future successful PreferencesExists)
-      stubShutteringResponse(notShuttered)
+      mockShutteringResponse(notShuttered)
 
       val result =
         controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest(PageType.AndroidReOptOutPage))
@@ -574,7 +574,7 @@ class LiveCustomerProfileControllerSpec
     "opt out without existing preferences and journey id" in {
       authSuccess()
       mockPaperlessSettingsOptOut(optOutPaperlessSettings, Future successful PreferencesCreated)
-      stubShutteringResponse(notShuttered)
+      mockShutteringResponse(notShuttered)
 
       val result =
         controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest(PageType.AndroidOptOutPage))
@@ -596,7 +596,7 @@ class LiveCustomerProfileControllerSpec
       authSuccess()
       mockPaperlessSettingsOptOut(optOutPaperlessSettingsWithVersion(PageType.IosReOptOutPage),
                                   Future successful PreferencesCreated)
-      stubShutteringResponse(notShuttered)
+      mockShutteringResponse(notShuttered)
 
       val result =
         controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest(PageType.IosReOptOutPage))
@@ -607,7 +607,7 @@ class LiveCustomerProfileControllerSpec
     "return 404 where preference does not exist" in {
       authSuccess()
       mockPaperlessSettingsOptOut(optOutPaperlessSettings, Future successful PreferencesDoesNotExist)
-      stubShutteringResponse(notShuttered)
+      mockShutteringResponse(notShuttered)
 
       val result =
         controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest(PageType.AndroidOptOutPage))
@@ -618,7 +618,7 @@ class LiveCustomerProfileControllerSpec
     "return 500 on service error" in {
       authSuccess()
       mockPaperlessSettingsOptOut(optOutPaperlessSettings, Future successful PreferencesFailure)
-      stubShutteringResponse(notShuttered)
+      mockShutteringResponse(notShuttered)
 
       val result =
         controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest(PageType.AndroidOptOutPage))
@@ -652,7 +652,7 @@ class LiveCustomerProfileControllerSpec
     "return 500 for an unexpected error" in {
       authSuccess()
       mockPaperlessSettingsOptOut(optOutPaperlessSettings, Future failed new RuntimeException())
-      stubShutteringResponse(notShuttered)
+      mockShutteringResponse(notShuttered)
 
       val result =
         controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest(PageType.AndroidOptOutPage))
@@ -661,7 +661,7 @@ class LiveCustomerProfileControllerSpec
 
     "return 521 when shuttered" in {
       authSuccess()
-      stubShutteringResponse(shuttered)
+      mockShutteringResponse(shuttered)
 
       val result =
         controller.paperlessSettingsOptOut(journeyId)(validPaperlessOptOutRequest(PageType.AndroidOptOutPage))
@@ -702,7 +702,7 @@ class LiveCustomerProfileControllerSpec
     "successful pending email change" in {
       authSuccess()
       mockPendingEmail(changeEmail, Future successful EmailUpdateOk)
-      stubShutteringResponse(notShuttered)
+      mockShutteringResponse(notShuttered)
 
       val result =
         controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
@@ -713,7 +713,7 @@ class LiveCustomerProfileControllerSpec
     "return 404 where preferences do not exist" in {
       authSuccess()
       mockPendingEmail(changeEmail, Future successful NoPreferenceExists)
-      stubShutteringResponse(notShuttered)
+      mockShutteringResponse(notShuttered)
 
       val result =
         controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
@@ -724,7 +724,7 @@ class LiveCustomerProfileControllerSpec
     "return 409 for request without email" in {
       authSuccess()
       mockPendingEmail(changeEmail, Future successful EmailNotExist)
-      stubShutteringResponse(notShuttered)
+      mockShutteringResponse(notShuttered)
 
       val result =
         controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
@@ -735,7 +735,7 @@ class LiveCustomerProfileControllerSpec
     "propagate errors from the service" in {
       authSuccess()
       mockPendingEmail(changeEmail, Future successful PreferencesFailure)
-      stubShutteringResponse(notShuttered)
+      mockShutteringResponse(notShuttered)
 
       val result =
         controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
@@ -776,7 +776,7 @@ class LiveCustomerProfileControllerSpec
     "return 500 for an unexpected error" in {
       authSuccess()
       mockPendingEmail(changeEmail, Future failed new RuntimeException())
-      stubShutteringResponse(notShuttered)
+      mockShutteringResponse(notShuttered)
 
       val result =
         controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)
@@ -785,7 +785,7 @@ class LiveCustomerProfileControllerSpec
 
     "return 521 when shuttered" in {
       authSuccess()
-      stubShutteringResponse(shuttered)
+      mockShutteringResponse(shuttered)
 
       val result =
         controller.preferencesPendingEmail(journeyId)(validPendingEmailRequest)

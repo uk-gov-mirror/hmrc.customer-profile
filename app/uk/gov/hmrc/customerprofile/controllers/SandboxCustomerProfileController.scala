@@ -129,7 +129,7 @@ class SandboxCustomerProfileController @Inject() (
         case _ =>
           Ok(
             toJson(
-              Preference(digital = false, None)
+              Preference(digital = false, None, None, None, None)
             )
           )
       })

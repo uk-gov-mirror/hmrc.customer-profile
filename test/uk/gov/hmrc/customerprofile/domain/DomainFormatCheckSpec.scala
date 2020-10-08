@@ -94,7 +94,7 @@ object DomainGenerator {
   lazy val paperlessOptOutAsJson: JsValue = toJson(paperlessOptOut)
 
   val verifiedEmailPreference =
-    Preference(digital = true, Some(EmailPreference(email, Status.Verified)))
+    Preference(digital = true, email = Some(EmailPreference(email, Status.Verified)))
 
   lazy val verifiedEmailPreferenceAsJson: JsValue = toJson(
     verifiedEmailPreference

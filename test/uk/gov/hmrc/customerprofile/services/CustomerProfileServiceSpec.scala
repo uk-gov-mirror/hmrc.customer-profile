@@ -25,6 +25,7 @@ import play.api.Configuration
 import play.api.test.{DefaultAwaitTimeout, FutureAwaits}
 import uk.gov.hmrc.customerprofile.auth.AccountAccessControl
 import uk.gov.hmrc.customerprofile.connector._
+import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status.Verified
 import uk.gov.hmrc.customerprofile.domain._
 import uk.gov.hmrc.customerprofile.domain.types.ModelTypes.JourneyId
@@ -46,20 +47,22 @@ class CustomerProfileServiceSpec
     with MockFactory {
   implicit lazy val hc: HeaderCarrier = HeaderCarrier()
 
-  val appNameConfiguration: Configuration = mock[Configuration]
-  val auditConnector: AuditConnector = mock[AuditConnector]
-  val journeyId: JourneyId = "b6ef25bc-8f5e-49c8-98c5-f039f39e4557"
-  val appName: String = "customer-profile"
+  val appNameConfiguration: Configuration  = mock[Configuration]
+  val auditConnector:       AuditConnector = mock[AuditConnector]
+  val journeyId:            JourneyId      = "b6ef25bc-8f5e-49c8-98c5-f039f39e4557"
+  val appName:              String         = "customer-profile"
 
   def mockAudit(
     transactionName: String,
-    detail: Map[String, String] = Map.empty
+    detail:          Map[String, String] = Map.empty
   ): CallHandler3[DataEvent, HeaderCarrier, ExecutionContext, Future[
     AuditResult
   ]] = {
-    def dataEventWith(auditSource: String,
-                      auditType: String,
-                      tags: Map[String, String]): MatcherBase =
+    def dataEventWith(
+      auditSource: String,
+      auditType:   String,
+      tags:        Map[String, String]
+    ): MatcherBase =
       argThat { (dataEvent: DataEvent) =>
         dataEvent.auditSource.equals(auditSource) &&
         dataEvent.auditType.equals(auditType) &&
@@ -79,7 +82,7 @@ class CustomerProfileServiceSpec
         dataEventWith(
           appName,
           auditType = "ServiceResponseSent",
-          tags = Map("transactionName" -> transactionName)
+          tags      = Map("transactionName" -> transactionName)
         ),
         *,
         *
@@ -89,9 +92,9 @@ class CustomerProfileServiceSpec
 
   val citizenDetailsConnector: CitizenDetailsConnector =
     mock[CitizenDetailsConnector]
-  val preferencesConnector: PreferencesConnector = mock[PreferencesConnector]
-  val entityResolver: EntityResolverConnector = mock[EntityResolverConnector]
-  val accountAccessControl: AccountAccessControl = mock[AccountAccessControl]
+  val preferencesConnector: PreferencesConnector    = mock[PreferencesConnector]
+  val entityResolver:       EntityResolverConnector = mock[EntityResolverConnector]
+  val accountAccessControl: AccountAccessControl    = mock[AccountAccessControl]
 
   val service =
     new CustomerProfileService(
@@ -107,26 +110,28 @@ class CustomerProfileServiceSpec
   val existingDigitalPreference: Preference = existingPreferences(
     digital = true
   )
+
   val existingNonDigitalPreference: Preference = existingPreferences(
     digital = false
   )
 
-  val newEmail = EmailAddress("new@new.com")
+  val newEmail             = EmailAddress("new@new.com")
   val newPaperlessSettings = Paperless(TermsAccepted(Some(true)), newEmail, Some("en"))
 
   val nino = Nino("CS700100A")
+
   val accounts: Accounts = Accounts(
     Some(nino),
     None,
-    routeToIV = false,
+    routeToIV        = false,
     routeToTwoFactor = false,
     "journeyId"
   )
 
   def existingPreferences(digital: Boolean): Preference =
     Preference(
-      digital,
-      Some(EmailPreference(EmailAddress("old@old.com"), Verified))
+      digital = digital,
+      email   = Some(EmailPreference(EmailAddress("old@old.com"), Verified))
     )
 
   def mockGetAccounts() = {
@@ -146,7 +151,7 @@ class CustomerProfileServiceSpec
   def mockAuditPaperlessSettings() =
     mockAudit(
       transactionName = "paperlessSettings",
-      detail = Map("accepted" -> newPaperlessSettings.generic.accepted.toString)
+      detail          = Map("accepted" -> newPaperlessSettings.generic.accepted.toString)
     )
 
   def mockPaperlessSettings(status: PreferencesStatus) =
@@ -160,7 +165,7 @@ class CustomerProfileServiceSpec
 
     mockAudit(
       transactionName = "updatePendingEmailPreference",
-      detail = Map("email" -> newEmail.value)
+      detail          = Map("email" -> newEmail.value)
     )
     (entityResolver
       .getEntityIdByNino(_: Nino)(_: HeaderCarrier, _: ExecutionContext))
@@ -174,6 +179,13 @@ class CustomerProfileServiceSpec
       ))
       .expects(ChangeEmail(newEmail.value), entity._id, *, *)
       .returns(Future.successful(EmailUpdateOk))
+  }
+
+  def mapStatusToExisitingValue(statusReceived: Option[Status]): Option[StatusName] = statusReceived match {
+    case Some(Status.Pending)  => Some(StatusName.Pending)
+    case Some(Status.Bounced)  => Some(StatusName.Bounced)
+    case Some(Status.Verified) => Some(StatusName.Verified)
+    case None                  => None
   }
 
   "getAccounts" should {
@@ -202,7 +214,7 @@ class CustomerProfileServiceSpec
 
       mockAudit(
         transactionName = "getPersonalDetails",
-        detail = Map("nino" -> nino.value)
+        detail          = Map("nino" -> nino.value)
       )
       (citizenDetailsConnector
         .personDetails(_: Nino)(_: HeaderCarrier, _: ExecutionContext))
@@ -210,9 +222,9 @@ class CustomerProfileServiceSpec
         .returns(Future successful person)
       val personalDetails = await(service.getPersonalDetails(nino))
 
-      personalDetails shouldBe person
+      personalDetails                  shouldBe person
       personalDetails.person.shortName shouldBe Some("Firstname Middle")
-      personalDetails.person.fullName shouldBe "Title Firstname Lastname Middle Honours"
+      personalDetails.person.fullName  shouldBe "Title Firstname Lastname Middle Honours"
     }
   }
 
@@ -221,7 +233,23 @@ class CustomerProfileServiceSpec
       mockAudit(transactionName = "getPreferences")
       mockGetPreferences(Some(existingDigitalPreference))
 
-      await(service.getPreferences()) shouldBe Some(existingDigitalPreference)
+      await(service.getPreferences()) shouldBe Some(
+        existingDigitalPreference.copy(
+          emailAddress = existingDigitalPreference.email.map(_.email.value),
+          status       = Some(PaperlessStatus(mapStatusToExisitingValue(existingDigitalPreference.email.map(_.status))))
+        )
+      )
+    }
+    "audit and return preferences if signed out" in {
+      val preferences = existingDigitalPreference.copy(digital = false, email = None)
+      mockAudit(transactionName = "getPreferences")
+      mockGetPreferences(Some(preferences))
+
+      await(service.getPreferences()) shouldBe Some(
+        preferences.copy(
+          emailAddress = preferences.email.map(_.email.value)
+        )
+      )
     }
   }
 
@@ -254,12 +282,16 @@ class CustomerProfileServiceSpec
     "If sent, override the accepted value to 'true' when opting in" in {
       mockAudit(
         transactionName = "paperlessSettings",
-        detail = Map("accepted" -> "Some(false)")
+        detail          = Map("accepted" -> "Some(false)")
       )
       mockGetPreferences(None)
       mockPaperlessSettings(PreferencesCreated)
 
-      await(service.paperlessSettings(newPaperlessSettings.copy(generic = newPaperlessSettings.generic.copy(accepted = Some(false))), journeyId)) shouldBe PreferencesCreated
+      await(
+        service.paperlessSettings(newPaperlessSettings
+                                    .copy(generic = newPaperlessSettings.generic.copy(accepted = Some(false))),
+                                  journeyId)
+      ) shouldBe PreferencesCreated
     }
   }
 
