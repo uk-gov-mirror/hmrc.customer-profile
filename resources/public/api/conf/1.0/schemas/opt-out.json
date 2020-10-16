@@ -1,7 +1,7 @@
 {
   "type": "object",
   "$schema": "http://json-schema.org/draft-06/schema#",
-  "description": "Enable paperless settings for a given email",
+  "description": "Disable paperless settings for a given email",
   "properties": {
     "generic": {
       "type": "object",
@@ -15,7 +15,7 @@
         },
         "optInPage": {
           "type": "object",
-          "description": "Details of the terms and conditions accepted by the user",
+          "description": "Details of the terms and conditions declined by the user",
           "properties": {
             "cohort": {
               "type": "number",
@@ -26,14 +26,14 @@
             },
             "pageType": {
               "type": "string",
-              "description": "Where the user has accepted these terms. Must be one of: AndroidOptInPage, IosOptInPage, AndroidOptOutPage, IosOptOutPage",
+              "description": "Where the user has declined these terms. Must be one of: AndroidOptInPage, IosOptInPage, AndroidOptOutPage, IosOptOutPage",
               "examples": [
-                "AndroidOptInPage"
+                "AndroidOptOutPage"
               ]
             },
             "version": {
               "type": "object",
-              "description": "The version of terms and conditions accepted",
+              "description": "The version of terms and conditions declined",
               "properties": {
                 "major": {
                   "type": "number",
@@ -55,13 +55,6 @@
         }
       },
       "required": ["accepted"]
-    },
-    "email": {
-      "type": "string",
-      "description": "The email to be used for paperless communication.",
-      "examples": [
-        "test@example.com"
-      ]
     }
   },
   "required": ["generic", "email"]

@@ -22,6 +22,7 @@ import play.api.libs.json.Json.toJson
 import play.api.libs.json.{JsValue, Json}
 import play.api.libs.ws.WSRequest
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status.Verified
+import uk.gov.hmrc.customerprofile.domain.Language.English
 import uk.gov.hmrc.customerprofile.domain._
 import uk.gov.hmrc.customerprofile.support.BaseISpec
 import uk.gov.hmrc.domain.Nino
@@ -252,7 +253,7 @@ class SandboxCustomerProfileISpec extends BaseISpec {
         Paperless(
           generic = TermsAccepted(Some(true)),
           email   = EmailAddress("new-email@new-email.new.email"),
-          Some("en")
+          Some(English)
         )
       )
 
@@ -347,7 +348,7 @@ class SandboxCustomerProfileISpec extends BaseISpec {
       toJson(
         PaperlessOptOut(
           generic = Some(TermsAccepted(Some(false))),
-          Some("en")
+          Some(English)
         )
       )
 

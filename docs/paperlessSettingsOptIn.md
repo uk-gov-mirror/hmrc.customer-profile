@@ -22,11 +22,20 @@ Paperless Settings
 *  **Request body**
 
 ```json
-{
-    "generic": {
-        "accepted":true
-    },
-    "email": "name@email.co.uk"
+{ 
+"email": "test@test.com",
+"generic": { 
+    "accepted": true,
+    "optInPage": { 
+        "cohort": 24,
+        "pageType": "AndroidOptInPage", 
+        "version": { 
+            "major": 1, 
+            "minor": 2 
+        } 
+    }
+},
+"language": "en" 
 }
 ```
 

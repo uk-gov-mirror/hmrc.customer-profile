@@ -30,6 +30,7 @@ import uk.gov.hmrc.customerprofile.auth.{AccountAccessControl, AccountWithLowCL,
 import uk.gov.hmrc.customerprofile.connector.{PreferencesDoesNotExist, PreferencesFailure, _}
 import uk.gov.hmrc.customerprofile.domain
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status.Verified
+import uk.gov.hmrc.customerprofile.domain.Language.English
 import uk.gov.hmrc.customerprofile.domain.types.ModelTypes.JourneyId
 import uk.gov.hmrc.customerprofile.domain.{Paperless, _}
 import uk.gov.hmrc.customerprofile.mocks.ShutteringMock
@@ -366,11 +367,11 @@ class LiveCustomerProfileControllerSpec
         .returns(result)
 
     val newEmail          = EmailAddress("new@new.com")
-    val paperlessSettings = Paperless(TermsAccepted(Some(true)), newEmail, Some("en"))
+    val paperlessSettings = Paperless(TermsAccepted(Some(true)), newEmail, Some(English))
     val paperlessSettingsWithVersion =
       Paperless(TermsAccepted(accepted = Some(true), Some(OptInPage(Version(1, 1), 44, PageType.AndroidOptInPage))),
                 newEmail,
-                Some("en"))
+                Some(English))
 
     val validPaperlessSettingsRequest: FakeRequest[JsValue] =
       FakeRequest()
@@ -538,10 +539,10 @@ class LiveCustomerProfileControllerSpec
 
   "paperlessSettingsOptOut" should {
 
-    val optOutPaperlessSettings = PaperlessOptOut(Some(TermsAccepted(Some(false))), Some("en"))
+    val optOutPaperlessSettings = PaperlessOptOut(Some(TermsAccepted(Some(false))), Some(English))
 
     def optOutPaperlessSettingsWithVersion(pageType: PageType) =
-      PaperlessOptOut(Some(TermsAccepted(Some(false), Some(OptInPage(Version(1, 1), 44, pageType)))), Some("en"))
+      PaperlessOptOut(Some(TermsAccepted(Some(false), Some(OptInPage(Version(1, 1), 44, pageType)))), Some(English))
 
     def validPaperlessOptOutRequest(pageType: PageType): FakeRequest[JsValue] =
       FakeRequest()

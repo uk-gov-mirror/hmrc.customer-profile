@@ -26,6 +26,7 @@ import play.api.{ConfigLoader, Configuration, Environment}
 import uk.gov.hmrc.circuitbreaker.UnhealthyServiceException
 import uk.gov.hmrc.customerprofile.config.WSHttpImpl
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status.{Pending, Verified}
+import uk.gov.hmrc.customerprofile.domain.Language.English
 import uk.gov.hmrc.customerprofile.domain._
 import uk.gov.hmrc.emailaddress.EmailAddress
 import uk.gov.hmrc.http.{NotFoundException, _}
@@ -132,8 +133,8 @@ class EntityResolverConnectorSpec
 
   "paperlessSettings()" should {
     val email                     = EmailAddress("me@mine.com")
-    val paperlessSettingsAccepted = Paperless(TermsAccepted(Some(true)), email, Some("en"))
-    val paperlessSettingsRejected = Paperless(TermsAccepted(Some(false)), email, Some("en"))
+    val paperlessSettingsAccepted = Paperless(TermsAccepted(Some(true)), email, Some(English))
+    val paperlessSettingsRejected = Paperless(TermsAccepted(Some(false)), email, Some(English))
 
     def mockHttpPOST(
       paperlessSettings: Paperless,
@@ -199,38 +200,38 @@ class EntityResolverConnectorSpec
                                                                        _: HttpReads[HttpResponse],
                                                                        _: HeaderCarrier,
                                                                        _: ExecutionContext))
-        .expects(termsAndCondtionssPostUrl, PaperlessOptOut(Some(TermsAccepted(Some(false))), Some("en")), *, *, *, *, *)
+        .expects(termsAndCondtionssPostUrl, PaperlessOptOut(Some(TermsAccepted(Some(false))), Some(English)), *, *, *, *, *)
         .returning(response)
 
     "update record to opted out" in {
       mockHttpPOST(Future successful HttpResponse(200, None))
 
-      await(preferenceConnector.paperlessOptOut(PaperlessOptOut(Some(TermsAccepted(Some(false))), Some("en")))) shouldBe PreferencesExists
+      await(preferenceConnector.paperlessOptOut(PaperlessOptOut(Some(TermsAccepted(Some(false))), Some(English)))) shouldBe PreferencesExists
     }
 
     "create opt out record" in {
       mockHttpPOST(Future successful HttpResponse(201, None))
 
-      await(preferenceConnector.paperlessOptOut(PaperlessOptOut(Some(TermsAccepted(Some(false))), Some("en")))) shouldBe PreferencesCreated
+      await(preferenceConnector.paperlessOptOut(PaperlessOptOut(Some(TermsAccepted(Some(false))), Some(English)))) shouldBe PreferencesCreated
     }
 
     "report failure for unexpected response code" in {
       mockHttpPOST(Future successful HttpResponse(204, None))
 
-      await(preferenceConnector.paperlessOptOut(PaperlessOptOut(Some(TermsAccepted(Some(false))), Some("en")))) shouldBe PreferencesFailure
+      await(preferenceConnector.paperlessOptOut(PaperlessOptOut(Some(TermsAccepted(Some(false))), Some(English)))) shouldBe PreferencesFailure
     }
 
     "report PreferencesDoesNotExist when not found" in {
       mockHttpPOST(Future successful HttpResponse(404, None))
 
-      await(preferenceConnector.paperlessOptOut(PaperlessOptOut(Some(TermsAccepted(Some(false))), Some("en")))) shouldBe PreferencesDoesNotExist
+      await(preferenceConnector.paperlessOptOut(PaperlessOptOut(Some(TermsAccepted(Some(false))), Some(English)))) shouldBe PreferencesDoesNotExist
     }
 
     "throw an exception if the call fails" in {
       mockHttpPOST(Future failed Upstream5xxResponse("error", 500, 500))
 
       intercept[Upstream5xxResponse] {
-        await(preferenceConnector.paperlessOptOut(PaperlessOptOut(Some(TermsAccepted(Some(false))), Some("en"))))
+        await(preferenceConnector.paperlessOptOut(PaperlessOptOut(Some(TermsAccepted(Some(false))), Some(English))))
       }
     }
   }

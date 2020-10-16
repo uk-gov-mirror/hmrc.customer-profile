@@ -8,6 +8,7 @@ import play.api.libs.json.Json
 import play.api.libs.json.Json.{stringify, toJson}
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status
 import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status._
+import uk.gov.hmrc.customerprofile.domain.Language.English
 import uk.gov.hmrc.customerprofile.domain.{EmailPreference, OptInPage, PageType, Paperless, PaperlessOptOut, Preference, TermsAccepted, Version}
 import uk.gov.hmrc.emailaddress.EmailAddress
 
@@ -98,7 +99,7 @@ object EntityResolverStub {
                 Paperless(
                   generic = TermsAccepted(Some(true), Some(OptInPage(Version(1, 1), 44, PageType.IosOptInPage))),
                   email   = EmailAddress("new-email@new-email.new.email"),
-                  Some("en")
+                  Some(English)
                 )
               )
               .toString(),
@@ -119,7 +120,7 @@ object EntityResolverStub {
                 PaperlessOptOut(generic = Some(
                                   TermsAccepted(Some(false), Some(OptInPage(Version(1, 1), 44, PageType.IosOptOutPage)))
                                 ),
-                                Some("en"))
+                                Some(English))
               )
               .toString(),
             true,

@@ -17,7 +17,20 @@ Paperless Settings Opt Out
 *  **Request body**
 
 ```json
-{}
+{ 
+"generic": { 
+    "accepted": false,
+    "optInPage": { 
+        "cohort": 24,
+        "pageType": "AndroidOptOutPage", 
+        "version": { 
+            "major": 1, 
+            "minor": 2 
+        } 
+    }
+},
+"language": "en" 
+}
 ```
 
 * **Success Response:**

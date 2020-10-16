@@ -105,6 +105,10 @@ uses:
               204:
         /opt-out:
           post:
+            body:
+              application/json:
+                type: !include schemas/opt-out.json
+                example: !include examples/opt-out-example.json
             displayName: Opt out paperless preferences
             description: This endpoint opts the user out of paperless.
             is: [headers.acceptHeader]
