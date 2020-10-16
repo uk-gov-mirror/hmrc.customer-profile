@@ -62,7 +62,14 @@
       "examples": [
         "test@example.com"
       ]
+    },
+    "language": {
+      "type": "string",
+      "description": "The language to be used for paperless communication.",
+      "examples": [
+        "en"
+      ]
     }
   },
-  "required": ["generic", "email"]
+  "required": ["generic", "email", "language"]
 }
