@@ -37,7 +37,7 @@ object Paperless {
 
   implicit val formats: OFormat[Paperless] = {
     import uk.gov.hmrc.emailaddress.PlayJsonFormats.{emailAddressReads, emailAddressWrites}
-    Json.format[Paperless]
+    Json.using[Json.WithDefaultValues].format[Paperless]
   }
 }
 
@@ -46,7 +46,7 @@ case class PaperlessOptOut(
   language: Option[Language] = Some(English))
 
 object PaperlessOptOut {
-  implicit val format: OFormat[PaperlessOptOut] = Json.format[PaperlessOptOut]
+  implicit val format: OFormat[PaperlessOptOut] = Json.using[Json.WithDefaultValues].format[PaperlessOptOut]
 }
 
 case class OptInPage(

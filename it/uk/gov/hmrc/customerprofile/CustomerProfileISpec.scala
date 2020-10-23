@@ -279,8 +279,6 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
         """{ "email": "test@test.com", "generic": { "accepted": true, "optInPage": { "cohort": 24, "pageType": "AndroidOptInPage", "version": {"major": 1, "minor": 2 } } }, "language": "xx" }""".stripMargin
       )
 
-      println(s"JSON = ${Json.prettyPrint(paperless)}")
-
       await(postRequestWithAcceptHeader(url, Json.toJson(paperless))).status shouldBe 400
     }
 
@@ -379,8 +377,6 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
       val paperless = parse(
         """{ "generic": { "accepted": false, "optInPage": { "cohort": 24, "pageType": "AndroidOptOutPage", "version": {"major": 1, "minor": 2 } } }, "language": "xx" }""".stripMargin
       )
-
-      println(s"JSON = ${Json.prettyPrint(paperless)}")
 
       await(postRequestWithAcceptHeader(url, Json.toJson(paperless))).status shouldBe 400
     }

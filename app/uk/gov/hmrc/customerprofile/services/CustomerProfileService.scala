@@ -23,6 +23,7 @@ import play.api.Configuration
 import uk.gov.hmrc.customerprofile.auth.{AccountAccessControl, NinoNotFoundOnAccount}
 import uk.gov.hmrc.customerprofile.connector._
 import uk.gov.hmrc.customerprofile.domain.EmailPreference._
+import uk.gov.hmrc.customerprofile.domain.Language.English
 import uk.gov.hmrc.customerprofile.domain._
 import uk.gov.hmrc.customerprofile.domain.types.ModelTypes.JourneyId
 import uk.gov.hmrc.domain.Nino
@@ -70,15 +71,9 @@ class CustomerProfileService @Inject() (
     withAudit("paperlessSettings", Map("accepted" -> settings.generic.accepted.toString)) {
       for {
         preferences ← entityResolver.getPreferences()
-        status ← preferences.fold(
-                  entityResolver
-                    .paperlessSettings(settings.copy(generic = settings.generic.copy(accepted = Some(true))))
-                ) { preference =>
+        status ← preferences.fold(paperlessOptIn(settings)) { preference =>
                   if (preference.digital) setPreferencesPendingEmail(ChangeEmail(settings.email.value), journeyId)
-                  else
-                    entityResolver.paperlessSettings(
-                      settings.copy(generic = settings.generic.copy(accepted = Some(true)))
-                    )
+                  else paperlessOptIn(settings)
                 }
       } yield status
     }
@@ -117,7 +112,7 @@ class CustomerProfileService @Inject() (
       } yield response
     }
 
-  def mapStatusToExisitingValue(statusReceived: Option[Status]): Option[StatusName] = statusReceived match {
+  private def mapStatusToExistingValue(statusReceived: Option[Status]): Option[StatusName] = statusReceived match {
     case Some(Status.Pending)  => Some(StatusName.Pending)
     case Some(Status.Bounced)  => Some(StatusName.Bounced)
     case Some(Status.Verified) => Some(StatusName.Verified)
@@ -137,7 +132,7 @@ class CustomerProfileService @Inject() (
                        Future successful emailAddressCopied
                          .map(pref =>
                            pref.copy(status = Some(
-                             PaperlessStatus(name = mapStatusToExisitingValue(pref.email.map(email => email.status)))
+                             PaperlessStatus(name = mapStatusToExistingValue(pref.email.map(email => email.status)))
                            )
                            )
                          )
@@ -148,5 +143,13 @@ class CustomerProfileService @Inject() (
                                         Future successful statusCopied.map(pref => pref.copy(linkSent = linkSent))
                                       else Future successful statusCopied
     } yield forwardsCompatiblePreferences
+
+  private def paperlessOptIn(
+    settings:    Paperless
+  )(implicit hc: HeaderCarrier,
+    ex:          ExecutionContext
+  ): Future[PreferencesStatus] = entityResolver.paperlessSettings(
+    settings.copy(generic = settings.generic.copy(accepted = Some(true)))
+  )
 
 }
