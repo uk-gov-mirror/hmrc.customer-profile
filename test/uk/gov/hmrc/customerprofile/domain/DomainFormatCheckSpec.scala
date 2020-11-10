@@ -23,7 +23,7 @@ import play.api.Logger
 import play.api.libs.json.JsValue
 import play.api.libs.json.Json.{prettyPrint, toJson}
 import play.api.test.{DefaultAwaitTimeout, FutureAwaits}
-import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status
+import uk.gov.hmrc.customerprofile.domain.StatusName.Verified
 import uk.gov.hmrc.customerprofile.domain.Language.English
 import uk.gov.hmrc.domain.{Nino, SaUtr}
 import uk.gov.hmrc.emailaddress.EmailAddress
@@ -95,7 +95,7 @@ object DomainGenerator {
   lazy val paperlessOptOutAsJson: JsValue = toJson(paperlessOptOut)
 
   val verifiedEmailPreference =
-    Preference(digital = true, email = Some(EmailPreference(email, Status.Verified)))
+    Preference(digital = true, email = Some(EmailPreference(email, Verified)))
 
   lazy val verifiedEmailPreferenceAsJson: JsValue = toJson(
     verifiedEmailPreference

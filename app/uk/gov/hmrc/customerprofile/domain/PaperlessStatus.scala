@@ -18,6 +18,14 @@ package uk.gov.hmrc.customerprofile.domain
 
 import play.api.libs.json._
 
+case class PaperlessStatus(
+  name:     StatusName,
+  category: Category)
+
+object PaperlessStatus {
+  implicit val formats = Json.format[PaperlessStatus]
+}
+
 sealed trait StatusName
 
 object StatusName {
@@ -31,16 +39,21 @@ object StatusName {
   case object Verified extends StatusName
   case object Bounced extends StatusName
   case object Pending extends StatusName
+  case object ReOptIn extends StatusName
 
   val reads: Reads[StatusName] = new Reads[StatusName] {
 
     override def reads(json: JsValue): JsResult[StatusName] = json match {
       case JsString("Paper")            => JsSuccess(Paper)
-      case JsString("EmailNotVerified") => JsSuccess(EmailNotVerified)
-      case JsString("BouncedEmail")     => JsSuccess(BouncedEmail)
-      case JsString("Alright")          => JsSuccess(Alright)
+      case JsString("EmailNotVerified") => JsSuccess(Pending)
+      case JsString("BouncedEmail")     => JsSuccess(Bounced)
+      case JsString("Alright")          => JsSuccess(Verified)
       case JsString("NewCustomer")      => JsSuccess(NewCustomer)
       case JsString("NoEmail")          => JsSuccess(NoEmail)
+      case JsString("verified")         => JsSuccess(Verified)
+      case JsString("bounced")          => JsSuccess(Bounced)
+      case JsString("pending")          => JsSuccess(Pending)
+      case JsString("ReOptIn")          => JsSuccess(ReOptIn)
       case _                            => JsError()
     }
   }
@@ -57,6 +70,7 @@ object StatusName {
       case Verified         => JsString("verified")
       case Bounced          => JsString("bounced")
       case Pending          => JsString("pending")
+      case ReOptIn          => JsString("ReOptIn")
     }
   }
 
@@ -103,29 +117,4 @@ object Category {
   }
 
   implicit val formats: Format[Category] = Format(reads, writes)
-}
-
-case class PaperlessStatus(
-  name:     Option[StatusName],
-  category: Option[Category] = None,
-  text:     Option[String] = None)
-
-object PaperlessStatus {
-  implicit val formats = Json.format[PaperlessStatus]
-}
-
-case class Url(
-  link: String,
-  text: String)
-
-object Url {
-  implicit val formats = Json.format[Url]
-}
-
-case class StatusWithUrl(
-  status: PaperlessStatus,
-  url:    Url)
-
-object StatusWithUrl {
-  implicit val formats = Json.format[StatusWithUrl]
 }

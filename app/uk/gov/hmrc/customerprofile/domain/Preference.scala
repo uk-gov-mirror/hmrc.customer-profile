@@ -17,46 +17,17 @@
 package uk.gov.hmrc.customerprofile.domain
 
 import org.joda.time.LocalDate
-import play.api.libs.json.{JsError, Json, _}
+import play.api.libs.json._
 import uk.gov.hmrc.emailaddress.EmailAddress
 
 case class EmailPreference(
   email:    EmailAddress,
-  status:   EmailPreference.Status,
+  status:   StatusName,
   linkSent: Option[LocalDate] = None)
 
 object EmailPreference {
 
   import uk.gov.hmrc.emailaddress.PlayJsonFormats.{emailAddressReads, emailAddressWrites}
-
-  sealed trait Status
-
-  object Status {
-    case object Pending extends Status
-    case object Bounced extends Status
-    case object Verified extends Status
-
-    val reads: Reads[Status] = new Reads[Status] {
-
-      override def reads(json: JsValue): JsResult[Status] = json match {
-        case JsString("pending")  => JsSuccess(Pending)
-        case JsString("bounced")  => JsSuccess(Bounced)
-        case JsString("verified") => JsSuccess(Verified)
-        case _                    => JsError()
-      }
-    }
-
-    val writes: Writes[Status] = new Writes[Status] {
-
-      override def writes(status: Status) = status match {
-        case Pending  => JsString("pending")
-        case Bounced  => JsString("bounced")
-        case Verified => JsString("verified")
-      }
-    }
-
-    implicit val formats: Format[Status] = Format(reads, writes)
-  }
 
   implicit val localdateFormatDefault = new Format[LocalDate] {
     override def reads(json: JsValue):   JsResult[LocalDate] = JodaReads.DefaultJodaLocalDateReads.reads(json)

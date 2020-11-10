@@ -173,7 +173,7 @@ class LiveCustomerProfileController @Inject() (
         withShuttering(shuttered) {
           errorWrapper(
             service.getPreferences().map {
-              case Some(response) => Ok(toJson(response))
+              case Some(response) => Ok(toJson(service.reOptInEnabledCheck(response)))
               case _              => NotFound
             }
           )

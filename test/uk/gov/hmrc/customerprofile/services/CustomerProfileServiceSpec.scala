@@ -25,8 +25,7 @@ import play.api.Configuration
 import play.api.test.{DefaultAwaitTimeout, FutureAwaits}
 import uk.gov.hmrc.customerprofile.auth.AccountAccessControl
 import uk.gov.hmrc.customerprofile.connector._
-import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status
-import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status.Verified
+import uk.gov.hmrc.customerprofile.domain.StatusName.{ReOptIn, Verified}
 import uk.gov.hmrc.customerprofile.domain.Language.English
 import uk.gov.hmrc.customerprofile.domain._
 import uk.gov.hmrc.customerprofile.domain.types.ModelTypes.JourneyId
@@ -105,8 +104,14 @@ class CustomerProfileServiceSpec
       accountAccessControl,
       appNameConfiguration,
       auditConnector,
-      "customer-profile"
+      "customer-profile",
+      true
     )
+
+  def preferencesWithStatus(status: StatusName): Preference = existingPreferences(
+    digital = true,
+    status
+  )
 
   val existingDigitalPreference: Preference = existingPreferences(
     digital = true
@@ -129,10 +134,14 @@ class CustomerProfileServiceSpec
     "journeyId"
   )
 
-  def existingPreferences(digital: Boolean): Preference =
+  def existingPreferences(
+    digital: Boolean,
+    status:  StatusName = Verified
+  ): Preference =
     Preference(
       digital = digital,
-      email   = Some(EmailPreference(EmailAddress("old@old.com"), Verified))
+      email   = Some(EmailPreference(EmailAddress("old@old.com"), status)),
+      status  = Some(PaperlessStatus(name = status, category = Category.Info))
     )
 
   def mockGetAccounts() = {
@@ -180,13 +189,6 @@ class CustomerProfileServiceSpec
       ))
       .expects(ChangeEmail(newEmail.value), entity._id, *, *)
       .returns(Future.successful(EmailUpdateOk))
-  }
-
-  def mapStatusToExisitingValue(statusReceived: Option[Status]): Option[StatusName] = statusReceived match {
-    case Some(Status.Pending)  => Some(StatusName.Pending)
-    case Some(Status.Bounced)  => Some(StatusName.Bounced)
-    case Some(Status.Verified) => Some(StatusName.Verified)
-    case None                  => None
   }
 
   "getAccounts" should {
@@ -237,7 +239,9 @@ class CustomerProfileServiceSpec
       await(service.getPreferences()) shouldBe Some(
         existingDigitalPreference.copy(
           emailAddress = existingDigitalPreference.email.map(_.email.value),
-          status       = Some(PaperlessStatus(mapStatusToExisitingValue(existingDigitalPreference.email.map(_.status))))
+          status = Some(
+            PaperlessStatus(existingDigitalPreference.status.get.name, category = Category.Info)
+          )
         )
       )
     }
@@ -315,6 +319,42 @@ class CustomerProfileServiceSpec
         .returns(Future successful PreferencesExists)
 
       await(service.paperlessSettingsOptOut(PaperlessOptOut(Some(TermsAccepted(Some(true))), Some(English)))) shouldBe PreferencesExists
+    }
+  }
+
+  "reOptInEnabledCheck" should {
+    "pass through ReOptIn status if enabled" in {
+      val expectedPreferences = preferencesWithStatus(ReOptIn)
+
+      service.reOptInEnabledCheck(expectedPreferences) shouldBe
+      expectedPreferences.copy(
+        email        = expectedPreferences.email.map(_.copy(status = ReOptIn)),
+        status = Some(
+          PaperlessStatus(ReOptIn, category = Category.Info)
+        )
+      )
+    }
+    "replace ReOptIn status with Verified if disabled" in {
+      val service =
+        new CustomerProfileService(
+          citizenDetailsConnector,
+          preferencesConnector,
+          entityResolver,
+          accountAccessControl,
+          appNameConfiguration,
+          auditConnector,
+          "customer-profile",
+          false
+        )
+      val expectedPreferences = preferencesWithStatus(ReOptIn)
+
+      service.reOptInEnabledCheck(expectedPreferences) shouldBe
+      expectedPreferences.copy(
+        email        = expectedPreferences.email.map(_.copy(status = Verified)),
+        status = Some(
+          PaperlessStatus(Verified, category = Category.Info)
+        )
+      )
     }
   }
 

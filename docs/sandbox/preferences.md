@@ -33,7 +33,11 @@ User Preferences
   
   | *Value* | *HTTP Status Code* | *Description* 
   |---------|--------------------|---------------|
-  | Not set or any value not specified below | 200 | Returns a response body with an example personal details json payload |
+  | Not set or any value not specified below | 200 | Returns a response body with an example preferences json payload |
+  | "VERIFIED" | 200 | Returns a response body with an example verified preferences json payload |
+  | "UNVERIFIED" | 401 | Returns a response body with an example unverified preferences json payload |
+  | "BOUNCED" | 401 | Returns a response body with an example bounced preferences json payload |
+  | "REOPTIN" | 401 | Returns a response body with an example reOptIn preferences json payload |
   | "ERROR-401" | 401 | Triggers a 401 Unauthorized response |
   | "ERROR-403" | 403 | Triggers a 403 Forbidden response |
   | "ERROR-404" | 404 | Triggers a 404 NotFound response |

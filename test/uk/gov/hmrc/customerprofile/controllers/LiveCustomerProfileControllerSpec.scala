@@ -29,7 +29,7 @@ import uk.gov.hmrc.auth.core.SessionRecordNotFound
 import uk.gov.hmrc.customerprofile.auth.{AccountAccessControl, AccountWithLowCL, FailToMatchTaxIdOnAuth, NinoNotFoundOnAccount}
 import uk.gov.hmrc.customerprofile.connector.{PreferencesDoesNotExist, PreferencesFailure, _}
 import uk.gov.hmrc.customerprofile.domain
-import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status.Verified
+import uk.gov.hmrc.customerprofile.domain.StatusName.Verified
 import uk.gov.hmrc.customerprofile.domain.Language.English
 import uk.gov.hmrc.customerprofile.domain.types.ModelTypes.JourneyId
 import uk.gov.hmrc.customerprofile.domain.{Paperless, _}
@@ -261,6 +261,12 @@ class LiveCustomerProfileControllerSpec
         .expects(*, *)
         .returns(result)
 
+    def mockReOptInCheck(result: Preference) =
+      (service
+        .reOptInEnabledCheck(_: Preference))
+        .expects(*)
+        .returns(result)
+
     "return preferences with journeyId" in {
       val preference: Preference =
         Preference(
@@ -270,6 +276,7 @@ class LiveCustomerProfileControllerSpec
 
       authSuccess()
       mockGetPreferences(Future successful Some(preference))
+      mockReOptInCheck(preference)
       mockShutteringResponse(notShuttered)
 
       val result = controller.getPreferences(journeyId)(requestWithAcceptHeader)

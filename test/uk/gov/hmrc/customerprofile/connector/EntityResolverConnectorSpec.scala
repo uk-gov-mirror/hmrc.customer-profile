@@ -25,7 +25,7 @@ import play.api.test.{DefaultAwaitTimeout, FutureAwaits}
 import play.api.{ConfigLoader, Configuration, Environment}
 import uk.gov.hmrc.circuitbreaker.UnhealthyServiceException
 import uk.gov.hmrc.customerprofile.config.WSHttpImpl
-import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status.{Pending, Verified}
+import uk.gov.hmrc.customerprofile.domain.StatusName.{Pending, Verified}
 import uk.gov.hmrc.customerprofile.domain.Language.English
 import uk.gov.hmrc.customerprofile.domain._
 import uk.gov.hmrc.emailaddress.EmailAddress

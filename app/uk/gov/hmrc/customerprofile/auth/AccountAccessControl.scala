@@ -20,7 +20,7 @@ import com.google.inject.Inject
 import javax.inject.Named
 import play.api.mvc.Results
 import uk.gov.hmrc.api.controllers._
-import uk.gov.hmrc.auth.core.retrieve.Retrievals.{nino, _}
+import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.{nino, _}
 import uk.gov.hmrc.auth.core.retrieve.~
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
 import uk.gov.hmrc.customerprofile.domain.Accounts

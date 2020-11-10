@@ -24,7 +24,7 @@ import play.api.libs.json.Json
 import play.api.libs.json.Json.toJson
 import play.api.mvc._
 import uk.gov.hmrc.api.controllers.HeaderValidator
-import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status.Verified
+import uk.gov.hmrc.customerprofile.domain.StatusName.{Bounced, Pending, ReOptIn, Verified}
 import uk.gov.hmrc.customerprofile.domain._
 import uk.gov.hmrc.customerprofile.domain.types.ModelTypes.JourneyId
 import uk.gov.hmrc.domain.Nino
@@ -77,6 +77,18 @@ class SandboxCustomerProfileController @Inject() (
       )
     )
 
+  private def preferencesSandbox(
+    status:   StatusName,
+    linkSent: Option[org.joda.time.LocalDate] = None
+  ) =
+    Preference(
+      digital      = true,
+      emailAddress = Some("jt@test.com"),
+      email        = Some(EmailPreference(email = EmailAddress("jt@test.com"), status = status, linkSent = linkSent)),
+      status       = Some(PaperlessStatus(status, Category.ActionRequired)),
+      linkSent     = linkSent
+    )
+
   private def accounts(journeyId: JourneyId) =
     Accounts(
       Some(nino),
@@ -126,6 +138,30 @@ class SandboxCustomerProfileController @Inject() (
         case Some("ERROR-403") => Forbidden
         case Some("ERROR-404") => NotFound
         case Some("ERROR-500") => InternalServerError
+        case Some("VERIFIED") =>
+          Ok(
+            toJson(
+              preferencesSandbox(Verified)
+            )
+          )
+        case Some("UNVERIFIED") =>
+          Ok(
+            toJson(
+              preferencesSandbox(Pending, Some(org.joda.time.LocalDate.now()))
+            )
+          )
+        case Some("BOUNCED") =>
+          Ok(
+            toJson(
+              preferencesSandbox(Bounced)
+            )
+          )
+        case Some("REOPTIN") =>
+          Ok(
+            toJson(
+              preferencesSandbox(ReOptIn)
+            )
+          )
         case _ =>
           Ok(
             toJson(

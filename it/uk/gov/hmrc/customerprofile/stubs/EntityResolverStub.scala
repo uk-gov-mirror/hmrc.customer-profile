@@ -6,10 +6,9 @@ import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import org.joda.time.LocalDate
 import play.api.libs.json.Json
 import play.api.libs.json.Json.{stringify, toJson}
-import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status
-import uk.gov.hmrc.customerprofile.domain.EmailPreference.Status._
+import uk.gov.hmrc.customerprofile.domain.StatusName.{Alright, Bounced, BouncedEmail, EmailNotVerified, Paper, Pending, ReOptIn, Verified}
 import uk.gov.hmrc.customerprofile.domain.Language.English
-import uk.gov.hmrc.customerprofile.domain.{EmailPreference, OptInPage, PageType, Paperless, PaperlessOptOut, Preference, TermsAccepted, Version}
+import uk.gov.hmrc.customerprofile.domain.{Category, EmailPreference, OptInPage, PageType, Paperless, PaperlessOptOut, PaperlessStatus, Preference, StatusName, TermsAccepted, Version}
 import uk.gov.hmrc.emailaddress.EmailAddress
 
 object EntityResolverStub {
@@ -25,15 +24,19 @@ object EntityResolverStub {
                  |}""".stripMargin
 
   private def preferences(
-    optedIn:  Boolean           = true,
-    email:    String            = "test@email.com",
-    status:   Status            = Verified,
-    linkSent: Option[LocalDate] = None
+    optedIn:     Boolean           = true,
+    email:       String            = "test@email.com",
+    emailStatus: StatusName        = Verified,
+    status:      StatusName        = Alright,
+    linkSent:    Option[LocalDate] = None
   ): Preference =
     if (optedIn) {
-      Preference(digital = optedIn,
-                 email   = Some(EmailPreference(EmailAddress(value = email), status = status, linkSent = linkSent)))
-    } else Preference(digital = false)
+      Preference(
+        digital = optedIn,
+        email   = Some(EmailPreference(EmailAddress(value = email), status = emailStatus, linkSent = linkSent)),
+        status  = Some(PaperlessStatus(name = status, category = Category.ActionRequired))
+      )
+    } else Preference(digital = false, status = Some(PaperlessStatus(name = status, category = Category.ActionRequired)))
 
   private def urlEqualToEntityResolverPaye(nino: String): UrlPattern =
     urlEqualTo(s"/entity-resolver/paye/$nino")
@@ -54,7 +57,9 @@ object EntityResolverStub {
 
   def respondPreferencesWithPaperlessOptedOut(): StubMapping =
     stubFor(
-      get(urlEqualToPreferences).willReturn(aResponse().withStatus(200).withBody(stringify(toJson(preferences(optedIn = false)))))
+      get(urlEqualToPreferences).willReturn(
+        aResponse().withStatus(200).withBody(stringify(toJson(preferences(optedIn = false, status = Paper))))
+      )
     )
 
   def respondPreferencesWithBouncedEmail(): StubMapping =
@@ -63,7 +68,7 @@ object EntityResolverStub {
         .willReturn(
           aResponse()
             .withStatus(200)
-            .withBody(stringify(toJson(preferences(status = Bounced))))
+            .withBody(stringify(toJson(preferences(emailStatus = Bounced, status = BouncedEmail))))
         )
     )
 
@@ -73,8 +78,15 @@ object EntityResolverStub {
         .willReturn(
           aResponse()
             .withStatus(200)
-            .withBody(stringify(toJson(preferences(status = Pending, linkSent = linkSent))))
+            .withBody(
+              stringify(toJson(preferences(emailStatus = Pending, status = EmailNotVerified, linkSent = linkSent)))
+            )
         )
+    )
+
+  def respondPreferencesWithReOptInRequired(): StubMapping =
+    stubFor(
+      get(urlEqualToPreferences).willReturn(aResponse().withStatus(200).withBody(stringify(toJson(preferences(status = ReOptIn)))))
     )
 
   def respondPreferencesNoPaperlessSet(): StubMapping =
