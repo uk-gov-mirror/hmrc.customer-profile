@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.customerprofile.controllers
 
-import play.api.http.Status._
+import play.api.http.Status.{UNAUTHORIZED, LOCKED, CONFLICT}
 import uk.gov.hmrc.api.controllers.ErrorResponse
 
 case object ErrorUnauthorizedNoNino

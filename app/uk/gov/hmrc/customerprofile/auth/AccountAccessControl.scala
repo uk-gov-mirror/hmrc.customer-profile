@@ -19,14 +19,14 @@ package uk.gov.hmrc.customerprofile.auth
 import com.google.inject.Inject
 import javax.inject.Named
 import play.api.mvc.Results
-import uk.gov.hmrc.api.controllers._
+import uk.gov.hmrc.api.controllers.ErrorResponse
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.{nino, _}
 import uk.gov.hmrc.auth.core.retrieve.~
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
 import uk.gov.hmrc.customerprofile.domain.Accounts
 import uk.gov.hmrc.customerprofile.domain.types.ModelTypes.JourneyId
 import uk.gov.hmrc.domain.{Nino, SaUtr}
-import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.{CoreGet, HeaderCarrier, HttpException}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

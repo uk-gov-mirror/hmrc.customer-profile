@@ -16,23 +16,22 @@
 
 package uk.gov.hmrc.customerprofile.controllers
 
-import com.google.inject.{Inject, Singleton}
-import javax.inject.Named
-import play.api.libs.json.Json
+import javax.inject.{Inject, Named, Singleton}
 import play.api.libs.json.Json.{obj, toJson}
-import play.api.mvc._
+import play.api.libs.json.OFormat.oFormatFromReadsAndOWrites
+import play.api.mvc.{Action, ActionBuilder, AnyContent, BodyParser, ControllerComponents, Request, Result}
 import play.api.{Logger, LoggerLike, mvc}
-import uk.gov.hmrc.api.controllers._
+import uk.gov.hmrc.api.controllers.{ErrorAcceptHeaderInvalid, ErrorInternalServerError, ErrorNotFound, ErrorResponse, ErrorUnauthorized, ErrorUnauthorizedLowCL, PreferencesSettingsError}
 import uk.gov.hmrc.auth.core.AuthorisationException
-import uk.gov.hmrc.customerprofile.auth._
-import uk.gov.hmrc.customerprofile.connector._
+import uk.gov.hmrc.customerprofile.auth.{AccountAccessControl, AccountWithLowCL, ErrorUnauthorizedMicroService, FailToMatchTaxIdOnAuth, NinoNotFoundOnAccount}
+import uk.gov.hmrc.customerprofile.connector.{EmailNotExist, EmailUpdateOk, NoPreferenceExists, PreferencesCreated, PreferencesDoesNotExist, PreferencesExists, ShutteringConnector}
 import uk.gov.hmrc.customerprofile.domain.types.ModelTypes.JourneyId
 import uk.gov.hmrc.customerprofile.domain.{ChangeEmail, Paperless, PaperlessOptOut, Shuttering, TermsAccepted}
 import uk.gov.hmrc.customerprofile.services.CustomerProfileService
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{HeaderCarrier, NotFoundException, Upstream4xxResponse}
 import uk.gov.hmrc.play.HeaderCarrierConverter.fromHeadersAndSession
-import uk.gov.hmrc.play.bootstrap.controller.BackendController
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendBaseController
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -45,7 +44,7 @@ class LiveCustomerProfileController @Inject() (
   shutteringConnector:                                         ShutteringConnector,
   @Named("optInVersionsEnabled") val optInVersionsEnabled:     Boolean
 )(implicit val executionContext:                               ExecutionContext)
-    extends BackendController(controllerComponents)
+    extends BackendBaseController
     with CustomerProfileController {
   outer =>
   override def parser: BodyParser[AnyContent] = controllerComponents.parsers.anyContent
@@ -102,7 +101,7 @@ class LiveCustomerProfileController @Inject() (
     }
 
   override def withShuttering(shuttering: Shuttering)(fn: => Future[Result]): Future[Result] =
-    if (shuttering.shuttered) Future.successful(WebServerIsDown(Json.toJson(shuttering))) else fn
+    if (shuttering.shuttered) Future.successful(WebServerIsDown(toJson(shuttering))) else fn
 
   def log(message: String): Unit = Logger.info(s"$app $message")
 
@@ -202,10 +201,11 @@ class LiveCustomerProfileController @Inject() (
     }
 
   override def optOut(
-    paperlessOptOut: PaperlessOptOut,
-    journeyId:       JourneyId
-  )(implicit hc:     HeaderCarrier,
-    request:         Request[_]
+    paperlessOptOut:  PaperlessOptOut,
+    journeyId:        JourneyId
+  )(implicit hc:      HeaderCarrier,
+    request:          Request[_],
+    executionContext: ExecutionContext
   ): Future[Result] =
     shutteringConnector.getShutteringStatus(journeyId).flatMap { shuttered =>
       withShuttering(shuttered) {

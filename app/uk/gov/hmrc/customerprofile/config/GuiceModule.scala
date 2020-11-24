@@ -18,22 +18,22 @@ package uk.gov.hmrc.customerprofile.config
 
 import com.google.inject.AbstractModule
 import com.google.inject.name.Names.named
+import javax.inject.Inject
 import play.api.{Configuration, Environment}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.customerprofile.controllers.api.ApiAccess
 import uk.gov.hmrc.http.{CoreGet, CorePost, CorePut}
 import uk.gov.hmrc.play.bootstrap.auth.DefaultAuthConnector
-import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.collection.JavaConverters._
 
-class GuiceModule(
+class GuiceModule @Inject() (
   environment:   Environment,
-  configuration: Configuration)
+  configuration: Configuration,
+  servicesConfig: ServicesConfig)
     extends AbstractModule {
-
-  val servicesConfig = new ServicesConfig(configuration, new RunMode(configuration, environment.mode))
 
   override def configure(): Unit = {
     bind(classOf[CoreGet]).to(classOf[WSHttpImpl])
