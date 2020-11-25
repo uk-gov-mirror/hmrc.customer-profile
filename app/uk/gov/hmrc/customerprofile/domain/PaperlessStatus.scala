@@ -44,17 +44,17 @@ object StatusName {
   val reads: Reads[StatusName] = new Reads[StatusName] {
 
     override def reads(json: JsValue): JsResult[StatusName] = json match {
-      case JsString("Paper")            => JsSuccess(Paper)
-      case JsString("EmailNotVerified") => JsSuccess(Pending)
-      case JsString("BouncedEmail")     => JsSuccess(Bounced)
-      case JsString("Alright")          => JsSuccess(Verified)
-      case JsString("NewCustomer")      => JsSuccess(NewCustomer)
-      case JsString("NoEmail")          => JsSuccess(NoEmail)
-      case JsString("verified")         => JsSuccess(Verified)
-      case JsString("bounced")          => JsSuccess(Bounced)
-      case JsString("pending")          => JsSuccess(Pending)
-      case JsString("ReOptIn")          => JsSuccess(ReOptIn)
-      case _                            => JsError()
+      case JsString("PAPER")              => JsSuccess(Paper)
+      case JsString("EMAIL_NOT_VERIFIED") => JsSuccess(Pending)
+      case JsString("BOUNCED_EMAIL")      => JsSuccess(Bounced)
+      case JsString("ALRIGHT")            => JsSuccess(Verified)
+      case JsString("NEW_CUSTOMER")       => JsSuccess(NewCustomer)
+      case JsString("NO_EMAIL")           => JsSuccess(NoEmail)
+      case JsString("verified")           => JsSuccess(Verified)
+      case JsString("bounced")            => JsSuccess(Bounced)
+      case JsString("pending")            => JsSuccess(Pending)
+      case JsString("OLD_VERSION")        => JsSuccess(ReOptIn)
+      case _                              => JsError()
     }
   }
 
@@ -62,9 +62,6 @@ object StatusName {
 
     override def writes(statusName: StatusName): JsString = statusName match {
       case Paper            => JsString("Paper")
-      case EmailNotVerified => JsString("EmailNotVerified")
-      case BouncedEmail     => JsString("BouncedEmail")
-      case Alright          => JsString("Alright")
       case NewCustomer      => JsString("NewCustomer")
       case NoEmail          => JsString("NoEmail")
       case Verified         => JsString("verified")
@@ -84,11 +81,15 @@ object Category {
 
   case object ActionRequired extends Category
   case object Info extends Category
+  case object ReOptInRequired extends Category
+  case object OptInRequired extends Category
 
   private val statusByCategory: Map[Category, List[StatusName]] =
     Map(
-      ActionRequired -> List(NewCustomer, Paper, EmailNotVerified, BouncedEmail, NoEmail),
-      Info           -> List(Alright)
+      ActionRequired  -> List(NewCustomer, EmailNotVerified, BouncedEmail, NoEmail),
+      Info            -> List(Alright),
+      ReOptInRequired -> List(ReOptIn),
+      OptInRequired   -> List(Paper)
     )
 
   private val categoryByStatus: Map[StatusName, Category] =
@@ -102,17 +103,21 @@ object Category {
   val reads: Reads[Category] = new Reads[Category] {
 
     override def reads(json: JsValue): JsResult[Category] = json match {
-      case JsString("ActionRequired") => JsSuccess(ActionRequired)
-      case JsString("Info")           => JsSuccess(Info)
-      case _                          => JsError()
+      case JsString("ACTION_REQUIRED")    => JsSuccess(ActionRequired)
+      case JsString("INFO")               => JsSuccess(Info)
+      case JsString("RE_OPT_IN_REQUIRED") => JsSuccess(ReOptInRequired)
+      case JsString("OPT_IN_REQUIRED")    => JsSuccess(OptInRequired)
+      case _                              => JsError()
     }
   }
 
   val writes: Writes[Category] = new Writes[Category] {
 
     override def writes(category: Category) = category match {
-      case ActionRequired => JsString("ActionRequired")
-      case Info           => JsString("Info")
+      case ActionRequired  => JsString("ActionRequired")
+      case Info            => JsString("Info")
+      case ReOptInRequired => JsString("ReOptInRequired")
+      case OptInRequired   => JsString("OptInRequired")
     }
   }
 

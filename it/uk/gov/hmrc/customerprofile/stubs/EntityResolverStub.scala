@@ -27,16 +27,36 @@ object EntityResolverStub {
     optedIn:     Boolean           = true,
     email:       String            = "test@email.com",
     emailStatus: StatusName        = Verified,
-    status:      StatusName        = Alright,
+    status:      String            = "ALRIGHT",
     linkSent:    Option[LocalDate] = None
-  ): Preference =
+  ): String =
     if (optedIn) {
-      Preference(
-        digital = optedIn,
-        email   = Some(EmailPreference(EmailAddress(value = email), status = emailStatus, linkSent = linkSent)),
-        status  = Some(PaperlessStatus(name = status, category = Category.ActionRequired))
-      )
-    } else Preference(digital = false, status = Some(PaperlessStatus(name = status, category = Category.ActionRequired)))
+      s"""
+         |{
+         |  "digital" : true,
+         |  "emailAddress": "$email",
+         |  "linkSent": "${linkSent.getOrElse(LocalDate.now())}",
+         |  "email" : {
+         |    "email" : "$email",
+         |    "status" : "$status",
+         |    "linkSent": "${linkSent.getOrElse(LocalDate.now())}"
+         |  },
+         |  "status": {
+         |      "name": "$status",
+         |      "category": "ACTION_REQUIRED"
+         |  }
+         |}
+      """.stripMargin
+    } else
+      s"""
+         |{
+         |  "digital" : false,
+         |  "status": {
+         |      "name": "$status",
+         |      "category": "OPT_IN_REQUIRED"
+         |  }
+         |}
+      """.stripMargin
 
   private def urlEqualToEntityResolverPaye(nino: String): UrlPattern =
     urlEqualTo(s"/entity-resolver/paye/$nino")
@@ -52,13 +72,13 @@ object EntityResolverStub {
 
   def respondPreferencesWithPaperlessOptedIn(): StubMapping =
     stubFor(
-      get(urlEqualToPreferences).willReturn(aResponse().withStatus(200).withBody(stringify(toJson(preferences()))))
+      get(urlEqualToPreferences).willReturn(aResponse().withStatus(200).withBody((preferences())))
     )
 
   def respondPreferencesWithPaperlessOptedOut(): StubMapping =
     stubFor(
       get(urlEqualToPreferences).willReturn(
-        aResponse().withStatus(200).withBody(stringify(toJson(preferences(optedIn = false, status = Paper))))
+        aResponse().withStatus(200).withBody((preferences(optedIn = false, status = "PAPER")))
       )
     )
 
@@ -68,7 +88,7 @@ object EntityResolverStub {
         .willReturn(
           aResponse()
             .withStatus(200)
-            .withBody(stringify(toJson(preferences(emailStatus = Bounced, status = BouncedEmail))))
+            .withBody((preferences(emailStatus = Bounced, status = "BOUNCED_EMAIL")))
         )
     )
 
@@ -79,20 +99,22 @@ object EntityResolverStub {
           aResponse()
             .withStatus(200)
             .withBody(
-              stringify(toJson(preferences(emailStatus = Pending, status = EmailNotVerified, linkSent = linkSent)))
+             (preferences(emailStatus = Pending, status = "EMAIL_NOT_VERIFIED", linkSent = linkSent))
             )
         )
     )
 
   def respondPreferencesWithReOptInRequired(): StubMapping =
     stubFor(
-      get(urlEqualToPreferences).willReturn(aResponse().withStatus(200).withBody(stringify(toJson(preferences(status = ReOptIn)))))
+      get(urlEqualToPreferences).willReturn(
+        aResponse().withStatus(200).withBody((preferences(status = "OLD_VERSION")))
+      )
     )
 
   def respondPreferencesNoPaperlessSet(): StubMapping =
     stubFor(
       get(urlEqualToPreferences)
-        .willReturn(aResponse().withStatus(200).withBody(stringify(toJson(preferences(optedIn = false)))))
+        .willReturn(aResponse().withStatus(200).withBody((preferences(optedIn = false))))
     )
 
   def respondNoPreferences(): StubMapping =

@@ -136,7 +136,7 @@ trait CustomerProfileTests extends BaseISpec with Eventually {
       response.status                                shouldBe 200
       (response.json \ "digital").as[Boolean]        shouldBe false
       (response.json \ "email").isEmpty              shouldBe true
-      (response.json \ "status" \ "name").as[String]       shouldBe "Paper"
+      (response.json \ "status" \ "name").as[String] shouldBe "Paper"
       (response.json \ "linkSent").isEmpty           shouldBe true
       (response.json \ "emailAddress").isEmpty       shouldBe true
 
