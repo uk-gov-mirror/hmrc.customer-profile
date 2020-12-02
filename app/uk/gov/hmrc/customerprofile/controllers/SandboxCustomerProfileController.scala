@@ -85,7 +85,7 @@ class SandboxCustomerProfileController @Inject() (
       digital      = true,
       emailAddress = Some("jt@test.com"),
       email        = Some(EmailPreference(email = EmailAddress("jt@test.com"), status = status, linkSent = linkSent)),
-      status       = Some(PaperlessStatus(status, Category.ActionRequired)),
+      status       = if(status == ReOptIn) Some(PaperlessStatus(status, Category.ActionRequired, Some(10))) else Some(PaperlessStatus(status, Category.ActionRequired)),
       linkSent     = linkSent
     )
 

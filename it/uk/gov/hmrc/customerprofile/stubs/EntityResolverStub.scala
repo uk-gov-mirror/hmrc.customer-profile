@@ -43,7 +43,8 @@ object EntityResolverStub {
          |  },
          |  "status": {
          |      "name": "$status",
-         |      "category": "ACTION_REQUIRED"
+         |      "category": "ACTION_REQUIRED",
+         |      "reoptinMajor": 10
          |  }
          |}
       """.stripMargin

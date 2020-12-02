@@ -19,11 +19,35 @@ package uk.gov.hmrc.customerprofile.domain
 import play.api.libs.json._
 
 case class PaperlessStatus(
-  name:     StatusName,
-  category: Category)
+  name:         StatusName,
+  category:     Category,
+  majorVersion: Option[Int] = None)
 
 object PaperlessStatus {
-  implicit val formats = Json.format[PaperlessStatus]
+  import play.api.libs.functional.syntax._
+  import play.api.libs.json._
+
+  implicit def optionFormat[T: Format]: Format[Option[T]] = new Format[Option[T]]{
+    override def reads(json: JsValue): JsResult[Option[T]] = json.validateOpt[T]
+
+    override def writes(o: Option[T]): JsValue = o match {
+      case Some(t) ⇒ implicitly[Writes[T]].writes(t)
+      case None ⇒ JsNull
+    }
+  }
+
+  implicit val statusReads: Reads[PaperlessStatus] = (
+    (__ \ "name").read[StatusName] and
+      (__ \ "category").read[Category] and
+      (__ \ "reoptinMajor").readNullable[Int]
+    ) (PaperlessStatus.apply _)
+
+  implicit val statusWrites: Writes[PaperlessStatus] = (
+    (__ \ "name").write[StatusName] and
+      (__ \ "category").write[Category] and
+      (__ \ "majorVersion").writeNullable[Int]
+    ) (unlift(PaperlessStatus.unapply))
+
 }
 
 sealed trait StatusName
@@ -61,13 +85,13 @@ object StatusName {
   val writes: Writes[StatusName] = new Writes[StatusName] {
 
     override def writes(statusName: StatusName): JsString = statusName match {
-      case Paper            => JsString("Paper")
-      case NewCustomer      => JsString("NewCustomer")
-      case NoEmail          => JsString("NoEmail")
-      case Verified         => JsString("verified")
-      case Bounced          => JsString("bounced")
-      case Pending          => JsString("pending")
-      case ReOptIn          => JsString("ReOptIn")
+      case Paper       => JsString("Paper")
+      case NewCustomer => JsString("NewCustomer")
+      case NoEmail     => JsString("NoEmail")
+      case Verified    => JsString("verified")
+      case Bounced     => JsString("bounced")
+      case Pending     => JsString("pending")
+      case ReOptIn     => JsString("ReOptIn")
     }
   }
 
