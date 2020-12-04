@@ -12,8 +12,11 @@ Paperless Settings Opt Out
 
 *  **URL Params**
 
-  journeyId - an optional string which may be included for journey tracking purposes but has no functional impact
+  **Required:**
+     `journeyId=[String]`
   
+     a string which is included for journey tracking purposes but has no functional impact
+        
 *  **Request body**
 
 ```json

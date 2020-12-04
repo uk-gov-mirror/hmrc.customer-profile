@@ -21,10 +21,10 @@ Personal Details
 
    The [NINO](https://github.com/hmrc/domain/blob/master/src/main/scala/uk/gov/hmrc/domain/Nino.scala#L21), National Insurance Number, given must be a valid NINO, ([http://www.hmrc.gov.uk/manuals/nimmanual/nim39110.htm](http://www.hmrc.gov.uk/manuals/nimmanual/nim39110.htm) / [Regular expression](https://github.com/hmrc/domain/blob/master/src/main/scala/uk/gov/hmrc/domain/Nino.scala#L36))
 
-   **Optional:**
+   **Required:**
    `journeyId=[String]`
 
-    an optional string which may be included for journey tracking purposes but has no functional impact
+    a string which is included for journey tracking purposes but has no functional impact
 
 
 * **Success Responses:**

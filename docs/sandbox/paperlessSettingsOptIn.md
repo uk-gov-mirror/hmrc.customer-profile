@@ -15,10 +15,10 @@ Paperless Settings
 
 *  **URL Params**
 
-   **Optional:**
+   **Required:**
    `journeyId=[String]`
 
-    an optional string which may be included for journey tracking purposes but has no functional impact
+    a string which is included for journey tracking purposes but has no functional impact
     
 *  **Request body**
 
