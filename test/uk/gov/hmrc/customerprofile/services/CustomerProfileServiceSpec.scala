@@ -139,9 +139,9 @@ class CustomerProfileServiceSpec
     status:  StatusName = Verified
   ): Preference =
     Preference(
-      digital      = digital,
-      emailAddress = Some("test@test.com"),
-      status       = Some(PaperlessStatus(name = status, category = Category.Info))
+      digital = digital,
+      email   = Some(EmailPreference(EmailAddress("old@old.com"), status)),
+      status  = Some(PaperlessStatus(name = status, category = Category.Info))
     )
 
   def mockGetAccounts() = {
@@ -238,9 +238,11 @@ class CustomerProfileServiceSpec
 
       await(service.getPreferences()) shouldBe Some(
         existingDigitalPreference.copy(
+          emailAddress = existingDigitalPreference.email.map(_.email.value),
           status = Some(
             PaperlessStatus(existingDigitalPreference.status.get.name, category = Category.Info)
-          )
+          ),
+          email = None
         )
       )
     }
@@ -249,7 +251,12 @@ class CustomerProfileServiceSpec
       mockAudit(transactionName = "getPreferences")
       mockGetPreferences(Some(preferences))
 
-      await(service.getPreferences()) shouldBe Some(preferences)
+      await(service.getPreferences()) shouldBe Some(
+        preferences.copy(
+          emailAddress = preferences.email.map(_.email.value),
+          email = None
+        )
+      )
 
     }
   }

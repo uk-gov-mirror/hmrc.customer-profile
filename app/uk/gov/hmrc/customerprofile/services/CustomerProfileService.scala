@@ -94,7 +94,7 @@ class CustomerProfileService @Inject() (
     ex:          ExecutionContext
   ): Future[Option[Preference]] =
     withAudit("getPreferences", Map.empty) {
-     entityResolver.getPreferences()
+      copyToResponsePayload(entityResolver.getPreferences())
     }
 
   def setPreferencesPendingEmail(
@@ -117,6 +117,22 @@ class CustomerProfileService @Inject() (
         preferences.copy(status = preferences.status.map(_.copy(name = Verified)))
       case _ => preferences
     }
+
+  private def copyToResponsePayload(
+    preferencesReceived: Future[Option[Preference]]
+  )(implicit ex:         ExecutionContext
+  ): Future[Option[Preference]] =
+    for {
+      emailAddressCopied <- preferencesReceived.map(
+                             _.map(pref => pref.copy(emailAddress = pref.email.map(_.email.value)))
+                           )
+      linkSent <- preferencesReceived.map(_.flatMap(_.email.flatMap(_.linkSent)))
+      backwardsCompatiblePreferences <- if (linkSent.isDefined)
+                                         Future successful emailAddressCopied.map(pref =>
+                                           pref.copy(linkSent = linkSent, email = None)
+                                         )
+                                       else Future successful emailAddressCopied.map(pref => pref.copy(email = None))
+    } yield backwardsCompatiblePreferences
 
   private def paperlessOptIn(
     settings:    Paperless

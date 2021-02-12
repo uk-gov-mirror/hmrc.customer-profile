@@ -18,11 +18,30 @@ package uk.gov.hmrc.customerprofile.domain
 
 import org.joda.time.LocalDate
 import play.api.libs.json._
+import uk.gov.hmrc.emailaddress.EmailAddress
+
+case class EmailPreference(
+  email:    EmailAddress,
+  status:   StatusName,
+  linkSent: Option[LocalDate] = None)
+
+object EmailPreference {
+
+  import uk.gov.hmrc.emailaddress.PlayJsonFormats.{emailAddressReads, emailAddressWrites}
+
+  implicit val localdateFormatDefault = new Format[LocalDate] {
+    override def reads(json: JsValue):   JsResult[LocalDate] = JodaReads.DefaultJodaLocalDateReads.reads(json)
+    override def writes(o:   LocalDate): JsValue             = JodaWrites.DefaultJodaLocalDateWrites.writes(o)
+  }
+
+  implicit val formats: OFormat[EmailPreference] = Json.format[EmailPreference]
+}
 
 case class Preference(
   digital:      Boolean,
   emailAddress: Option[String] = None,
   linkSent:     Option[LocalDate] = None,
+  email:        Option[EmailPreference] = None,
   status:       Option[PaperlessStatus] = None)
 
 object Preference {
