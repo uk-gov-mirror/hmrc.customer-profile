@@ -5,10 +5,9 @@ import com.github.tomakehurst.wiremock.matching.UrlPattern
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import org.joda.time.LocalDate
 import play.api.libs.json.Json
-import play.api.libs.json.Json.{stringify, toJson}
-import uk.gov.hmrc.customerprofile.domain.StatusName.{Alright, Bounced, BouncedEmail, EmailNotVerified, Paper, Pending, ReOptIn, Verified}
 import uk.gov.hmrc.customerprofile.domain.Language.English
-import uk.gov.hmrc.customerprofile.domain.{Category, EmailPreference, OptInPage, PageType, Paperless, PaperlessOptOut, PaperlessStatus, Preference, StatusName, TermsAccepted, Version}
+import uk.gov.hmrc.customerprofile.domain.StatusName.{Bounced, Pending, Verified}
+import uk.gov.hmrc.customerprofile.domain._
 import uk.gov.hmrc.emailaddress.EmailAddress
 
 object EntityResolverStub {
@@ -100,7 +99,7 @@ object EntityResolverStub {
           aResponse()
             .withStatus(200)
             .withBody(
-             (preferences(emailStatus = Pending, status = "EMAIL_NOT_VERIFIED", linkSent = linkSent))
+              (preferences(emailStatus = Pending, status = "EMAIL_NOT_VERIFIED", linkSent = linkSent))
             )
         )
     )

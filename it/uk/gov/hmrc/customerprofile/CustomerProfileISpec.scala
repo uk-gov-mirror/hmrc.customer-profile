@@ -708,7 +708,6 @@ class CustomerProfileReOptInDisabledISpec extends CustomerProfileTests {
       (response.json \ "digital").as[Boolean]         shouldBe true
       (response.json \ "status" \ "name").as[String]  shouldBe "verified"
       (response.json \ "status" \ "majorVersion").as[Int]  shouldBe 10
-      (response.json \ "email" \ "status").as[String] shouldBe "verified"
     }
 
   }

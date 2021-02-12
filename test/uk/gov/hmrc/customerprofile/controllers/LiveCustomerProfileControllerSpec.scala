@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -270,8 +270,7 @@ class LiveCustomerProfileControllerSpec
     "return preferences with journeyId" in {
       val preference: Preference =
         Preference(
-          digital = true,
-          email = Some(EmailPreference(EmailAddress("old@old.com"), Verified))
+          digital = true
         )
 
       authSuccess()

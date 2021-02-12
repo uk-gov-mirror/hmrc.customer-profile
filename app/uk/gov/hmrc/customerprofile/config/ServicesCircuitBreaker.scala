@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package uk.gov.hmrc.customerprofile.config
 import play.api.{Configuration, Environment}
 import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UsingCircuitBreaker}
 import uk.gov.hmrc.http.{BadRequestException, NotFoundException, Upstream4xxResponse, Upstream5xxResponse}
-import uk.gov.hmrc.play.bootstrap.config.RunMode
 
 trait ServicesCircuitBreaker extends UsingCircuitBreaker {
 
@@ -27,17 +26,13 @@ trait ServicesCircuitBreaker extends UsingCircuitBreaker {
   def environment:   Environment
   protected val externalServiceName: String
 
-  private lazy val runMode = new RunMode(configuration, environment.mode)
-
   // Annoyingly, the `config` method in `ServicesConfig` is protected, although it is never used within the class,
   // so I've had to duplicated the code for it here as there doesn't seem to be an obvious alternative to it
   protected lazy val rootServices = "microservice.services"
-  protected lazy val services     = s"${runMode.env}.microservice.services"
 
   def config(serviceName: String): Configuration =
     configuration
       .getOptional[Configuration](s"$rootServices.$serviceName")
-      .orElse(configuration.getOptional[Configuration](s"$services.$serviceName"))
       .getOrElse(throw new IllegalArgumentException(s"Configuration for service $serviceName not found"))
 
   override protected def circuitBreakerConfig = CircuitBreakerConfig(

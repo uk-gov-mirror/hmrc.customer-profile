@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -139,9 +139,9 @@ class CustomerProfileServiceSpec
     status:  StatusName = Verified
   ): Preference =
     Preference(
-      digital = digital,
-      email   = Some(EmailPreference(EmailAddress("old@old.com"), status)),
-      status  = Some(PaperlessStatus(name = status, category = Category.Info))
+      digital      = digital,
+      emailAddress = Some("test@test.com"),
+      status       = Some(PaperlessStatus(name = status, category = Category.Info))
     )
 
   def mockGetAccounts() = {
@@ -238,7 +238,6 @@ class CustomerProfileServiceSpec
 
       await(service.getPreferences()) shouldBe Some(
         existingDigitalPreference.copy(
-          emailAddress = existingDigitalPreference.email.map(_.email.value),
           status = Some(
             PaperlessStatus(existingDigitalPreference.status.get.name, category = Category.Info)
           )
@@ -246,15 +245,12 @@ class CustomerProfileServiceSpec
       )
     }
     "audit and return preferences if signed out" in {
-      val preferences = existingDigitalPreference.copy(digital = false, email = None)
+      val preferences = existingDigitalPreference.copy(digital = false)
       mockAudit(transactionName = "getPreferences")
       mockGetPreferences(Some(preferences))
 
-      await(service.getPreferences()) shouldBe Some(
-        preferences.copy(
-          emailAddress = preferences.email.map(_.email.value)
-        )
-      )
+      await(service.getPreferences()) shouldBe Some(preferences)
+
     }
   }
 
@@ -328,7 +324,6 @@ class CustomerProfileServiceSpec
 
       service.reOptInEnabledCheck(expectedPreferences) shouldBe
       expectedPreferences.copy(
-        email        = expectedPreferences.email.map(_.copy(status = ReOptIn)),
         status = Some(
           PaperlessStatus(ReOptIn, category = Category.Info)
         )
@@ -350,7 +345,6 @@ class CustomerProfileServiceSpec
 
       service.reOptInEnabledCheck(expectedPreferences) shouldBe
       expectedPreferences.copy(
-        email        = expectedPreferences.email.map(_.copy(status = Verified)),
         status = Some(
           PaperlessStatus(Verified, category = Category.Info)
         )

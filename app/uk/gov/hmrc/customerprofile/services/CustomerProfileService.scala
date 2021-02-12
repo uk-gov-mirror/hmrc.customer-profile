@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -94,7 +94,7 @@ class CustomerProfileService @Inject() (
     ex:          ExecutionContext
   ): Future[Option[Preference]] =
     withAudit("getPreferences", Map.empty) {
-      makePreferencesBackwardsCompatible(entityResolver.getPreferences())
+     entityResolver.getPreferences()
     }
 
   def setPreferencesPendingEmail(
@@ -114,31 +114,9 @@ class CustomerProfileService @Inject() (
   def reOptInEnabledCheck(preferences: Preference): Preference =
     (reOptInEnabled, preferences.status.map(_.name)) match {
       case (false, Some(ReOptIn)) =>
-        preferences.copy(email  = preferences.email.map(_.copy(status = Verified)),
-                         status = preferences.status.map(_.copy(name  = Verified)))
+        preferences.copy(status = preferences.status.map(_.copy(name = Verified)))
       case _ => preferences
     }
-
-  private def makePreferencesBackwardsCompatible(
-    preferencesReceived: Future[Option[Preference]]
-  )(implicit ex:         ExecutionContext
-  ): Future[Option[Preference]] =
-    for {
-      emailAddressCopied <- preferencesReceived.map(
-                             _.map(pref => pref.copy(emailAddress = pref.email.map(_.email.value)))
-                           )
-      statusName <- preferencesReceived.map(_.flatMap(_.status.map(_.name)))
-      statusCopied <- if (statusName.isDefined)
-                       Future.successful(
-                         emailAddressCopied
-                           .map(pref => pref.copy(email = pref.email.map(_.copy(status = statusName.get))))
-                       )
-                     else Future.successful(emailAddressCopied)
-      linkSent <- preferencesReceived.map(_.flatMap(_.email.flatMap(_.linkSent)))
-      backwardsCompatiblePreferences <- if (linkSent.isDefined)
-                                         Future successful statusCopied.map(pref => pref.copy(linkSent = linkSent))
-                                       else Future successful statusCopied
-    } yield backwardsCompatiblePreferences
 
   private def paperlessOptIn(
     settings:    Paperless

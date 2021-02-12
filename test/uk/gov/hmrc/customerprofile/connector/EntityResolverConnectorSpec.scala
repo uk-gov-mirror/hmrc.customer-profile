@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -87,7 +87,7 @@ class EntityResolverConnectorSpec
         .returns(preferences)
 
     "return the preferences for utr only" in {
-      val preferences = Some(Preference(digital = true, email = Some(EmailPreference(EmailAddress("test@mail.com"), Verified))))
+      val preferences = Some(Preference(digital = true))
 
       mockHttpGET(Future successful preferences)
 
@@ -95,7 +95,7 @@ class EntityResolverConnectorSpec
     }
 
     "return the preferences with linkSent daye when email is pending" in {
-      val preferences = Some(Preference(digital = true, email = Some(EmailPreference(EmailAddress("test@mail.com"), Pending, Some(LocalDate.now())))))
+      val preferences = Some(Preference(digital = true))
 
       mockHttpGET(Future successful preferences)
 

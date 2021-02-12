@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.customerprofile.controllers.api.ApiAccess
 import uk.gov.hmrc.http.{CoreGet, CorePost, CorePut}
 import uk.gov.hmrc.play.bootstrap.auth.DefaultAuthConnector
-import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.collection.JavaConverters._
@@ -33,7 +33,7 @@ class GuiceModule(
   configuration: Configuration)
     extends AbstractModule {
 
-  val servicesConfig = new ServicesConfig(configuration, new RunMode(configuration, environment.mode))
+  val servicesConfig = new ServicesConfig(configuration)
 
   override def configure(): Unit = {
     bind(classOf[CoreGet]).to(classOf[WSHttpImpl])
