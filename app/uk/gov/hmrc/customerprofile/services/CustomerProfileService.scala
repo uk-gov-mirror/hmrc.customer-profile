@@ -17,10 +17,12 @@
 package uk.gov.hmrc.customerprofile.services
 
 import com.google.inject.{Inject, Singleton}
+
 import javax.inject.Named
 import play.api.Configuration
 import uk.gov.hmrc.customerprofile.auth.{AccountAccessControl, NinoNotFoundOnAccount}
 import uk.gov.hmrc.customerprofile.connector._
+import uk.gov.hmrc.customerprofile.domain.Category.Info
 import uk.gov.hmrc.customerprofile.domain.StatusName.{ReOptIn, Verified}
 import uk.gov.hmrc.customerprofile.domain._
 import uk.gov.hmrc.customerprofile.domain.types.ModelTypes.JourneyId
@@ -71,7 +73,9 @@ class CustomerProfileService @Inject() (
       for {
         preferences ← entityResolver.getPreferences()
         status ← preferences.fold(paperlessOptIn(settings)) { preference =>
-                  if (preference.digital) setPreferencesPendingEmail(ChangeEmail(settings.email.value), journeyId)
+                  if (preference.digital && preference.status
+                        .getOrElse(PaperlessStatus(Verified, Info))
+                        .name != ReOptIn) setPreferencesPendingEmail(ChangeEmail(settings.email.value), journeyId)
                   else paperlessOptIn(settings)
                 }
       } yield status

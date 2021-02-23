@@ -271,6 +271,14 @@ class CustomerProfileServiceSpec
       await(service.paperlessSettings(newPaperlessSettings, journeyId)) shouldBe EmailUpdateOk
     }
 
+    "ReOptIn for a user who already has a defined digital preference and has received the reOptIn status" in {
+      mockAuditPaperlessSettings()
+      mockGetPreferences(Some(existingDigitalPreference.copy(status = Some(PaperlessStatus(StatusName.ReOptIn, Category.ReOptInRequired)))))
+      mockPaperlessSettings(PreferencesExists)
+
+      await(service.paperlessSettings(newPaperlessSettings, journeyId)) shouldBe PreferencesExists
+    }
+
     "set the digital preference to true and update the email for a user who already has a defined non-digital preference" in {
       mockAuditPaperlessSettings()
       mockGetPreferences(Some(existingNonDigitalPreference))
