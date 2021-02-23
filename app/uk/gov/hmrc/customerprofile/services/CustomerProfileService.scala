@@ -69,11 +69,24 @@ class CustomerProfileService @Inject() (
   ): Future[PreferencesStatus] =
     withAudit("paperlessSettings", Map("accepted" -> settings.generic.accepted.toString)) {
       for {
-        preferences ← entityResolver.getPreferences()
-        status ← preferences.fold(paperlessOptIn(settings)) { preference =>
-                  if (preference.digital) setPreferencesPendingEmail(ChangeEmail(settings.email.value), journeyId)
-                  else paperlessOptIn(settings)
-                }
+        preferences ← {
+          println("TESTING 1")
+          entityResolver.getPreferences()
+        }
+        status ← {
+          println("TESTING 1.5")
+          preferences.fold(paperlessOptIn(settings)) { preference =>
+            println("TESTING 2")
+            if (preference.digital && preference.status.get.name != ReOptIn) {
+              println("TESTING 3")
+              setPreferencesPendingEmail(ChangeEmail(settings.email.value), journeyId)
+            }
+            else {
+              println("TESTING 4")
+              paperlessOptIn(settings)
+            }
+          }
+        }
       } yield status
     }
 
