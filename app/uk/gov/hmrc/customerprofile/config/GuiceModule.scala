@@ -33,7 +33,7 @@ class GuiceModule(environment: Environment, configuration: Configuration) extend
     bindConfigInt("controllers.confidenceLevel")
     bindConfigInt("mongodb.ttlDays")
     bindConfigInt("service.maxStoredPins")
-    bind(classOf[String]).annotatedWith(named("api-access")).toInstance("CONTROLLED")
+    bind(classOf[String]).annotatedWith(named("api-access")).toInstance("INTERNAL")
 
     bindConfigBoolean("citizen-details.enabled", "microservice.services.citizen-details.enabled")
     bindConfigBoolean("optInVersionsEnabled", "optInVersionsEnabled")
